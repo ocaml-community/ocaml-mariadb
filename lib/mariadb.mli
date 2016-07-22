@@ -9,6 +9,9 @@ type nonblocking_res = [`Nonblocking] res
 type row = string array
 type flag
 
+type error = int * string
+
+
 val init : ?mariadb:([`Blocking] t) -> unit -> [`Blocking] t option
 val close : [< mode] t -> unit
 val use_result : [< mode] t -> [< mode] res option
@@ -46,12 +49,13 @@ module Nonblocking : sig
   val connect_start : t -> ?host:string -> ?user:string -> ?pass:string
                    -> ?db:string -> ?port:int -> ?socket:string
                    -> ?flags:flag list -> unit
-                   -> [`Ok | `Wait of Status.t | `Error]
+                   -> [`Ok | `Wait of Status.t | `Error of error]
 
-  val connect_cont : t -> Status.t -> [`Ok | `Wait of Status.t | `Error]
+  val connect_cont : t -> Status.t
+                  -> [`Ok | `Wait of Status.t | `Error of error]
 
-  val query_start : t -> string -> [`Ok | `Wait of Status.t | `Error]
-  val query_cont : t -> Status.t -> [`Ok | `Wait of Status.t | `Error]
+  val query_start : t -> string -> [`Ok | `Wait of Status.t | `Error of error]
+  val query_cont : t -> Status.t -> [`Ok | `Wait of Status.t | `Error of error]
 
   val fetch_row_start : res -> [`Ok of row | `Wait of Status.t | `Done]
   val fetch_row_cont : res -> Status.t

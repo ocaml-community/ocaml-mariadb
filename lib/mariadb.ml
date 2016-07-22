@@ -12,6 +12,8 @@ type nonblocking_res = [`Nonblocking] res
 type row = string array
 type flag
 
+type error = int * string
+
 let init ?mariadb () =
   B.mysql_init ~conn:mariadb ()
 
@@ -36,6 +38,9 @@ let num_rows =
 let free_result =
   B.mysql_free_result
 
+let make_error mariadb =
+  (errno mariadb, error mariadb)
+
 module Nonblocking = struct
   module Status = Wait_status
 
@@ -54,32 +59,34 @@ module Nonblocking = struct
     | Some m -> options m Nonblocking; Some m
     | None -> None
 
+  let handle_connect mariadb f =
+    match f () with
+    | 0, Some _ -> `Ok
+    | 0, None -> `Error (make_error mariadb)
+    | s, _ -> `Wait (Status.of_int s)
+
   let connect_start mariadb ?host ?user ?pass ?db ?(port = 0) ?socket
                     ?(flags = []) () =
     (* TODO flags *)
-    match
-    B.mysql_real_connect_start mariadb host user pass db port socket 0 with
-    | 0, Some _ -> `Ok
-    | 0, None -> `Error
-    | s, _ -> `Wait (Status.of_int s)
+    handle_connect mariadb
+      (fun () ->
+        B.mysql_real_connect_start mariadb host user pass db port socket 0)
 
   let connect_cont mariadb status =
-    match B.mysql_real_connect_cont mariadb (Status.to_int status) with
-    | 0, Some _ -> `Ok
-    | 0, None -> `Error
-    | s, _ -> `Wait (Status.of_int s)
+    handle_connect mariadb
+      (fun () -> B.mysql_real_connect_cont mariadb (Status.to_int status))
 
-  let handle_query f =
+  let handle_query mariadb f =
     match f () with
     | 0, 0 -> `Ok
-    | 0, _ -> `Error
+    | 0, _ -> `Error (make_error mariadb)
     | s, _ -> `Wait (Status.of_int s)
 
   let query_start mariadb query =
-    handle_query (fun () -> B.mysql_real_query_start mariadb query)
+    handle_query mariadb (fun () -> B.mysql_real_query_start mariadb query)
 
   let query_cont mariadb status =
-    handle_query (fun () -> B.mysql_real_query_cont mariadb status)
+    handle_query mariadb (fun () -> B.mysql_real_query_cont mariadb status)
 
   let handle_fetch_row f =
     match f () with
