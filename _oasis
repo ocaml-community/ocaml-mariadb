@@ -1,0 +1,46 @@
+OASISFormat: 0.4
+Name:        mariadb
+Version:     0.0.1
+Synopsis:    OCaml bindings for MariaDB
+Authors:     Andre Nathan
+License:     MIT
+
+BuildTools:  ocamlbuild
+Plugins:     META (0.4), DevFiles (0.4)
+
+Library "mariadb"
+  FindlibName:      mariadb
+  Path:             lib
+  Modules:          Mariadb
+  InternalModules:  Wait_status,
+                    Ffi_generated,
+                    Ffi_generated_types
+  CSources:         ffi_generated_stubs.c
+  CCOpt:            -I $pkg_ctypes_stubs
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  BuildDepends:     mariadb_bindings
+
+Library "mariadb_bindings"
+  Install:          true
+  Path:             bindings
+  Modules:          Ffi_bindings
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  BuildDepends:     ctypes.stubs, ctypes.foreign
+
+Executable ffi_stubgen
+  Install:          false
+  Path:             stubgen
+  MainIs:           ffi_stubgen.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  BuildDepends:     mariadb_bindings
+
+Executable ffi_types_stubgen
+  Install:          false
+  Path:             stubgen
+  MainIs:           ffi_types_stubgen.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  BuildDepends:     mariadb_bindings

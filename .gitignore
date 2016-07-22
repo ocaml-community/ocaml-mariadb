@@ -1,0 +1,6 @@
+_build/
+setup.data
+setup.log
+*.swp
+*.native
+*.docdir

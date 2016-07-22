@@ -1,0 +1,61 @@
+# OASIS_START
+# DO NOT EDIT (digest: aba3e4c18d935039fc6de3185c1132ce)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library mariadb_bindings
+"bindings/mariadb_bindings.cmxs": use_mariadb_bindings
+<bindings/mariadb_bindings.{cma,cmxa}>: oasis_library_mariadb_bindings_byte
+<bindings/*.ml{,i,y}>: oasis_library_mariadb_bindings_byte
+<bindings/mariadb_bindings.{cma,cmxa}>: oasis_library_mariadb_bindings_native
+<bindings/*.ml{,i,y}>: oasis_library_mariadb_bindings_native
+<bindings/*.ml{,i,y}>: pkg_ctypes.foreign
+<bindings/*.ml{,i,y}>: pkg_ctypes.stubs
+# Library mariadb
+"lib/mariadb.cmxs": use_mariadb
+<lib/*.ml{,i,y}>: oasis_library_mariadb_ccopt
+"lib/ffi_generated_stubs.c": oasis_library_mariadb_ccopt
+<lib/mariadb.{cma,cmxa}>: oasis_library_mariadb_byte
+<lib/*.ml{,i,y}>: oasis_library_mariadb_byte
+"lib/ffi_generated_stubs.c": oasis_library_mariadb_byte
+<lib/mariadb.{cma,cmxa}>: oasis_library_mariadb_native
+<lib/*.ml{,i,y}>: oasis_library_mariadb_native
+"lib/ffi_generated_stubs.c": oasis_library_mariadb_native
+<lib/mariadb.{cma,cmxa}>: use_libmariadb_stubs
+<lib/*.ml{,i,y}>: pkg_ctypes.foreign
+<lib/*.ml{,i,y}>: pkg_ctypes.stubs
+<lib/*.ml{,i,y}>: use_mariadb_bindings
+"lib/ffi_generated_stubs.c": pkg_ctypes.foreign
+"lib/ffi_generated_stubs.c": pkg_ctypes.stubs
+"lib/ffi_generated_stubs.c": use_mariadb_bindings
+# Executable ffi_stubgen
+"stubgen/ffi_stubgen.byte": oasis_executable_ffi_stubgen_byte
+<stubgen/*.ml{,i,y}>: oasis_executable_ffi_stubgen_byte
+"stubgen/ffi_stubgen.byte": oasis_executable_ffi_stubgen_native
+<stubgen/*.ml{,i,y}>: oasis_executable_ffi_stubgen_native
+"stubgen/ffi_stubgen.byte": pkg_ctypes.foreign
+"stubgen/ffi_stubgen.byte": pkg_ctypes.stubs
+"stubgen/ffi_stubgen.byte": use_mariadb_bindings
+# Executable ffi_types_stubgen
+"stubgen/ffi_types_stubgen.byte": oasis_executable_ffi_types_stubgen_byte
+<stubgen/*.ml{,i,y}>: oasis_executable_ffi_types_stubgen_byte
+"stubgen/ffi_types_stubgen.byte": oasis_executable_ffi_types_stubgen_native
+<stubgen/*.ml{,i,y}>: oasis_executable_ffi_types_stubgen_native
+"stubgen/ffi_types_stubgen.byte": pkg_ctypes.foreign
+"stubgen/ffi_types_stubgen.byte": pkg_ctypes.stubs
+"stubgen/ffi_types_stubgen.byte": use_mariadb_bindings
+<stubgen/*.ml{,i,y}>: pkg_ctypes.foreign
+<stubgen/*.ml{,i,y}>: pkg_ctypes.stubs
+<stubgen/*.ml{,i,y}>: use_mariadb_bindings
+# OASIS_STOP
