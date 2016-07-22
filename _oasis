@@ -29,7 +29,7 @@ Library "mariadb_bindings"
   NativeOpt:        -warn-error +1..45
   BuildDepends:     ctypes.stubs, ctypes.foreign
 
-Executable ffi_stubgen
+Executable "ffi_stubgen"
   Install:          false
   Path:             stubgen
   MainIs:           ffi_stubgen.ml
@@ -37,10 +37,19 @@ Executable ffi_stubgen
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings
 
-Executable ffi_types_stubgen
+Executable "ffi_types_stubgen"
   Install:          false
   Path:             stubgen
   MainIs:           ffi_types_stubgen.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings
+
+Executable "test"
+  Install:          false
+  Path:             lib_test
+  MainIs:           test.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  BuildDepends:     mariadb,
+                    unix
