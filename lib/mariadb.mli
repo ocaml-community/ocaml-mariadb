@@ -64,7 +64,7 @@ module Nonblocking : sig
 
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
-  val init : ?mariadb:t -> unit -> t option
+  val init : unit -> t option
   val close_start : t -> [`Ok | `Wait of Status.t]
   val close_cont : t -> Status.t -> [`Ok | `Wait of Status.t]
 
@@ -150,6 +150,6 @@ module Nonblocking : sig
   end
 end
 
-val init : ?mariadb:([`Blocking] t) -> unit -> [`Blocking] t option
+val init : unit -> [`Blocking] t option
 val close : [< mode] t -> unit
 val use_result: [< mode] t -> [< mode] Res.t option

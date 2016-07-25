@@ -70,8 +70,8 @@ module Nonblocking = struct
     | Nonblocking ->
         B.mysql_options mariadb T.Mariadb_options.nonblock Ctypes.null
 
-  let init ?mariadb () =
-    match B.mysql_init ~mysql:mariadb () with
+  let init () =
+    match B.mysql_init () with
     | Some m -> options m Nonblocking; Some m
     | None -> None
 
@@ -293,8 +293,8 @@ module Nonblocking = struct
   end
 end
 
-let init ?mariadb () =
-  B.mysql_init ~mysql:mariadb ()
+let init () =
+  B.mysql_init ()
 
 let close =
   B.mysql_close

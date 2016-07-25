@@ -256,8 +256,8 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   open F
   include Foreign_bindings
 
-  let mysql_init ?(mysql = None) () =
-    mysql_init mysql
+  let mysql_init () =
+    mysql_init None
 
   let mysql_options mysql opt value =
     mysql_options mysql opt value |> ignore
