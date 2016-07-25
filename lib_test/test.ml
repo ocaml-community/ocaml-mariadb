@@ -27,7 +27,7 @@ let wait mariadb status =
 
 let rec handle_connect mariadb f =
   match f mariadb with
-  | `Ok -> mariadb
+  | `Ok () -> mariadb
   | `Wait status -> connect_cont mariadb status
   | `Error err -> die __LOC__ err
 
@@ -52,7 +52,7 @@ let connect_start mariadb =
 
 let rec handle_query mariadb f =
   match f mariadb with
-  | `Ok -> ()
+  | `Ok () -> ()
   | `Wait status -> query_cont mariadb status
   | `Error err -> die __LOC__ err
 

@@ -5,6 +5,10 @@ module Types (F: Cstubs.Types.TYPE) = struct
   module Mariadb_options = struct
     let nonblock = constant "MYSQL_OPT_NONBLOCK" int
   end
+  module Mariadb_server_options = struct
+    let multi_statements_on = constant "MYSQL_OPTION_MULTI_STATEMENTS_ON" int
+    let multi_statements_off = constant "MYSQL_OPTION_MULTI_STATEMENTS_OFF" int
+  end
   module Mariadb_wait_status = struct
     let read = constant "MYSQL_WAIT_READ" int
     let write = constant "MYSQL_WAIT_WRITE" int
@@ -19,126 +23,275 @@ module Foreign_bindings = struct
   let foreign name typ = foreign name typ
     ~from:Dl.(dlopen ~filename:"libmysqlclient.so" ~flags:[RTLD_NOW])
 
-  type mysql = unit ptr
-  let mysql : mysql typ = ptr void
+  module Types = struct
+    type mysql = unit ptr
+    let mysql : mysql typ = ptr void
 
-  type mysql_opt = unit ptr option
-  let mysql_opt : mysql_opt typ = ptr_opt void
+    type mysql_opt = unit ptr option
+    let mysql_opt : mysql_opt typ = ptr_opt void
 
-  type res = unit ptr
-  let res : res typ = ptr void
+    type res = unit ptr
+    let res : res typ = ptr void
 
-  type res_opt = unit ptr option
-  let res_opt : res_opt typ = ptr_opt void
+    type res_opt = unit ptr option
+    let res_opt : res_opt typ = ptr_opt void
 
-  type row = char ptr ptr
-  let row : row typ = ptr (ptr char)
+    type row = char ptr ptr
+    let row : row typ = ptr (ptr char)
 
-  type row_opt = char ptr ptr option
-  let row_opt : row_opt typ = ptr_opt (ptr char)
+    type row_opt = char ptr ptr option
+    let row_opt : row_opt typ = ptr_opt (ptr char)
+
+    type stmt = unit ptr
+    let stmt : stmt typ = ptr void
+
+    type stmt_opt = unit ptr option
+    let stmt_opt : stmt_opt typ = ptr_opt void
+
+    type my_bool = char
+    let my_bool : char typ = char
+  end
+
+  module T = Types
 
   let mysql_init = foreign "mysql_init"
-    (mysql_opt @-> returning mysql_opt)
+    (T.mysql_opt @-> returning T.mysql_opt)
 
   let mysql_close = foreign "mysql_close"
-    (mysql @-> returning void)
+    (T.mysql @-> returning void)
 
   let mysql_options = foreign "mysql_options"
-    (mysql @-> int @-> ptr void @-> returning int)
+    (T.mysql @-> int @-> ptr void @-> returning int)
 
   let mysql_use_result = foreign "mysql_use_result"
-    (mysql @-> returning res_opt)
+    (T.mysql @-> returning T.res_opt)
 
   let mysql_free_result = foreign "mysql_free_result"
-    (res @-> returning void)
+    (T.res @-> returning void)
 
   let mysql_num_fields = foreign "mysql_num_fields"
-    (res @-> returning int)
+    (T.res @-> returning int)
 
   let mysql_num_rows = foreign "mysql_num_rows"
-    (res @-> returning int)
+    (T.res @-> returning int)
 
   let mysql_errno = foreign "mysql_errno"
-    (mysql @-> returning int)
+    (T.mysql @-> returning int)
 
   let mysql_error = foreign "mysql_error"
-    (mysql @-> returning string)
+    (T.mysql @-> returning string)
+
+  let mysql_stmt_init = foreign "mysql_stmt_init"
+    (T.mysql @-> returning T.stmt_opt)
+
+  let mysql_stmt_errno = foreign "mysql_stmt_errno"
+    (T.stmt @-> returning int)
+
+  let mysql_stmt_error = foreign "mysql_stmt_error"
+    (T.stmt @-> returning string)
 
   (* Nonblocking API *)
 
   let mysql_close_start = foreign "mysql_close_start"
-    (mysql @-> returning int)
+    (T.mysql @-> returning int)
 
   let mysql_close_cont = foreign "mysql_close_cont"
-    (mysql @-> int @-> returning int)
+    (T.mysql @-> int @-> returning int)
 
   let mysql_real_connect_start = foreign "mysql_real_connect_start"
-    (ptr mysql_opt @-> mysql @-> string_opt @-> string_opt @-> string_opt @->
-     string_opt @-> uint @-> string_opt @-> ulong @-> returning int)
+    (ptr T.mysql_opt @-> T.mysql @-> string_opt @-> string_opt @->
+     string_opt @-> string_opt @-> uint @-> string_opt @-> ulong @->
+     returning int)
 
   let mysql_real_connect_cont = foreign "mysql_real_connect_cont"
-    (ptr mysql_opt @-> mysql @-> int @-> returning int)
+    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
 
   let mysql_real_query_start = foreign "mysql_real_query_start"
-    (ptr int @-> mysql @-> string @-> ulong @-> returning int)
+    (ptr int @-> T.mysql @-> string @-> ulong @-> returning int)
 
   let mysql_real_query_cont = foreign "mysql_real_query_cont"
-    (ptr int @-> mysql @-> int @-> returning int)
+    (ptr int @-> T.mysql @-> int @-> returning int)
 
   let mysql_fetch_row_start = foreign "mysql_fetch_row_start"
-    (ptr row_opt @-> res @-> returning int)
+    (ptr T.row_opt @-> T.res @-> returning int)
 
   let mysql_fetch_row_cont = foreign "mysql_fetch_row_cont"
-    (ptr row_opt @-> res @-> int @-> returning int)
+    (ptr T.row_opt @-> T.res @-> int @-> returning int)
 
   let mysql_free_result_start = foreign "mysql_free_result_start"
-    (res @-> returning int)
+    (T.res @-> returning int)
 
-  let mysql_free_result_cont = foreign "mysql_free_result_start"
-    (res @-> int @-> returning int)
+  let mysql_free_result_cont = foreign "mysql_free_result_cont"
+    (T.res @-> int @-> returning int)
 
   let mysql_get_socket = foreign "mysql_get_socket"
-    (mysql @-> returning int)
+    (T.mysql @-> returning int)
 
   let mysql_get_timeout_value = foreign "mysql_get_timeout_value"
-    (mysql @-> returning uint)
+    (T.mysql @-> returning uint)
+
+  let mysql_set_character_set_start = foreign "mysql_set_character_set_start"
+    (ptr T.mysql_opt @-> T.mysql @-> string @-> returning int)
+
+  let mysql_set_character_set_cont = foreign "mysql_set_character_set_cont"
+    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_select_db_start = foreign "mysql_select_db_start"
+    (ptr T.mysql_opt @-> T.mysql @-> string @-> returning int)
+
+  let mysql_select_db_cont = foreign "mysql_select_db_cont"
+    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_change_user_start = foreign "mysql_change_user_start"
+    (ptr T.mysql_opt @-> T.mysql @-> string @-> string @-> string_opt @->
+     returning int)
+
+  let mysql_change_user_cont = foreign "mysql_change_user_cont"
+    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_dump_debug_info_start = foreign "mysql_dump_debug_info_start"
+    (ptr T.mysql_opt @-> T.mysql @-> returning int)
+
+  let mysql_dump_debug_info_cont = foreign "mysql_dump_debug_info_cont"
+    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_set_server_option_start = foreign "mysql_set_server_option_start"
+    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_set_server_option_cont = foreign "mysql_set_server_option_cont"
+    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_ping_start = foreign "mysql_ping_start"
+    (ptr T.mysql_opt @-> T.mysql @-> returning int)
+
+  let mysql_ping_cont = foreign "mysql_ping_cont"
+    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_list_dbs_start = foreign "mysql_list_dbs_start"
+    (ptr T.res_opt @-> T.mysql @-> string @-> returning int)
+
+  let mysql_list_dbs_cont = foreign "mysql_list_dbs_cont"
+    (ptr T.res_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_list_tables_start = foreign "mysql_list_tables_start"
+    (ptr T.res_opt @-> T.mysql @-> string @-> returning int)
+
+  let mysql_list_tables_cont = foreign "mysql_list_tables_cont"
+    (ptr T.res_opt @-> T.mysql @-> int @-> returning int)
+
+  let mysql_stmt_prepare_start = foreign "mysql_stmt_prepare_start"
+    (ptr int @-> T.stmt @-> string @-> ulong @-> returning int)
+
+  let mysql_stmt_prepare_cont = foreign "mysql_stmt_prepare_cont"
+    (ptr int @-> T.stmt @-> int @-> returning int)
+
+  let mysql_stmt_execute_start = foreign "mysql_stmt_execute_start"
+    (ptr int @-> T.stmt @-> returning int)
+
+  let mysql_stmt_execute_cont = foreign "mysql_stmt_execute_cont"
+    (ptr int @-> T.stmt @-> int @-> returning int)
+
+  let mysql_stmt_fetch_start = foreign "mysql_stmt_fetch_start"
+    (ptr int @-> T.stmt @-> returning int)
+
+  let mysql_stmt_fetch_cont = foreign "mysql_stmt_fetch_cont"
+    (ptr int @-> T.stmt @-> int @-> returning int)
+
+  let mysql_stmt_store_result_start = foreign "mysql_stmt_store_result_start"
+    (ptr int @-> T.stmt @-> returning int)
+
+  let mysql_stmt_store_result_cont = foreign "mysql_stmt_store_result_cont"
+    (ptr int @-> T.stmt @-> int @-> returning int)
+
+  let mysql_stmt_close_start = foreign "mysql_stmt_close_start"
+    (ptr char @-> T.stmt @-> returning int)
+
+  let mysql_stmt_close_cont = foreign "mysql_stmt_close_cont"
+    (ptr char @-> T.stmt @-> int @-> returning int)
+
+  let mysql_stmt_reset_start = foreign "mysql_stmt_reset_start"
+    (ptr char @-> T.stmt @-> returning int)
+
+  let mysql_stmt_reset_cont = foreign "mysql_stmt_reset_cont"
+    (ptr char @-> T.stmt @-> int @-> returning int)
+
+  let mysql_stmt_free_result_start = foreign "mysql_stmt_free_result_start"
+    (ptr char @-> T.stmt @-> returning int)
+
+  let mysql_stmt_free_result_cont = foreign "mysql_stmt_free_result_cont"
+    (ptr char @-> T.stmt @-> int @-> returning int)
+
+  let mysql_commit_start = foreign "mysql_commit_start"
+    (ptr char @-> T.mysql @-> returning int)
+
+  let mysql_commit_cont = foreign "mysql_commit_cont"
+    (ptr char @-> T.mysql @-> int @-> returning int)
+
+  let mysql_rollback_start = foreign "mysql_rollback_start"
+    (ptr char @-> T.mysql @-> returning int)
+
+  let mysql_rollback_cont = foreign "mysql_rollback_cont"
+    (ptr char @-> T.mysql @-> int @-> returning int)
+
+  let mysql_autocommit_start = foreign "mysql_autocommit_start"
+    (ptr char @-> T.mysql @-> char @-> returning int)
+
+  let mysql_autocommit_cont = foreign "mysql_autocommit_cont"
+    (ptr char @-> T.mysql @-> int @-> returning int)
+
+  let mysql_next_result_start = foreign "mysql_next_result_start"
+    (ptr int @-> T.mysql @-> returning int)
+
+  let mysql_next_result_cont = foreign "mysql_next_result_cont"
+    (ptr int @-> T.mysql @-> int @-> returning int)
+
+  let mysql_stmt_next_result_start = foreign "mysql_stmt_next_result_start"
+    (ptr int @-> T.stmt @-> returning int)
+
+  let mysql_stmt_next_result_cont = foreign "mysql_stmt_next_result_cont"
+    (ptr int @-> T.stmt @-> int @-> returning int)
 end
 
 module Bindings (F : Cstubs.FOREIGN) = struct
   open F
   include Foreign_bindings
 
-  let mysql_init ?(conn = None) () =
-    mysql_init conn
+  let mysql_init ?(mysql = None) () =
+    mysql_init mysql
 
-  let mysql_options conn opt value =
-    mysql_options conn opt value |> ignore
+  let mysql_options mysql opt value =
+    mysql_options mysql opt value |> ignore
 
   (* Nonblocking API *)
 
-  let mysql_real_connect_start conn host user pass db port socket flags =
+  let handle (typ, z) f =
+    let r = allocate typ z in
+    let s = f r in
+    (s, !@r)
+
+  let handle_opt typ = handle (typ, None)
+  let handle_int f = handle (int, 0) f
+  let handle_char f = handle (char, '\000') f
+
+  let handle_ret = handle_opt T.mysql_opt
+  let handle_res = handle_opt T.res_opt
+
+  let mysql_real_connect_start mysql host user pass db port socket flags =
     let port = Unsigned.UInt.of_int port in
     let flags = Unsigned.ULong.of_int flags in
-    let ret = allocate mysql_opt None in
-    let status =
-      mysql_real_connect_start ret conn host user pass db port socket flags in
-    (status, !@ret)
+    handle_ret
+      (fun ret ->
+        mysql_real_connect_start ret mysql host user pass db port socket flags)
 
-  let mysql_real_connect_cont conn status =
-    let ret = allocate mysql_opt None in
-    let status = mysql_real_connect_cont ret conn status in
-    (status, !@ret)
+  let mysql_real_connect_cont mysql status =
+    handle_ret (fun ret -> mysql_real_connect_cont ret mysql status)
 
-  let mysql_real_query_start conn query =
-    let err = allocate int 0 in
+  let mysql_real_query_start mysql query =
     let len = Unsigned.ULong.of_int (String.length query) in
-    let status = mysql_real_query_start err conn query len in
-    (status, !@err)
+    handle_int (fun err -> mysql_real_query_start err mysql query len)
 
-  let mysql_real_query_cont conn status =
-    let err = allocate int 0 in
-    let status = mysql_real_query_cont err conn status in
-    (status, !@err)
+  let mysql_real_query_cont mysql status =
+    handle_int (fun err -> mysql_real_query_cont err mysql status)
 
   let string_of_char_ptr p =
     let b = Buffer.create 256 in
@@ -165,7 +318,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     a
 
   let fetch_row res f =
-    let row = allocate row_opt None in
+    let row = allocate T.row_opt None in
     let status = f row in
     let num = mysql_num_fields res in
     match !@row with
@@ -178,6 +331,128 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let mysql_fetch_row_cont res status =
     fetch_row res (fun row -> mysql_fetch_row_cont row res status)
 
-  let mysql_get_timeout_value conn =
-    Unsigned.UInt.to_int @@ mysql_get_timeout_value conn
+  let mysql_get_timeout_value mysql =
+    Unsigned.UInt.to_int @@ mysql_get_timeout_value mysql
+
+  let mysql_set_character_set_start mysql charset =
+    handle_ret (fun ret -> mysql_set_character_set_start ret mysql charset)
+
+  let mysql_set_character_set_cont mysql status =
+    handle_ret (fun ret -> mysql_set_character_set_cont ret mysql status)
+
+  let mysql_select_db_start mysql db =
+    handle_ret (fun ret -> mysql_select_db_start ret mysql db)
+
+  let mysql_select_db_cont mysql status =
+    handle_ret (fun ret -> mysql_select_db_cont ret mysql status)
+
+  let mysql_change_user_start mysql user pass db =
+    handle_ret (fun ret -> mysql_change_user_start ret mysql user pass db)
+
+  let mysql_change_user_cont mysql status =
+    handle_ret (fun ret -> mysql_change_user_cont ret mysql status)
+
+  let mysql_dump_debug_info_start mysql =
+    handle_ret (fun ret -> mysql_dump_debug_info_start ret mysql)
+
+  let mysql_dump_debug_info_cont mysql status =
+    handle_ret (fun ret -> mysql_dump_debug_info_cont ret mysql status)
+
+  let mysql_set_server_option_start mysql opt =
+    handle_ret (fun ret -> mysql_set_server_option_start ret mysql opt)
+
+  let mysql_set_server_option_cont mysql status =
+    handle_ret (fun ret -> mysql_set_server_option_cont ret mysql status)
+
+  let mysql_ping_start mysql =
+    handle_ret (fun ret -> mysql_ping_start ret mysql)
+
+  let mysql_ping_cont mysql status =
+    handle_ret (fun ret -> mysql_ping_cont ret mysql status)
+
+  let mysql_list_dbs_start mysql wild =
+    handle_res (fun res -> mysql_list_dbs_start res mysql wild)
+
+  let mysql_list_dbs_cont mysql status =
+    handle_res (fun res -> mysql_list_dbs_cont res mysql status)
+
+  let mysql_list_tables_start mysql wild =
+    handle_res (fun res -> mysql_list_tables_start res mysql wild)
+
+  let mysql_list_tables_cont mysql status =
+    handle_res (fun res -> mysql_list_tables_cont res mysql status)
+
+  let mysql_stmt_prepare_start stmt query =
+    let len = Unsigned.ULong.of_int (String.length query) in
+    handle_int (fun err -> mysql_stmt_prepare_start err stmt query len)
+
+  let mysql_stmt_prepare_cont stmt status =
+    handle_int (fun err -> mysql_stmt_prepare_cont err stmt status)
+
+  let mysql_stmt_execute_start stmt =
+    handle_int (fun err -> mysql_stmt_execute_start err stmt)
+
+  let mysql_stmt_execute_cont stmt status =
+    handle_int (fun err -> mysql_stmt_execute_cont err stmt status)
+
+  let mysql_stmt_fetch_start stmt =
+    handle_int (fun err -> mysql_stmt_fetch_start err stmt)
+
+  let mysql_stmt_fetch_cont stmt status =
+    handle_int (fun err -> mysql_stmt_fetch_cont err stmt status)
+
+  let mysql_stmt_store_result_start stmt =
+    handle_int (fun err -> mysql_stmt_store_result_start err stmt)
+
+  let mysql_stmt_store_result_cont stmt status =
+    handle_int (fun err -> mysql_stmt_store_result_cont err stmt status)
+
+  let mysql_stmt_close_start stmt =
+    handle_char (fun err -> mysql_stmt_close_start err stmt)
+
+  let mysql_stmt_close_cont stmt status =
+    handle_char (fun err -> mysql_stmt_close_cont err stmt status)
+
+  let mysql_stmt_reset_start stmt =
+    handle_char (fun err -> mysql_stmt_reset_start err stmt)
+
+  let mysql_stmt_reset_cont stmt status =
+    handle_char (fun err -> mysql_stmt_reset_cont err stmt status)
+
+  let mysql_stmt_free_result_start stmt =
+    handle_char (fun err -> mysql_stmt_free_result_start err stmt)
+
+  let mysql_stmt_free_result_cont stmt status =
+    handle_char (fun err -> mysql_stmt_free_result_cont err stmt status)
+
+  let mysql_commit_start mysql =
+    handle_char (fun err -> mysql_commit_start err mysql)
+
+  let mysql_commit_cont mysql status =
+    handle_char (fun err -> mysql_commit_cont err mysql status)
+
+  let mysql_rollback_start mysql =
+    handle_char (fun err -> mysql_rollback_start err mysql)
+
+  let mysql_rollback_cont mysql status =
+    handle_char (fun err -> mysql_rollback_cont err mysql status)
+
+  let mysql_autocommit_start mysql auto =
+    let auto = if auto then '\001' else '\000' in
+    handle_char (fun err -> mysql_autocommit_start err mysql auto)
+
+  let mysql_autocommit_cont mysql status =
+    handle_char (fun err -> mysql_autocommit_cont err mysql status)
+
+  let mysql_next_result_start mysql =
+    handle_int (fun err -> mysql_next_result_start err mysql)
+
+  let mysql_next_result_cont mysql status =
+    handle_int (fun err -> mysql_next_result_cont err mysql status)
+
+  let mysql_stmt_next_result_start stmt =
+    handle_int (fun err -> mysql_stmt_next_result_start err stmt)
+
+  let mysql_stmt_next_result_cont stmt status =
+    handle_int (fun err -> mysql_stmt_next_result_cont err stmt status)
 end

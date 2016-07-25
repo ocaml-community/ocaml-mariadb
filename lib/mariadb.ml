@@ -3,19 +3,25 @@ module T = Ffi_bindings.Types(Ffi_generated_types)
 
 type mode = [`Blocking | `Nonblocking]
 
-type 'm t = B.mysql constraint 'm = [< mode]
+type 'm t = B.Types.mysql constraint 'm = [< mode]
 type nonblocking = [`Nonblocking] t
 
-type 'm res = B.res constraint 'm = [< mode]
+type 'm res = B.Types.res constraint 'm = [< mode]
 type nonblocking_res = [`Nonblocking] res
 
 type row = string array
+
+type 'm stmt = B.Types.stmt constraint 'm = [< mode]
+
 type flag
+
+type server_option =
+  | Multi_statements of bool
 
 type error = int * string
 
 let init ?mariadb () =
-  B.mysql_init ~conn:mariadb ()
+  B.mysql_init ~mysql:mariadb ()
 
 let close =
   B.mysql_close
@@ -38,14 +44,28 @@ let num_rows =
 let free_result =
   B.mysql_free_result
 
-let make_error mariadb =
+let stmt_init =
+  B.mysql_stmt_init
+
+let stmt_errno =
+  B.mysql_stmt_errno
+
+let stmt_error =
+  B.mysql_stmt_error
+
+let mariadb_error mariadb =
   (errno mariadb, error mariadb)
+
+let stmt_error stmt =
+  (stmt_errno stmt, stmt_error stmt)
 
 module Nonblocking = struct
   module Status = Wait_status
 
   type t = nonblocking
   type res = nonblocking_res
+
+  type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
 
   type options =
     | Nonblocking
@@ -55,38 +75,49 @@ module Nonblocking = struct
         B.mysql_options mariadb T.Mariadb_options.nonblock Ctypes.null
 
   let init ?mariadb () =
-    match B.mysql_init ~conn:mariadb () with
+    match B.mysql_init ~mysql:mariadb () with
     | Some m -> options m Nonblocking; Some m
     | None -> None
 
-  let handle_connect mariadb f =
-    match f () with
-    | 0, Some _ -> `Ok
-    | 0, None -> `Error (make_error mariadb)
+  let handle_opt mariadb f =
+    match f mariadb with
+    | 0, Some r -> `Ok r
+    | 0, None -> `Error (mariadb_error mariadb)
+    | s, _ -> `Wait (Status.of_int s)
+
+  let handle_unit mariadb f =
+    match handle_opt mariadb f with
+    | `Ok _ -> `Ok ()
+    | `Wait s -> `Wait s
+    | `Error e -> `Error e
+
+  let handle_int mariadb f =
+    match f mariadb with
+    | 0, 0 -> `Ok ()
+    | 0, _ -> `Error (mariadb_error mariadb)
+    | s, _ -> `Wait (Status.of_int s)
+
+  let handle_char mariadb f =
+    match f mariadb with
+    | 0, '\000' -> `Ok ()
+    | 0, _ -> `Error (mariadb_error mariadb)
     | s, _ -> `Wait (Status.of_int s)
 
   let connect_start mariadb ?host ?user ?pass ?db ?(port = 0) ?socket
                     ?(flags = []) () =
     (* TODO flags *)
-    handle_connect mariadb
-      (fun () ->
-        B.mysql_real_connect_start mariadb host user pass db port socket 0)
+    handle_unit mariadb
+      (fun m -> B.mysql_real_connect_start m host user pass db port socket 0)
 
   let connect_cont mariadb status =
-    handle_connect mariadb
-      (fun () -> B.mysql_real_connect_cont mariadb (Status.to_int status))
-
-  let handle_query mariadb f =
-    match f () with
-    | 0, 0 -> `Ok
-    | 0, _ -> `Error (make_error mariadb)
-    | s, _ -> `Wait (Status.of_int s)
+    handle_unit mariadb
+      (fun m -> B.mysql_real_connect_cont m (Status.to_int status))
 
   let query_start mariadb query =
-    handle_query mariadb (fun () -> B.mysql_real_query_start mariadb query)
+    handle_int mariadb (fun m -> B.mysql_real_query_start m query)
 
   let query_cont mariadb status =
-    handle_query mariadb (fun () -> B.mysql_real_query_cont mariadb status)
+    handle_int mariadb (fun m -> B.mysql_real_query_cont m status)
 
   let handle_fetch_row f =
     match f () with
@@ -122,107 +153,140 @@ module Nonblocking = struct
 
   let timeout =
     B.mysql_get_timeout_value
+
+  let set_charset_start mariadb charset =
+    handle_unit mariadb (fun m -> B.mysql_set_character_set_start m charset)
+
+  let set_charset_cont mariadb status =
+    handle_unit mariadb (fun m -> B.mysql_set_character_set_cont m status)
+
+  let select_db_start mariadb db =
+    handle_unit mariadb (fun m -> B.mysql_select_db_start m db)
+
+  let select_db_cont mariadb status =
+    handle_unit mariadb (fun m -> B.mysql_select_db_cont m status)
+
+  let change_user_start mariadb user pass db =
+    handle_unit mariadb (fun m -> B.mysql_change_user_start m user pass db)
+
+  let change_user_cont mariadb status =
+    handle_unit mariadb (fun m -> B.mysql_change_user_cont m status)
+
+  let dump_debug_info_start mariadb =
+    handle_unit mariadb (fun m -> B.mysql_dump_debug_info_start m)
+
+  let dump_debug_info_cont mariadb status =
+    handle_unit mariadb (fun m -> B.mysql_dump_debug_info_cont m status)
+
+  let set_server_option_start mariadb opt =
+    let opt =
+      match opt with
+      | Multi_statements true -> T.Mariadb_server_options.multi_statements_on
+      | Multi_statements false -> T.Mariadb_server_options.multi_statements_off
+    in
+    handle_unit mariadb (fun m -> B.mysql_set_server_option_start m opt)
+
+  let set_server_option_cont mariadb status =
+    handle_unit mariadb (fun m -> B.mysql_set_server_option_cont m status)
+
+  let ping_start mariadb =
+    handle_unit mariadb (fun m -> B.mysql_ping_start m)
+
+  let ping_cont mariadb status =
+    handle_unit mariadb (fun m -> B.mysql_ping_cont m status)
+
+  let list_dbs_start mariadb wild =
+    handle_opt mariadb (fun m -> B.mysql_list_dbs_start m wild)
+
+  let list_dbs_cont mariadb status =
+    handle_opt mariadb (fun m -> B.mysql_list_dbs_cont m status)
+
+  let list_tables_start mariadb wild =
+    handle_opt mariadb (fun m -> B.mysql_list_tables_start m wild)
+
+  let list_tables_cont mariadb status =
+    handle_opt mariadb (fun m -> B.mysql_list_tables_cont m status)
+
+  let stmt_prepare_start mariadb query =
+    handle_int mariadb (fun m -> B.mysql_stmt_prepare_start m query)
+
+  let stmt_prepare_cont mariadb status =
+    handle_int mariadb (fun m -> B.mysql_stmt_prepare_cont m status)
+
+  let stmt_execute_start mariadb query =
+    handle_int mariadb (fun m -> B.mysql_stmt_execute_start m)
+
+  let stmt_execute_cont mariadb status =
+    handle_int mariadb (fun m -> B.mysql_stmt_execute_cont m status)
+
+  let stmt_fetch_start mariadb query =
+    handle_int mariadb (fun m -> B.mysql_stmt_fetch_start m)
+
+  let stmt_fetch_cont mariadb status =
+    handle_int mariadb (fun m -> B.mysql_stmt_fetch_cont m status)
+
+  let stmt_store_result_start mariadb query =
+    handle_int mariadb (fun m -> B.mysql_stmt_store_result_start m)
+
+  let stmt_store_result_cont mariadb status =
+    handle_int mariadb (fun m -> B.mysql_stmt_store_result_cont m status)
+
+  let stmt_close_start mariadb query =
+    handle_char mariadb (fun m -> B.mysql_stmt_close_start m)
+
+  let stmt_close_cont mariadb status =
+    handle_char mariadb (fun m -> B.mysql_stmt_close_cont m status)
+
+  let stmt_reset_start mariadb query =
+    handle_char mariadb (fun m -> B.mysql_stmt_reset_start m)
+
+  let stmt_reset_cont mariadb status =
+    handle_char mariadb (fun m -> B.mysql_stmt_reset_cont m status)
+
+  let stmt_free_result_start mariadb query =
+    handle_char mariadb (fun m -> B.mysql_stmt_free_result_start m)
+
+  let stmt_free_result_cont mariadb status =
+    handle_char mariadb (fun m -> B.mysql_stmt_free_result_cont m status)
+
+  let commit_start mariadb =
+    handle_char mariadb (fun m -> B.mysql_commit_start m)
+
+  let commit_cont mariadb status =
+    handle_char mariadb (fun m -> B.mysql_commit_cont m status)
+
+  let rollback_start mariadb =
+    handle_char mariadb (fun m -> B.mysql_rollback_start m)
+
+  let rollback_cont mariadb status =
+    handle_char mariadb (fun m -> B.mysql_rollback_cont m status)
+
+  let autocommit_start mariadb auto =
+    handle_char mariadb (fun m -> B.mysql_autocommit_start m auto)
+
+  let autocommit_cont mariadb status =
+    handle_char mariadb (fun m -> B.mysql_autocommit_cont m status)
+
+  let handle_next_result obj f errf =
+    match f obj with
+    | 0, 0 -> `Ok true
+    | 0, -1 -> `Ok false
+    | 0, _ -> `Error (errf obj)
+    | s, _ -> `Wait (Status.of_int s)
+
+  let next_result_start mariadb =
+    handle_next_result
+      mariadb (fun m -> B.mysql_next_result_start m) mariadb_error
+
+  let next_result_cont mariadb status =
+    handle_next_result
+      mariadb (fun m -> B.mysql_next_result_cont m status) mariadb_error
+
+  let stmt_next_result_start stmt =
+    handle_next_result
+      stmt (fun s -> B.mysql_stmt_next_result_start s) stmt_error
+
+  let stmt_next_result_cont stmt status =
+    handle_next_result
+      stmt (fun s -> B.mysql_stmt_next_result_cont s status) stmt_error
 end
-
-
-(*
-
-int mysql_set_character_set_start(int *ret, MYSQL *mysql, const char *csname)
-int mysql_set_character_set_cont(int *ret, MYSQL *mysql, int ready_status)
-mysql_select_db_start(int *ret, MYSQL *mysql, const char *db)
-int mysql_select_db_cont(int *ret, MYSQL *mysql, int ready_status)
-int mysql_send_query_start(int *ret, MYSQL *mysql, const char *q, unsigned long
-length)
-int mysql_send_query_cont(int *ret, MYSQL *mysql, int ready_status)
-int mysql_store_result_start(MYSQL_RES **ret, MYSQL *mysql)
-int mysql_store_result_cont(MYSQL_RES **ret, MYSQL *mysql, int ready_status)
-int mysql_free_result_start(MYSQL_RES *result)
-int mysql_free_result_cont(MYSQL_RES *result, int ready_status)
-int mysql_close_start(MYSQL *sock)
-int mysql_close_cont(MYSQL *sock, int ready_status)
-int mysql_change_user_start(my_bool *ret, MYSQL *mysql, const char *user, const
-                            char *passwd, const char *db)
-int mysql_change_user_cont(my_bool *ret, MYSQL *mysql, int ready_status)
-
-int mysql_query_start(int *ret, MYSQL *mysql, const char *q)
-int mysql_query_cont(int *ret, MYSQL *mysql, int ready_status)
-
-int mysql_shutdown_start(int *ret, MYSQL *mysql, enum mysql_enum_shutdown_level
-                        shutdown_level)
-int mysql_shutdown_cont(int *ret, MYSQL *mysql, int ready_status)
-int mysql_dump_debug_info_start(int *ret, MYSQL *mysql)
-int mysql_dump_debug_info_cont(int *ret, MYSQL *mysql, int ready_status)
-int mysql_refresh_start(int *ret, MYSQL *mysql, unsigned int refresh_options)
-int mysql_refresh_cont(int *ret, MYSQL *mysql, int ready_status)
-int mysql_kill_start(int *ret, MYSQL *mysql, unsigned long pid)
-int mysql_kill_cont(int *ret, MYSQL *mysql, int ready_status)
-int mysql_set_server_option_start(int *ret, MYSQL *mysql,
-                              enum enum_mysql_set_option option)
-int mysql_set_server_option_cont(int *ret, MYSQL *mysql, int ready_status)
-int mysql_ping_start(int *ret, MYSQL *mysql)
-int mysql_ping_cont(int *ret, MYSQL *mysql, int ready_status)
-int mysql_stat_start(const char **ret, MYSQL *mysql)
-int mysql_stat_cont(const char **ret, MYSQL *mysql, int ready_status)
-int mysql_list_dbs_start(MYSQL_RES **ret, MYSQL *mysql, const char *wild)
-int mysql_list_dbs_cont(MYSQL_RES **ret, MYSQL *mysql, int ready_status)
-int mysql_list_tables_start(MYSQL_RES **ret, MYSQL *mysql, const char *wild)
-int mysql_list_tables_cont(MYSQL_RES **ret, MYSQL *mysql, int ready_status)
-int mysql_list_processes_start(MYSQL_RES **ret, MYSQL *mysql)
-int mysql_list_processes_cont(MYSQL_RES **ret, MYSQL *mysql, int ready_status)
-
-int mysql_list_fields_start(MYSQL_RES **ret, MYSQL *mysql, const char *table,
-                        const char *wild)
-int mysql_list_fields_cont(MYSQL_RES **ret, MYSQL *mysql, int ready_status)
-
-int mysql_read_query_result_start(my_bool *ret, MYSQL *mysql)
-int mysql_read_query_result_cont(my_bool *ret, MYSQL *mysql, int ready_status)
-
-int mysql_stmt_prepare_start(int *ret, MYSQL_STMT *stmt, const char *query,
-                         unsigned long length)
-int mysql_stmt_prepare_cont(int *ret, MYSQL_STMT *stmt, int ready_status)
-
-int mysql_stmt_execute_start(int *ret, MYSQL_STMT *stmt)
-int mysql_stmt_execute_cont(int *ret, MYSQL_STMT *stmt, int ready_status)
-
-int mysql_stmt_fetch_start(int *ret, MYSQL_STMT *stmt)
-int mysql_stmt_fetch_cont(int *ret, MYSQL_STMT *stmt, int ready_status)
-
-int mysql_stmt_store_result_start(int *ret, MYSQL_STMT *stmt)
-int mysql_stmt_store_result_cont(int *ret, MYSQL_STMT *stmt, int ready_status)
-
-int mysql_stmt_close_start(my_bool *ret, MYSQL_STMT *stmt)
-int mysql_stmt_close_cont(my_bool *ret, MYSQL_STMT *stmt, int ready_status)
-
-int mysql_stmt_reset_start(my_bool *ret, MYSQL_STMT *stmt)
-int mysql_stmt_reset_cont(my_bool *ret, MYSQL_STMT *stmt, int ready_status)
-
-int mysql_stmt_free_result_start(my_bool *ret, MYSQL_STMT *stmt)
-int mysql_stmt_free_result_cont(my_bool *ret, MYSQL_STMT *stmt, int
-ready_status)
-
-int mysql_stmt_send_long_data_start(my_bool *ret, MYSQL_STMT *stmt,
-                                unsigned int param_number,
-                                                                const char
-                                                                *data, unsigned
-                                                                long length)
-int mysql_stmt_send_long_data_cont(my_bool *ret, MYSQL_STMT *stmt, int
-ready_status)
-
-int mysql_commit_start(my_bool *ret, MYSQL *mysql)
-int mysql_commit_cont(my_bool *ret, MYSQL *mysql, int ready_status)
-
-int mysql_rollback_start(my_bool *ret, MYSQL *mysql)
-int mysql_rollback_cont(my_bool *ret, MYSQL *mysql, int ready_status)
-
-
-int mysql_autocommit_start(my_bool *ret, MYSQL *mysql, my_bool auto_mode)
-int mysql_autocommit_cont(my_bool *ret, MYSQL *mysql, int ready_status)
-
-
-int mysql_next_result_start(int *ret, MYSQL *mysql)
-int mysql_next_result_cont(int *ret, MYSQL *mysql, int ready_status)
-
-int mysql_stmt_next_result_start(int *ret, MYSQL_STMT *stmt)
-int mysql_stmt_next_result_cont(int *ret, MYSQL_STMT *stmt, int ready_status)
-
-*)
