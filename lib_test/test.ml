@@ -28,14 +28,15 @@ let wait mariadb status =
 
 let rec handle_connect mariadb f =
   match f mariadb with
-  | `Ok () -> mariadb
+  | `Ok m -> m
   | `Wait status -> connect_cont mariadb status
   | `Error err -> die __LOC__ err
 
 and connect_cont mariadb status =
   print_endline "waiting for connection...";
   let status = wait mariadb status in
-  handle_connect mariadb (fun m -> Mariadb.Nonblocking.connect_cont m status)
+  handle_connect
+    mariadb (fun m -> Mariadb.Nonblocking.connect_cont mariadb status)
 
 let env var def =
   try Sys.getenv var
@@ -75,7 +76,7 @@ let print_row r =
 let rec fetch_row_cont mariadb res status =
   print_endline "waiting for row...";
   let status = wait mariadb status in
-  match Mariadb.Nonblocking.fetch_row_cont res status with
+  match Mariadb.Nonblocking.Res.fetch_row_cont res status with
   | `Ok row -> print_row row; fetch_row_start mariadb res
   | `Wait status -> fetch_row_cont mariadb res status
   | `Done ->
@@ -84,7 +85,7 @@ let rec fetch_row_cont mariadb res status =
         print_endline @@ "fetch_row_cont: " ^ Mariadb.Error.message err
 
 and fetch_row_start mariadb res =
-  match Mariadb.Nonblocking.fetch_row_start res with
+  match Mariadb.Nonblocking.Res.fetch_row_start res with
   | `Ok row -> print_row row; fetch_row_start mariadb res
   | `Wait status -> fetch_row_cont mariadb res status
   | `Done ->

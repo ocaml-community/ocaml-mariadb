@@ -2,9 +2,12 @@ module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
 type mode = [`Blocking | `Nonblocking]
+type state = [`Initialized | `Connected | `Tx]
 
-type 'm t = B.Types.mysql constraint 'm = [< mode]
-type 'm mariadb = 'm t
+type ('m, 's) t = B.Types.mysql
+  constraint 'm = [< mode]
+  constraint 's = [< state]
+type ('m, 's) mariadb = ('m, 's) t
 
 type row = string array
 
@@ -57,10 +60,7 @@ end
 module Nonblocking = struct
   module Status = Wait_status
 
-  type t = [`Nonblocking] mariadb
-  type res = [`Nonblocking] Res.t
-  type stmt = [`Nonblocking] Stmt.t
-
+  type 's t = ([`Nonblocking], 's) mariadb
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
   type options =
@@ -80,6 +80,12 @@ module Nonblocking = struct
     | 0, Some r -> `Ok r
     | 0, None -> `Error (Error.create mariadb)
     | s, _ -> `Wait (Status.of_int s)
+
+  let handle_conn mariadb f =
+    match handle_opt mariadb f with
+    | `Ok m -> `Ok m
+    | `Wait s -> `Wait s
+    | `Error e -> `Error e
 
   let handle_unit mariadb f =
     match handle_opt mariadb f with
@@ -102,11 +108,11 @@ module Nonblocking = struct
   let connect_start mariadb ?host ?user ?pass ?db ?(port = 0) ?socket
                     ?(flags = []) () =
     (* TODO flags *)
-    handle_unit mariadb
+    handle_conn mariadb
       (fun m -> B.mysql_real_connect_start m host user pass db port socket 0)
 
   let connect_cont mariadb status =
-    handle_unit mariadb
+    handle_conn mariadb
       (fun m -> B.mysql_real_connect_cont m (Status.to_int status))
 
   let query_start mariadb query =
@@ -114,18 +120,6 @@ module Nonblocking = struct
 
   let query_cont mariadb status =
     handle_int mariadb (fun m -> B.mysql_real_query_cont m status)
-
-  let handle_fetch_row f =
-    match f () with
-    | 0, Some row -> `Ok row
-    | 0, None -> `Done
-    | s, _ -> `Wait (Status.of_int s)
-
-  let fetch_row_start res =
-    handle_fetch_row (fun () -> B.mysql_fetch_row_start res)
-
-  let fetch_row_cont res status =
-    handle_fetch_row (fun () -> B.mysql_fetch_row_cont res status)
 
   let handle_ok_wait f =
     match f () with
@@ -213,6 +207,20 @@ module Nonblocking = struct
       mariadb (fun m -> B.mysql_next_result_cont m status) Error.create
 
   module Res = struct
+    type t = [`Nonblocking] Res.t
+
+    let handle_fetch_row f =
+      match f () with
+      | 0, Some row -> `Ok row
+      | 0, None -> `Done
+      | s, _ -> `Wait (Status.of_int s)
+
+    let fetch_row_start res =
+      handle_fetch_row (fun () -> B.mysql_fetch_row_start res)
+
+    let fetch_row_cont res status =
+      handle_fetch_row (fun () -> B.mysql_fetch_row_cont res status)
+
     let free_start res =
       handle_ok_wait (fun () -> B.mysql_free_result_start res)
 
@@ -221,6 +229,8 @@ module Nonblocking = struct
   end
 
   module Stmt = struct
+    type t = [`Nonblocking] Stmt.t
+
     let prepare_start stmt query =
       handle_int stmt (fun s -> B.mysql_stmt_prepare_start s query)
 
@@ -273,23 +283,29 @@ module Nonblocking = struct
   end
 
   module Tx = struct
+    let handle_tx mariadb f =
+      match f mariadb with
+      | 0, '\000' -> `Ok mariadb
+      | 0, _ -> `Error (Error.create mariadb)
+      | s, _ -> `Wait (Status.of_int s)
+
     let commit_start mariadb =
-      handle_char mariadb (fun m -> B.mysql_commit_start m)
+      handle_tx mariadb (fun m -> B.mysql_commit_start m)
 
     let commit_cont mariadb status =
-      handle_char mariadb (fun m -> B.mysql_commit_cont m status)
+      handle_tx mariadb (fun m -> B.mysql_commit_cont m status)
 
     let rollback_start mariadb =
-      handle_char mariadb (fun m -> B.mysql_rollback_start m)
+      handle_tx mariadb (fun m -> B.mysql_rollback_start m)
 
     let rollback_cont mariadb status =
-      handle_char mariadb (fun m -> B.mysql_rollback_cont m status)
+      handle_tx mariadb (fun m -> B.mysql_rollback_cont m status)
 
     let autocommit_start mariadb auto =
-      handle_char mariadb (fun m -> B.mysql_autocommit_start m auto)
+      handle_tx mariadb (fun m -> B.mysql_autocommit_start m auto)
 
     let autocommit_cont mariadb status =
-      handle_char mariadb (fun m -> B.mysql_autocommit_cont m status)
+      handle_tx mariadb (fun m -> B.mysql_autocommit_cont m status)
   end
 end
 
