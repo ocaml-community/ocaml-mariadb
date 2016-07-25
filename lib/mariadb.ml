@@ -4,68 +4,64 @@ module T = Ffi_bindings.Types(Ffi_generated_types)
 type mode = [`Blocking | `Nonblocking]
 
 type 'm t = B.Types.mysql constraint 'm = [< mode]
-type nonblocking = [`Nonblocking] t
-
-type 'm res = B.Types.res constraint 'm = [< mode]
-type nonblocking_res = [`Nonblocking] res
+type 'm mariadb = 'm t
 
 type row = string array
-
-type 'm stmt = B.Types.stmt constraint 'm = [< mode]
 
 type flag
 
 type server_option =
   | Multi_statements of bool
 
-type error = int * string
+module Error = struct
+  type t = int * string
 
-let init ?mariadb () =
-  B.mysql_init ~mysql:mariadb ()
+  let create mysql =
+    (B.mysql_errno mysql, B.mysql_error mysql)
 
-let close =
-  B.mysql_close
+  let errno = fst
+  let message = snd
+end
 
-let use_result =
-  B.mysql_use_result
+module Res = struct
+  type 'm t = B.Types.res constraint 'm = [< mode]
 
-let errno =
-  B.mysql_errno
+  let num_fields =
+    B.mysql_num_rows
 
-let error =
-  B.mysql_error
+  let num_rows =
+    B.mysql_num_rows
 
-let num_fields =
-  B.mysql_num_rows
+  let free =
+    B.mysql_free_result
+end
 
-let num_rows =
-  B.mysql_num_rows
+module Stmt = struct
+  type 'm t = B.Types.stmt constraint 'm = [< mode]
 
-let free_result =
-  B.mysql_free_result
+  let init =
+    B.mysql_stmt_init
 
-let stmt_init =
-  B.mysql_stmt_init
+  module Error = struct
+    type 'm stmt = 'm t
+    type t = int * string
 
-let stmt_errno =
-  B.mysql_stmt_errno
+    let create stmt =
+      (B.mysql_stmt_errno stmt, B.mysql_error stmt)
 
-let stmt_error =
-  B.mysql_stmt_error
-
-let mariadb_error mariadb =
-  (errno mariadb, error mariadb)
-
-let stmt_error stmt =
-  (stmt_errno stmt, stmt_error stmt)
+    let errno = fst
+    let message = snd
+  end
+end
 
 module Nonblocking = struct
   module Status = Wait_status
 
-  type t = nonblocking
-  type res = nonblocking_res
+  type t = [`Nonblocking] mariadb
+  type res = [`Nonblocking] Res.t
+  type stmt = [`Nonblocking] Stmt.t
 
-  type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
+  type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
   type options =
     | Nonblocking
@@ -82,7 +78,7 @@ module Nonblocking = struct
   let handle_opt mariadb f =
     match f mariadb with
     | 0, Some r -> `Ok r
-    | 0, None -> `Error (mariadb_error mariadb)
+    | 0, None -> `Error (Error.create mariadb)
     | s, _ -> `Wait (Status.of_int s)
 
   let handle_unit mariadb f =
@@ -94,13 +90,13 @@ module Nonblocking = struct
   let handle_int mariadb f =
     match f mariadb with
     | 0, 0 -> `Ok ()
-    | 0, _ -> `Error (mariadb_error mariadb)
+    | 0, _ -> `Error (Error.create mariadb)
     | s, _ -> `Wait (Status.of_int s)
 
   let handle_char mariadb f =
     match f mariadb with
     | 0, '\000' -> `Ok ()
-    | 0, _ -> `Error (mariadb_error mariadb)
+    | 0, _ -> `Error (Error.create mariadb)
     | s, _ -> `Wait (Status.of_int s)
 
   let connect_start mariadb ?host ?user ?pass ?db ?(port = 0) ?socket
@@ -135,12 +131,6 @@ module Nonblocking = struct
     match f () with
     | 0 -> `Ok
     | s -> `Wait (Status.of_int s)
-
-  let free_result_start res =
-    handle_ok_wait (fun () -> B.mysql_free_result_start res)
-
-  let free_result_cont res status =
-    handle_ok_wait (fun () -> B.mysql_free_result_cont res status)
 
   let close_start mariadb =
     handle_ok_wait (fun () -> B.mysql_close_start mariadb)
@@ -207,66 +197,6 @@ module Nonblocking = struct
   let list_tables_cont mariadb status =
     handle_opt mariadb (fun m -> B.mysql_list_tables_cont m status)
 
-  let stmt_prepare_start mariadb query =
-    handle_int mariadb (fun m -> B.mysql_stmt_prepare_start m query)
-
-  let stmt_prepare_cont mariadb status =
-    handle_int mariadb (fun m -> B.mysql_stmt_prepare_cont m status)
-
-  let stmt_execute_start mariadb query =
-    handle_int mariadb (fun m -> B.mysql_stmt_execute_start m)
-
-  let stmt_execute_cont mariadb status =
-    handle_int mariadb (fun m -> B.mysql_stmt_execute_cont m status)
-
-  let stmt_fetch_start mariadb query =
-    handle_int mariadb (fun m -> B.mysql_stmt_fetch_start m)
-
-  let stmt_fetch_cont mariadb status =
-    handle_int mariadb (fun m -> B.mysql_stmt_fetch_cont m status)
-
-  let stmt_store_result_start mariadb query =
-    handle_int mariadb (fun m -> B.mysql_stmt_store_result_start m)
-
-  let stmt_store_result_cont mariadb status =
-    handle_int mariadb (fun m -> B.mysql_stmt_store_result_cont m status)
-
-  let stmt_close_start mariadb query =
-    handle_char mariadb (fun m -> B.mysql_stmt_close_start m)
-
-  let stmt_close_cont mariadb status =
-    handle_char mariadb (fun m -> B.mysql_stmt_close_cont m status)
-
-  let stmt_reset_start mariadb query =
-    handle_char mariadb (fun m -> B.mysql_stmt_reset_start m)
-
-  let stmt_reset_cont mariadb status =
-    handle_char mariadb (fun m -> B.mysql_stmt_reset_cont m status)
-
-  let stmt_free_result_start mariadb query =
-    handle_char mariadb (fun m -> B.mysql_stmt_free_result_start m)
-
-  let stmt_free_result_cont mariadb status =
-    handle_char mariadb (fun m -> B.mysql_stmt_free_result_cont m status)
-
-  let commit_start mariadb =
-    handle_char mariadb (fun m -> B.mysql_commit_start m)
-
-  let commit_cont mariadb status =
-    handle_char mariadb (fun m -> B.mysql_commit_cont m status)
-
-  let rollback_start mariadb =
-    handle_char mariadb (fun m -> B.mysql_rollback_start m)
-
-  let rollback_cont mariadb status =
-    handle_char mariadb (fun m -> B.mysql_rollback_cont m status)
-
-  let autocommit_start mariadb auto =
-    handle_char mariadb (fun m -> B.mysql_autocommit_start m auto)
-
-  let autocommit_cont mariadb status =
-    handle_char mariadb (fun m -> B.mysql_autocommit_cont m status)
-
   let handle_next_result obj f errf =
     match f obj with
     | 0, 0 -> `Ok true
@@ -276,17 +206,98 @@ module Nonblocking = struct
 
   let next_result_start mariadb =
     handle_next_result
-      mariadb (fun m -> B.mysql_next_result_start m) mariadb_error
+      mariadb (fun m -> B.mysql_next_result_start m) Error.create
 
   let next_result_cont mariadb status =
     handle_next_result
-      mariadb (fun m -> B.mysql_next_result_cont m status) mariadb_error
+      mariadb (fun m -> B.mysql_next_result_cont m status) Error.create
 
-  let stmt_next_result_start stmt =
-    handle_next_result
-      stmt (fun s -> B.mysql_stmt_next_result_start s) stmt_error
+  module Res = struct
+    let free_start res =
+      handle_ok_wait (fun () -> B.mysql_free_result_start res)
 
-  let stmt_next_result_cont stmt status =
-    handle_next_result
-      stmt (fun s -> B.mysql_stmt_next_result_cont s status) stmt_error
+    let free_cont res status =
+      handle_ok_wait (fun () -> B.mysql_free_result_cont res status)
+  end
+
+  module Stmt = struct
+    let prepare_start stmt query =
+      handle_int stmt (fun s -> B.mysql_stmt_prepare_start s query)
+
+    let prepare_cont stmt status =
+      handle_int stmt (fun s -> B.mysql_stmt_prepare_cont s status)
+
+    let execute_start stmt query =
+      handle_int stmt (fun s -> B.mysql_stmt_execute_start s)
+
+    let execute_cont stmt status =
+      handle_int stmt (fun s -> B.mysql_stmt_execute_cont s status)
+
+    let fetch_start stmt query =
+      handle_int stmt (fun s -> B.mysql_stmt_fetch_start s)
+
+    let fetch_cont stmt status =
+      handle_int stmt (fun s -> B.mysql_stmt_fetch_cont s status)
+
+    let store_result_start stmt query =
+      handle_int stmt (fun s -> B.mysql_stmt_store_result_start s)
+
+    let store_result_cont stmt status =
+      handle_int stmt (fun s -> B.mysql_stmt_store_result_cont s status)
+
+    let close_start stmt query =
+      handle_char stmt (fun s -> B.mysql_stmt_close_start s)
+
+    let close_cont stmt status =
+      handle_char stmt (fun s -> B.mysql_stmt_close_cont s status)
+
+    let reset_start stmt query =
+      handle_char stmt (fun s -> B.mysql_stmt_reset_start s)
+
+    let reset_cont stmt status =
+      handle_char stmt (fun s -> B.mysql_stmt_reset_cont s status)
+
+    let free_result_start stmt =
+      handle_char stmt (fun s -> B.mysql_stmt_free_result_start s)
+
+    let free_result_cont stmt status =
+      handle_char stmt (fun s -> B.mysql_stmt_free_result_cont s status)
+
+    let next_result_start stmt =
+      handle_next_result
+        stmt (fun s -> B.mysql_stmt_next_result_start s) Stmt.Error.create
+
+    let next_result_cont stmt status =
+      handle_next_result
+        stmt (fun s -> B.mysql_stmt_next_result_cont s status) Stmt.Error.create
+  end
+
+  module Tx = struct
+    let commit_start mariadb =
+      handle_char mariadb (fun m -> B.mysql_commit_start m)
+
+    let commit_cont mariadb status =
+      handle_char mariadb (fun m -> B.mysql_commit_cont m status)
+
+    let rollback_start mariadb =
+      handle_char mariadb (fun m -> B.mysql_rollback_start m)
+
+    let rollback_cont mariadb status =
+      handle_char mariadb (fun m -> B.mysql_rollback_cont m status)
+
+    let autocommit_start mariadb auto =
+      handle_char mariadb (fun m -> B.mysql_autocommit_start m auto)
+
+    let autocommit_cont mariadb status =
+      handle_char mariadb (fun m -> B.mysql_autocommit_cont m status)
+  end
 end
+
+let init ?mariadb () =
+  B.mysql_init ~mysql:mariadb ()
+
+let close =
+  B.mysql_close
+
+let use_result =
+  B.mysql_use_result

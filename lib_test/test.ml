@@ -1,8 +1,9 @@
 let int_of_file_descr : Unix.file_descr -> int = Obj.magic
 let file_descr_of_int : int -> Unix.file_descr = Obj.magic
 
-let die where (errno, error) =
-  failwith @@ Printf.sprintf "%s: (%d) %s\n%!" where errno error
+let die where err =
+  failwith @@ Printf.sprintf "%s: (%d) %s\n%!"
+    where (Mariadb.Error.errno err) (Mariadb.Error.message err)
 
 let wait mariadb status =
   let fd = file_descr_of_int @@ Mariadb.Nonblocking.fd mariadb in
@@ -78,16 +79,18 @@ let rec fetch_row_cont mariadb res status =
   | `Ok row -> print_row row; fetch_row_start mariadb res
   | `Wait status -> fetch_row_cont mariadb res status
   | `Done ->
-      if Mariadb.errno mariadb <> 0 then
-        print_endline @@ "fetch_row_cont: " ^ Mariadb.error mariadb
+      let err = Mariadb.Error.create mariadb in
+      if Mariadb.Error.errno err <> 0 then
+        print_endline @@ "fetch_row_cont: " ^ Mariadb.Error.message err
 
 and fetch_row_start mariadb res =
   match Mariadb.Nonblocking.fetch_row_start res with
   | `Ok row -> print_row row; fetch_row_start mariadb res
   | `Wait status -> fetch_row_cont mariadb res status
   | `Done ->
-      if Mariadb.errno mariadb <> 0 then
-        print_endline @@ "fetch_row_cont: " ^ Mariadb.error mariadb
+      let err = Mariadb.Error.create mariadb in
+      if Mariadb.Error.errno err <> 0 then
+        print_endline @@ "fetch_row_start: " ^ Mariadb.Error.message err
 
 let () =
   let mariadb =
@@ -101,8 +104,9 @@ let () =
   | Some res ->
       fetch_row_start mariadb res;
       print_endline "freeing result";
-      Mariadb.free_result res;
+      Mariadb.Res.free res;
       print_endline "closing";
       Mariadb.close(mariadb)
   | None ->
-      print_endline @@ "no res: " ^ Mariadb.error mariadb
+      let err = Mariadb.Error.create mariadb in
+      print_endline @@ "no res: " ^ Mariadb.Error.message err
