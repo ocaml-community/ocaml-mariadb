@@ -204,40 +204,40 @@ module Foreign_bindings = struct
     (ptr int @-> T.stmt @-> int @-> returning int)
 
   let mysql_stmt_close_start = foreign "mysql_stmt_close_start"
-    (ptr char @-> T.stmt @-> returning int)
+    (ptr T.my_bool @-> T.stmt @-> returning int)
 
   let mysql_stmt_close_cont = foreign "mysql_stmt_close_cont"
-    (ptr char @-> T.stmt @-> int @-> returning int)
+    (ptr T.my_bool @-> T.stmt @-> int @-> returning int)
 
   let mysql_stmt_reset_start = foreign "mysql_stmt_reset_start"
-    (ptr char @-> T.stmt @-> returning int)
+    (ptr T.my_bool @-> T.stmt @-> returning int)
 
   let mysql_stmt_reset_cont = foreign "mysql_stmt_reset_cont"
-    (ptr char @-> T.stmt @-> int @-> returning int)
+    (ptr T.my_bool @-> T.stmt @-> int @-> returning int)
 
   let mysql_stmt_free_result_start = foreign "mysql_stmt_free_result_start"
-    (ptr char @-> T.stmt @-> returning int)
+    (ptr T.my_bool @-> T.stmt @-> returning int)
 
   let mysql_stmt_free_result_cont = foreign "mysql_stmt_free_result_cont"
-    (ptr char @-> T.stmt @-> int @-> returning int)
+    (ptr T.my_bool @-> T.stmt @-> int @-> returning int)
 
   let mysql_commit_start = foreign "mysql_commit_start"
-    (ptr char @-> T.mysql @-> returning int)
+    (ptr T.my_bool @-> T.mysql @-> returning int)
 
   let mysql_commit_cont = foreign "mysql_commit_cont"
-    (ptr char @-> T.mysql @-> int @-> returning int)
+    (ptr T.my_bool @-> T.mysql @-> int @-> returning int)
 
   let mysql_rollback_start = foreign "mysql_rollback_start"
-    (ptr char @-> T.mysql @-> returning int)
+    (ptr T.my_bool @-> T.mysql @-> returning int)
 
   let mysql_rollback_cont = foreign "mysql_rollback_cont"
-    (ptr char @-> T.mysql @-> int @-> returning int)
+    (ptr T.my_bool @-> T.mysql @-> int @-> returning int)
 
   let mysql_autocommit_start = foreign "mysql_autocommit_start"
-    (ptr char @-> T.mysql @-> char @-> returning int)
+    (ptr T.my_bool @-> T.mysql @-> T.my_bool @-> returning int)
 
   let mysql_autocommit_cont = foreign "mysql_autocommit_cont"
-    (ptr char @-> T.mysql @-> int @-> returning int)
+    (ptr T.my_bool @-> T.mysql @-> int @-> returning int)
 
   let mysql_next_result_start = foreign "mysql_next_result_start"
     (ptr int @-> T.mysql @-> returning int)
