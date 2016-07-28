@@ -53,3 +53,13 @@ Executable "test"
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb,
                     unix
+
+Executable "test_prepared_statement"
+  Install:          false
+  Path:             lib_test
+  MainIs:           test_prepared_statement.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb,
+                    unix

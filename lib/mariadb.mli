@@ -30,18 +30,33 @@ module Res : sig
 end
 
 module Stmt : sig
-  type 'm t constraint 'm = [< mode]
+  type status = [`Initialized | `Prepared | `Bound | `Executed]
+  type ('m, 's) t
+    constraint 'm = [< mode]
+    constraint 's = [< status]
 
-  val init : ('m, [`Connected]) mariadb -> 'm t option
+  type param =
+    [ `Tiny of int
+    | `Short of int
+    | `Int of int
+    | `Float of float
+    | `Double of float
+    | `String of string
+    | `Blob of bytes
+    ]
 
   module Error : sig
-    type 'm stmt = 'm t
+    type ('m, 's) stmt = ('m, 's) t
     type t
 
-    val create : 'm stmt -> t
+    val create : ('m, 's) stmt -> t
     val errno : t -> int
     val message : t -> string
   end
+
+  val init : ('m, [`Connected]) mariadb -> ('m, [`Initialized]) t option
+  val bind_params : ('m, [`Prepared]) t -> param array
+                 -> [`Ok of ('m, [`Bound]) t | `Error of Error.t]
 end
 
 module Nonblocking : sig
@@ -62,6 +77,7 @@ module Nonblocking : sig
   end
 
   type 's t = ([`Nonblocking], 's) mariadb
+  type 's mariadb = 's t
 
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
@@ -77,28 +93,31 @@ module Nonblocking : sig
   end
 
   module Stmt : sig
-    type t = [`Nonblocking] Stmt.t
+    type 's t = ([`Nonblocking], 's) Stmt.t
+      constraint 's = [< Stmt.status]
 
-    val prepare_start : t -> string -> unit result
-    val prepare_cont : t -> Status.t -> unit result
+    val init : [`Connected] mariadb -> [`Initialized] t option
 
-    val execute_start : t -> string -> unit result
-    val execute_cont : t -> Status.t -> unit result
+    val prepare_start : [`Initialized] t -> string -> [`Prepared] t result
+    val prepare_cont : [`Initialized] t -> Status.t -> [`Prepared] t result
 
-    val fetch_start : t -> string -> unit result
-    val fetch_cont : t -> Status.t -> unit result
+    val execute_start : [`Bound] t -> [`Executed] t result
+    val execute_cont : [`Bound] t -> Status.t -> [`Executed] t result
 
-    val store_result_start : t -> string -> unit result
-    val store_result_cont : t -> Status.t -> unit result
+    val fetch_start : [`Executed ] t -> unit result
+    val fetch_cont : [`Executed] t -> Status.t -> unit result
 
-    val close_start : t -> string -> unit result
-    val close_cont : t -> Status.t -> unit result
+    (*val store_result_start : t -> unit result
+    val store_result_cont : t -> Status.t -> unit result*)
 
-    val reset_start : t -> string -> unit result
-    val reset_cont : t -> Status.t -> unit result
+    val close_start : [< Stmt.status] t -> unit result
+    val close_cont : [< Stmt.status] t -> Status.t -> unit result
 
-    val next_result_start : t -> bool result
-    val next_result_cont : t -> Status.t -> bool result
+    val reset_start : [< Stmt.status] t -> unit result
+    val reset_cont : [< Stmt.status] t -> Status.t -> unit result
+
+    (*val next_result_start : t -> bool result
+    val next_result_cont : t -> Status.t -> bool result*)
   end
 
   module Tx : sig

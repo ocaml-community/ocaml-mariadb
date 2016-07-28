@@ -26,6 +26,109 @@ module Error = struct
   let message = snd
 end
 
+module Bind = struct
+  open Ctypes
+
+  type t =
+    { n : int
+    ; bind : T.Bind.t ptr
+    ; length : Unsigned.ulong ptr
+    ; is_null : char ptr
+    ; is_unsigned : char
+    }
+
+  let t = '\001'
+  let f = '\000'
+
+  let alloc n =
+    Printf.printf "allocatng %d binds - %d each\n%!" n (sizeof T.Bind.t);
+    { n
+    ; bind = allocate_n T.Bind.t ~count:n
+    ; length = allocate_n ulong ~count:n
+    ; is_null = allocate_n char ~count:n
+    ; is_unsigned = f
+    }
+
+  let bind b ~buffer ~size ~mysql_type ~unsigned ~at =
+    assert (at >= 0 && at < b.n);
+    let size = Unsigned.ULong.of_int size in
+    let bp = b.bind +@ at in
+    let lp = b.length +@ at in
+    lp <-@ size;
+    setf (!@bp) T.Bind.length lp;
+    setf (!@bp) T.Bind.is_unsigned unsigned;
+    setf (!@bp) T.Bind.buffer_type mysql_type;
+    setf (!@bp) T.Bind.buffer_length size;
+    setf (!@bp) T.Bind.buffer buffer
+
+  let tiny ?(unsigned = false) b param ~at =
+    let p = allocate char (char_of_int param) in
+    bind b
+      ~buffer:(coerce (ptr char) (ptr void) p)
+      ~size:(sizeof int)
+      ~mysql_type:T.Mysql_type.tiny
+      ~unsigned:(if unsigned then t else f)
+      ~at
+
+  let short ?(unsigned = false) b param ~at =
+    let p = allocate short param in
+    bind b
+      ~buffer:(coerce (ptr short) (ptr void) p)
+      ~size:(sizeof int)
+      ~mysql_type:T.Mysql_type.short
+      ~unsigned:(if unsigned then t else f)
+      ~at
+
+  let int ?(unsigned = false) b param ~at =
+    let p = allocate int param in
+    bind b
+      ~buffer:(coerce (ptr int) (ptr void) p)
+      ~size:(sizeof int)
+      ~mysql_type:T.Mysql_type.long_long
+      ~unsigned:(if unsigned then t else f)
+      ~at
+
+  let float b param ~at =
+    let p = allocate float param in
+    bind b
+      ~buffer:(coerce (ptr float) (ptr void) p)
+      ~size:(sizeof float)
+      ~mysql_type:T.Mysql_type.float
+      ~unsigned:f
+      ~at
+
+  let double b param ~at =
+    let p = allocate double param in
+    bind b
+      ~buffer:(coerce (ptr double) (ptr void) p)
+      ~size:(sizeof double)
+      ~mysql_type:T.Mysql_type.double
+      ~unsigned:f
+      ~at
+
+  let string b param ~at =
+    let len = String.length param in
+    let p = allocate_n char ~count:len in
+    String.iteri (fun i c -> (p +@ i) <-@ c) param;
+    bind b
+      ~buffer:(coerce (ptr char) (ptr void) p)
+      ~size:len
+      ~mysql_type:T.Mysql_type.string
+      ~unsigned:f
+      ~at
+
+  let blob b param ~at =
+    let len = Bytes.length param in
+    let p = allocate_n char ~count:len in
+    String.iteri (fun i c -> (p +@ i) <-@ c) param;
+    bind b
+      ~buffer:(coerce (ptr char) (ptr void) p)
+      ~size:len
+      ~mysql_type:T.Mysql_type.blob
+      ~unsigned:f
+      ~at
+end
+
 module Res = struct
   type 'm t = B.Types.res constraint 'm = [< mode]
 
@@ -40,13 +143,32 @@ module Res = struct
 end
 
 module Stmt = struct
-  type 'm t = B.Types.stmt constraint 'm = [< mode]
+  type status = [`Initialized | `Prepared | `Bound | `Executed]
+  type ('m, 's) t = B.Types.stmt
+    constraint 'm = [< mode]
+    constraint 's = [< status]
 
-  let init =
-    B.mysql_stmt_init
+  type cursor_type
+    = No_cursor
+    | Read_only
+
+  type attr
+    = Update_max_length of bool
+    | Cursor_type of cursor_type
+    | Prefetch_rows of int
+
+  type param =
+    [ `Tiny of int
+    | `Short of int
+    | `Int of int
+    | `Float of float
+    | `Double of float
+    | `String of string
+    | `Blob of bytes
+    ]
 
   module Error = struct
-    type 'm stmt = 'm t
+    type ('m, 's) stmt = ('m, 's) t
     type t = int * string
 
     let create stmt =
@@ -54,13 +176,45 @@ module Stmt = struct
 
     let errno = fst
     let message = snd
+
+    let make errno msg = (errno, msg)
   end
+
+  let init mariadb =
+    let attr = T.Stmt_attr.update_max_length in
+    match B.mysql_stmt_init mariadb with
+    | Some stmt as s -> B.mysql_stmt_attr_set_bool stmt attr true; s
+    | None -> None
+
+  let bind_params stmt args =
+    let n = B.mysql_stmt_param_count stmt in
+    if n <> Array.length args then
+      `Error (Error.make 0 "parameter count mismatch")
+    else begin
+      let b = Bind.alloc n in
+      Array.iteri
+        (fun at arg ->
+          match arg with
+          | `Tiny i -> Bind.tiny b i ~at
+          | `Short i -> Bind.short b i ~at
+          | `Int i -> Bind.int b i ~at
+          | `Float x -> Bind.float b x ~at
+          | `Double x -> Bind.double b x ~at
+          | `String s -> Bind.string b s ~at
+          | `Blob s -> Bind.blob b s ~at)
+        args;
+      if B.mysql_stmt_bind_param stmt b.Bind.bind then
+        `Ok stmt
+      else
+        `Error (Error.create stmt)
+    end
 end
 
 module Nonblocking = struct
   module Status = Wait_status
 
   type 's t = ([`Nonblocking], 's) mariadb
+  type 's mariadb = 's t
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
   type options =
@@ -68,7 +222,7 @@ module Nonblocking = struct
 
   let options mariadb = function
     | Nonblocking ->
-        B.mysql_options mariadb T.Mariadb_options.nonblock Ctypes.null
+        B.mysql_options mariadb T.Mysql_options.nonblock Ctypes.null
 
   let init () =
     match B.mysql_init () with
@@ -93,10 +247,16 @@ module Nonblocking = struct
     | `Wait s -> `Wait s
     | `Error e -> `Error e
 
-  let handle_int mariadb f =
-    match f mariadb with
+  let handle_int_ret x f =
+    match f x with
+    | 0, 0 -> `Ok x
+    | 0, _ -> `Error (Error.create x)
+    | s, _ -> `Wait (Status.of_int s)
+
+  let handle_int x f =
+    match f x with
     | 0, 0 -> `Ok ()
-    | 0, _ -> `Error (Error.create mariadb)
+    | 0, _ -> `Error (Error.create x)
     | s, _ -> `Wait (Status.of_int s)
 
   let handle_char mariadb f =
@@ -165,8 +325,8 @@ module Nonblocking = struct
   let set_server_option_start mariadb opt =
     let opt =
       match opt with
-      | Multi_statements true -> T.Mariadb_server_options.multi_statements_on
-      | Multi_statements false -> T.Mariadb_server_options.multi_statements_off
+      | Multi_statements true -> T.Mysql_server_options.multi_statements_on
+      | Multi_statements false -> T.Mysql_server_options.multi_statements_off
     in
     handle_unit mariadb (fun m -> B.mysql_set_server_option_start m opt)
 
@@ -206,6 +366,18 @@ module Nonblocking = struct
     handle_next_result
       mariadb (fun m -> B.mysql_next_result_cont m status) Error.create
 
+  let handle_stmt stmt f =
+    match f stmt with
+    | 0, 0 -> `Ok stmt
+    | 0, _ -> `Error (Stmt.Error.create stmt)
+    | s, _ -> `Wait (Status.of_int s)
+
+  let prepare_start stmt query =
+    handle_stmt stmt (fun s -> B.mysql_stmt_prepare_start s query)
+
+  let prepare_cont stmt status =
+    handle_stmt stmt (fun s -> B.mysql_stmt_prepare_cont s status)
+
   module Res = struct
     type t = [`Nonblocking] Res.t
 
@@ -229,39 +401,42 @@ module Nonblocking = struct
   end
 
   module Stmt = struct
-    type t = [`Nonblocking] Stmt.t
+    type 's t = ([`Nonblocking], 's) Stmt.t
+      constraint 's = [< Stmt.status]
+
+    let init = Stmt.init
 
     let prepare_start stmt query =
-      handle_int stmt (fun s -> B.mysql_stmt_prepare_start s query)
+      handle_int_ret stmt (fun s -> B.mysql_stmt_prepare_start s query)
 
     let prepare_cont stmt status =
-      handle_int stmt (fun s -> B.mysql_stmt_prepare_cont s status)
+      handle_int_ret stmt (fun s -> B.mysql_stmt_prepare_cont s status)
 
-    let execute_start stmt query =
-      handle_int stmt (fun s -> B.mysql_stmt_execute_start s)
+    let execute_start stmt =
+      handle_int_ret stmt (fun s -> B.mysql_stmt_execute_start s)
 
     let execute_cont stmt status =
-      handle_int stmt (fun s -> B.mysql_stmt_execute_cont s status)
+      handle_int_ret stmt (fun s -> B.mysql_stmt_execute_cont s status)
 
-    let fetch_start stmt query =
+    let fetch_start stmt =
       handle_int stmt (fun s -> B.mysql_stmt_fetch_start s)
 
     let fetch_cont stmt status =
       handle_int stmt (fun s -> B.mysql_stmt_fetch_cont s status)
 
-    let store_result_start stmt query =
+    let store_result_start stmt =
       handle_int stmt (fun s -> B.mysql_stmt_store_result_start s)
 
     let store_result_cont stmt status =
       handle_int stmt (fun s -> B.mysql_stmt_store_result_cont s status)
 
-    let close_start stmt query =
+    let close_start stmt =
       handle_char stmt (fun s -> B.mysql_stmt_close_start s)
 
     let close_cont stmt status =
       handle_char stmt (fun s -> B.mysql_stmt_close_cont s status)
 
-    let reset_start stmt query =
+    let reset_start stmt =
       handle_char stmt (fun s -> B.mysql_stmt_reset_start s)
 
     let reset_cont stmt status =

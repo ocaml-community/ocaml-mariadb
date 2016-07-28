@@ -2,18 +2,65 @@ open Ctypes
 
 module Types (F: Cstubs.Types.TYPE) = struct
   open F
-  module Mariadb_options = struct
+  module Mysql_options = struct
     let nonblock = constant "MYSQL_OPT_NONBLOCK" int
   end
-  module Mariadb_server_options = struct
+
+  module Mysql_server_options = struct
     let multi_statements_on = constant "MYSQL_OPTION_MULTI_STATEMENTS_ON" int
     let multi_statements_off = constant "MYSQL_OPTION_MULTI_STATEMENTS_OFF" int
   end
-  module Mariadb_wait_status = struct
+
+  module Mysql_wait_status = struct
     let read = constant "MYSQL_WAIT_READ" int
     let write = constant "MYSQL_WAIT_WRITE" int
     let except = constant "MYSQL_WAIT_EXCEPT" int
     let timeout = constant "MYSQL_WAIT_TIMEOUT" int
+  end
+
+  module Mysql_type = struct
+    let null = constant "MYSQL_TYPE_NULL" int
+    let tiny = constant "MYSQL_TYPE_TINY" int
+    let year = constant "MYSQL_TYPE_YEAR" int
+    let short = constant "MYSQL_TYPE_SHORT" int
+    let int24 = constant "MYSQL_TYPE_INT24" int
+    let long = constant "MYSQL_TYPE_LONG" int
+    let float = constant "MYSQL_TYPE_FLOAT" int
+    let long_long = constant "MYSQL_TYPE_LONGLONG" int
+    let double = constant "MYSQL_TYPE_DOUBLE" int
+    let decimal = constant "MYSQL_TYPE_DECIMAL" int
+    let string = constant "MYSQL_TYPE_STRING" int
+    let var_string = constant "MYSQL_TYPE_VAR_STRING" int
+    let tiny_blob = constant "MYSQL_TYPE_TINY_BLOB" int
+    let blob = constant "MYSQL_TYPE_BLOB" int
+    let medium_blob = constant "MYSQL_TYPE_MEDIUM_BLOB" int
+    let long_blob = constant "MYSQL_TYPE_LONG_BLOB" int
+    let bit = constant "MYSQL_TYPE_BIT" int
+    let time = constant "MYSQL_TYPE_TIME" int
+    let date = constant "MYSQL_TYPE_DATE" int
+    let datetime = constant "MYSQL_TYPE_DATETIME" int
+    let timestamp = constant "MYSQL_TYPE_TIMESTAMP" int
+  end
+
+  module Stmt_attr = struct
+    let update_max_length = constant "STMT_ATTR_UPDATE_MAX_LENGTH" int
+    let cursor_type = constant "STMT_ATTR_CURSOR_TYPE" int
+    let prefetch_rows = constant "STMT_ATTR_PREFETCH_ROWS" int
+  end
+
+  module Bind = struct
+    type bind
+    type t = bind structure
+    let t : t typ = structure "st_mysql_bind"
+
+    let length = field t "length" (ptr ulong)
+    let is_null = field t "is_null" (ptr char)
+    let buffer = field t "buffer" (ptr void)
+    let buffer_length = field t "buffer_length" ulong
+    let buffer_type = field t "buffer_type" int
+    let is_unsigned = field t "is_unsigned" char
+
+    let () = seal t
   end
 end
 
@@ -89,6 +136,19 @@ module Foreign_bindings = struct
 
   let mysql_stmt_error = foreign "mysql_stmt_error"
     (T.stmt @-> returning string)
+
+  let mysql_stmt_attr_set = foreign "mysql_stmt_attr_set"
+    (T.stmt @-> int @-> ptr void @-> returning T.my_bool)
+
+  (* XXX ptr void because we can't access Bind.t here *)
+  let mysql_stmt_bind_param = foreign "mysql_stmt_bind_param"
+    (T.stmt @-> ptr void @-> returning T.my_bool)
+
+  let mysql_stmt_param_count = foreign "mysql_stmt_param_count"
+    (T.stmt @-> returning ulong)
+
+  let mysql_stmt_execute = foreign "mysql_stmt_execute"
+    (T.stmt @-> returning int)
 
   (* Nonblocking API *)
 
@@ -261,6 +321,19 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_options mysql opt value =
     mysql_options mysql opt value |> ignore
+
+  let mysql_stmt_attr_set_bool stmt attr value =
+    let c = if value then '\001' else '\000' in
+    let v = allocate T.my_bool c in
+    mysql_stmt_attr_set stmt attr (to_voidp v) |> ignore
+
+  let mysql_stmt_param_count stmt =
+    Unsigned.ULong.to_int @@ mysql_stmt_param_count stmt
+
+  let mysql_stmt_bind_param stmt bind =
+    match mysql_stmt_bind_param stmt (to_voidp bind) with
+    | '\000' -> true
+    | _ -> false
 
   (* Nonblocking API *)
 
