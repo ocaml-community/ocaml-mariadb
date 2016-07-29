@@ -2,23 +2,23 @@ open Ctypes
 
 module Types (F: Cstubs.Types.TYPE) = struct
   open F
-  module Mysql_options = struct
+  module Options = struct
     let nonblock = constant "MYSQL_OPT_NONBLOCK" int
   end
 
-  module Mysql_server_options = struct
+  module Server_options = struct
     let multi_statements_on = constant "MYSQL_OPTION_MULTI_STATEMENTS_ON" int
     let multi_statements_off = constant "MYSQL_OPTION_MULTI_STATEMENTS_OFF" int
   end
 
-  module Mysql_wait_status = struct
+  module Wait_status = struct
     let read = constant "MYSQL_WAIT_READ" int
     let write = constant "MYSQL_WAIT_WRITE" int
     let except = constant "MYSQL_WAIT_EXCEPT" int
     let timeout = constant "MYSQL_WAIT_TIMEOUT" int
   end
 
-  module Mysql_type = struct
+  module Type = struct
     let null = constant "MYSQL_TYPE_NULL" int
     let tiny = constant "MYSQL_TYPE_TINY" int
     let year = constant "MYSQL_TYPE_YEAR" int
@@ -29,6 +29,7 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let long_long = constant "MYSQL_TYPE_LONGLONG" int
     let double = constant "MYSQL_TYPE_DOUBLE" int
     let decimal = constant "MYSQL_TYPE_DECIMAL" int
+    let new_decimal = constant "MYSQL_TYPE_NEWDECIMAL" int
     let string = constant "MYSQL_TYPE_STRING" int
     let var_string = constant "MYSQL_TYPE_VAR_STRING" int
     let tiny_blob = constant "MYSQL_TYPE_TINY_BLOB" int
@@ -48,6 +49,11 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let prefetch_rows = constant "STMT_ATTR_PREFETCH_ROWS" int
   end
 
+  module Return_code = struct
+    let no_data = constant "MYSQL_NO_DATA" int
+    let data_truncated = constant "MYSQL_DATA_TRUNCATED" int
+  end
+
   module Bind = struct
     type bind
     type t = bind structure
@@ -59,6 +65,23 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let buffer_length = field t "buffer_length" ulong
     let buffer_type = field t "buffer_type" int
     let is_unsigned = field t "is_unsigned" char
+
+    let () = seal t
+  end
+
+  module Field_flags = struct
+    let unsigned = constant "UNSIGNED_FLAG" int
+  end
+
+  module Field = struct
+    type field
+    type t = field structure
+    let t : t typ = structure "st_mysql_field"
+
+    let name = field t "name" string
+    let max_length = field t "max_length" ulong
+    let flags = field t "flags" uint
+    let type_ = field t "type" int
 
     let () = seal t
   end
@@ -94,6 +117,9 @@ module Foreign_bindings = struct
 
     type stmt_opt = unit ptr option
     let stmt_opt : stmt_opt typ = ptr_opt void
+
+    type field = unit ptr
+    let field : field typ = ptr void
 
     type my_bool = char
     let my_bool : char typ = char
@@ -149,6 +175,20 @@ module Foreign_bindings = struct
 
   let mysql_stmt_execute = foreign "mysql_stmt_execute"
     (T.stmt @-> returning int)
+
+  let mysql_stmt_result_metadata = foreign "mysql_stmt_result_metadata"
+    (T.stmt @-> returning T.res_opt)
+
+  (* XXX ptr void because we can't access Field.t here *)
+  let mysql_fetch_field_direct = foreign "mysql_fetch_field_direct"
+    (T.res @-> uint @-> returning (ptr void))
+
+  (* XXX ptr void because we can't access Bind.t here *)
+  let mysql_stmt_bind_result = foreign "mysql_stmt_bind_result"
+    (T.stmt @-> ptr void @-> returning T.my_bool)
+
+  let mysql_stmt_num_rows = foreign "mysql_stmt_num_rows"
+    (T.stmt @-> returning ullong)
 
   (* Nonblocking API *)
 
@@ -316,6 +356,18 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   open F
   include Foreign_bindings
 
+  let handle (typ, z) f =
+    let r = allocate typ z in
+    let s = f r in
+    (s, !@r)
+
+  let handle_opt typ = handle (typ, None)
+  let handle_int f = handle (int, 0) f
+  let handle_char f = handle (char, '\000') f
+
+  let handle_ret = handle_opt T.mysql_opt
+  let handle_res = handle_opt T.res_opt
+
   let mysql_init () =
     mysql_init None
 
@@ -335,19 +387,18 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     | '\000' -> true
     | _ -> false
 
+  let mysql_fetch_field_direct res i =
+    mysql_fetch_field_direct res (Unsigned.UInt.of_int i)
+
+  let mysql_stmt_bind_result stmt bind =
+    match mysql_stmt_bind_result stmt (to_voidp bind) with
+    | '\000' -> true
+    | _ -> false
+
+  let mysql_stmt_num_rows stmt =
+    Unsigned.ULLong.to_int @@ mysql_stmt_num_rows stmt
+
   (* Nonblocking API *)
-
-  let handle (typ, z) f =
-    let r = allocate typ z in
-    let s = f r in
-    (s, !@r)
-
-  let handle_opt typ = handle (typ, None)
-  let handle_int f = handle (int, 0) f
-  let handle_char f = handle (char, '\000') f
-
-  let handle_ret = handle_opt T.mysql_opt
-  let handle_res = handle_opt T.res_opt
 
   let mysql_real_connect_start mysql host user pass db port socket flags =
     let port = Unsigned.UInt.of_int port in

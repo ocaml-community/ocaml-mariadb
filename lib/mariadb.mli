@@ -24,16 +24,16 @@ end
 module Res : sig
   type 'm t constraint 'm = [< mode]
 
-  val num_fields : [< mode] t -> int
   val num_rows : [< mode] t -> int
   val free : [< mode] t -> unit
 end
 
 module Stmt : sig
-  type status = [`Initialized | `Prepared | `Bound | `Executed]
+  type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
+
   type ('m, 's) t
     constraint 'm = [< mode]
-    constraint 's = [< status]
+    constraint 's = [< state]
 
   type param =
     [ `Tiny of int
@@ -54,9 +54,10 @@ module Stmt : sig
     val message : t -> string
   end
 
-  val init : ('m, [`Connected]) mariadb -> ('m, [`Initialized]) t option
-  val bind_params : ('m, [`Prepared]) t -> param array
-                 -> [`Ok of ('m, [`Bound]) t | `Error of Error.t]
+  type 'a result = [`Ok of 'a | `Error of Error.t]
+
+  val bind_params : ([< mode], [`Prepared]) t -> param array
+                 -> ([< mode], [`Bound]) t result
 end
 
 module Nonblocking : sig
@@ -81,6 +82,10 @@ module Nonblocking : sig
 
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
+  type 'a startfun = unit -> 'a result
+  type 'a contfun = Status.t -> 'a result
+  type 'a nonblocking = 'a startfun * 'a contfun
+
   module Res : sig
     type t = [`Nonblocking] Res.t
 
@@ -94,27 +99,24 @@ module Nonblocking : sig
 
   module Stmt : sig
     type 's t = ([`Nonblocking], 's) Stmt.t
-      constraint 's = [< Stmt.status]
+      constraint 's = [< Stmt.state]
 
-    val init : [`Connected] mariadb -> [`Initialized] t option
+    type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Stmt.Error.t]
+    type 'a fetch_result = ['a result | `Done]
 
-    val prepare_start : [`Initialized] t -> string -> [`Prepared] t result
-    val prepare_cont : [`Initialized] t -> Status.t -> [`Prepared] t result
+    val execute : [`Prepared] t -> Stmt.param array
+               -> [ `Ok of ([`Executed] t nonblocking) | `Error of Stmt.Error.t]
 
-    val execute_start : [`Bound] t -> [`Executed] t result
-    val execute_cont : [`Bound] t -> Status.t -> [`Executed] t result
+    val store_result : [`Executed] t -> Res.t nonblocking
 
-    val fetch_start : [`Executed ] t -> unit result
-    val fetch_cont : [`Executed] t -> Status.t -> unit result
+    val fetch_start : [`Executed ] t -> [`Fetch] t fetch_result
+    val fetch_cont : [`Executed] t -> Status.t -> [`Fetch] t fetch_result
 
-    (*val store_result_start : t -> unit result
-    val store_result_cont : t -> Status.t -> unit result*)
+    val close_start : [< Stmt.state] t -> unit result
+    val close_cont : [< Stmt.state] t -> Status.t -> unit result
 
-    val close_start : [< Stmt.status] t -> unit result
-    val close_cont : [< Stmt.status] t -> Status.t -> unit result
-
-    val reset_start : [< Stmt.status] t -> unit result
-    val reset_cont : [< Stmt.status] t -> Status.t -> unit result
+    val reset_start : [< Stmt.state] t -> unit result
+    val reset_cont : [< Stmt.state] t -> Status.t -> unit result
 
     (*val next_result_start : t -> bool result
     val next_result_cont : t -> Status.t -> bool result*)
@@ -168,16 +170,19 @@ module Nonblocking : sig
   val set_server_option_start : [`Connected] t -> server_option -> unit result
   val set_server_option_cont : [`Connected] t -> Status.t -> unit result
 
-  val list_dbs_start : [`Connected] t -> string -> Res.t result
+  (*val list_dbs_start : [`Connected] t -> string -> Res.t result
   val list_dbs_cont : [`Connected] t -> Status.t -> Res.t result
 
   val list_tables_start : [`Connected] t -> string -> Res.t result
   val list_tables_cont : [`Connected] t -> Status.t -> Res.t result
 
   val next_result_start : [`Connected] t -> bool result
-  val next_result_cont : [`Connected] t -> Status.t -> bool result
+  val next_result_cont : [`Connected] t -> Status.t -> bool result*)
+
+  val prepare : [`Connected] t -> string
+             -> [ `Ok of ([`Prepared] Stmt.t nonblocking) | `Error of Error.t]
 end
 
 val init : unit -> ([`Blocking], [`Initialized]) t option
 val close : ([< mode], [`Connected]) t -> unit
-val use_result: ([< mode], [`Connected]) t -> [< mode] Res.t option
+(* val use_result: ([< mode], [`Connected]) t -> [< mode] Res.t option *)

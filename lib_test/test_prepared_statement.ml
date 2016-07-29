@@ -52,77 +52,6 @@ let connect_start mariadb =
         ~db:(env "OCAML_MARIADB_DB" "mysql")
         ())
 
-let rec handle_query mariadb f =
-  match f mariadb with
-  | `Ok () -> ()
-  | `Wait status -> query_cont mariadb status
-  | `Error err -> die __LOC__ err
-
-and query_cont mariadb status =
-  print_endline "waiting for query...";
-  let status = wait mariadb status in
-  handle_query mariadb (fun m -> Mariadb.Nonblocking.query_cont m status)
-
-let query_start mariadb query =
-  handle_query mariadb (fun m -> Mariadb.Nonblocking.query_start m query)
-
-let print_row r =
-  print_endline "[";
-  for i = 0 to Array.length r - 1 do
-    print_endline @@ "  (" ^ r.(i) ^ ")"
-  done;
-  print_endline "]"
-
-let rec fetch_row_cont mariadb res status =
-  print_endline "waiting for row...";
-  let status = wait mariadb status in
-  match Mariadb.Nonblocking.Res.fetch_row_cont res status with
-  | `Ok row -> print_row row; fetch_row_start mariadb res
-  | `Wait status -> fetch_row_cont mariadb res status
-  | `Done ->
-      let err = Mariadb.Error.create mariadb in
-      if Mariadb.Error.errno err <> 0 then
-        print_endline @@ "fetch_row_cont: " ^ Mariadb.Error.message err
-
-and fetch_row_start mariadb res =
-  match Mariadb.Nonblocking.Res.fetch_row_start res with
-  | `Ok row -> print_row row; fetch_row_start mariadb res
-  | `Wait status -> fetch_row_cont mariadb res status
-  | `Done ->
-      let err = Mariadb.Error.create mariadb in
-      if Mariadb.Error.errno err <> 0 then
-        print_endline @@ "fetch_row_start: " ^ Mariadb.Error.message err
-
-let rec handle_prepare stmt f =
-  match f stmt with
-  | `Ok prep -> prep
-  | `Wait status -> prepare_cont stmt status
-  | `Error err -> failwith @@ "prepare: " ^ Mariadb.Error.message err
-
-and prepare_cont stmt status =
-  handle_prepare stmt
-    (fun stmt -> Mariadb.Nonblocking.Stmt.prepare_cont stmt status)
-
-and prepare_start stmt query =
-  handle_prepare stmt
-    (fun stmt -> Mariadb.Nonblocking.Stmt.prepare_start stmt query)
-
-let rec handle_execute stmt f =
-  match f stmt with
-  | `Ok execed -> execed
-  | `Wait status -> execute_cont stmt status
-  | `Error err ->
-      failwith @@ "execute: (" ^ (string_of_int @@ Mariadb.Error.errno err) ^
-                  ") :" ^ Mariadb.Error.message err
-
-and execute_cont stmt status =
-  handle_execute stmt
-    (fun stmt -> Mariadb.Nonblocking.Stmt.execute_cont stmt status)
-
-and execute_start stmt =
-  handle_execute stmt
-    (fun stmt -> Mariadb.Nonblocking.Stmt.execute_start stmt)
-
 let bind_params stmt args =
   match Mariadb.Stmt.bind_params stmt args with
   | `Ok bound -> bound
@@ -135,7 +64,7 @@ let rec handle_stmt_close stmt f =
   | `Ok () -> ()
   | `Wait status -> stmt_close_cont stmt status
   | `Error err ->
-      failwith @@ "stmt_close: " ^ string_of_int @@ Mariadb.Error.errno err
+      failwith @@ "stmt_close: " ^ string_of_int @@ Mariadb.Stmt.Error.errno err
 
 and stmt_close_cont stmt status =
   handle_stmt_close stmt
@@ -145,6 +74,25 @@ and stmt_close_start stmt =
   handle_stmt_close stmt
     (fun stmt -> Mariadb.Nonblocking.Stmt.close_start stmt)
 
+let rec nonblocking ~name (f, g) =
+  match f () with
+  | `Ok v -> v
+  | `Wait s -> nonblocking ~name ((fun () -> g s), g)
+  | `Error e -> failwith @@ name ^ " failed"
+
+let prepare mariadb query =
+  match Mariadb.Nonblocking.prepare mariadb query with
+  | `Ok nb -> nonblocking ~name:"nonblocking prepare" nb
+  | `Error e -> failwith "prepare failed"
+
+let execute stmt params =
+  match Mariadb.Nonblocking.Stmt.execute stmt params with
+  | `Ok nb -> nonblocking ~name:"nonblocking execute" nb
+  | `Error e -> failwith "execute failed"
+
+let store_result stmt =
+  nonblocking ~name:"store result" (Mariadb.Nonblocking.Stmt.store_result stmt)
+
 let () =
   let mariadb =
     match Mariadb.Nonblocking.init () with
@@ -153,11 +101,9 @@ let () =
   print_endline "connected!";
   let query =
     env "OCAML_MARIADB_QUERY" "SELECT * FROM user WHERE LENGTH(user) > ?" in
-  let stmt =
-    match Mariadb.Stmt.init mariadb with
-    | Some stmt -> prepare_start stmt query
-    | None -> failwith "cannot prepare" in
-  let stmt = bind_params stmt [| `String "Problema%" |] in
-  let stmt = execute_start stmt in
+  let stmt = prepare mariadb query in
+  let stmt = execute stmt [| `String "Problema%" |] in
+  let res = store_result stmt in
+  print_endline @@ string_of_int @@ Mariadb.Res.num_rows res;
   stmt_close_start stmt;
   print_endline "todo - results"
