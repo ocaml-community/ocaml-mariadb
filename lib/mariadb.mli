@@ -14,7 +14,7 @@ type server_option =
   | Multi_statements of bool
 
 module Error : sig
-  type t
+  type t = int * string
 
   val create : ([< mode], [< state]) mariadb -> t
   val errno : t -> int
@@ -47,7 +47,7 @@ module Stmt : sig
 
   module Error : sig
     type ('m, 's) stmt = ('m, 's) t
-    type t
+    type t = int * string
 
     val create : ('m, 's) stmt -> t
     val errno : t -> int
@@ -82,19 +82,18 @@ module Nonblocking : sig
 
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
-  type 'a startfun = unit -> 'a result
-  type 'a contfun = Status.t -> 'a result
-  type 'a nonblocking = 'a startfun * 'a contfun
+  type 'a start = unit -> 'a result
+  type 'a cont = Status.t -> 'a result
+  type 'a nonblocking = 'a start * 'a cont
 
   module Res : sig
     type t = [`Nonblocking] Res.t
 
-    val fetch_row_start : t -> [`Ok of row | `Wait of Status.t | `Done]
-    val fetch_row_cont : t -> Status.t
-                      -> [`Ok of row | `Wait of Status.t | `Done]
-
-    val free_start : t -> [`Ok | `Wait of Status.t]
-    val free_cont : t -> Status.t -> [`Ok | `Wait of Status.t]
+    val fetch_row : t
+                 -> (unit -> [`Ok of row | `Wait of Status.t | `Done]) *
+                    (Status.t -> [`Ok of row | `Wait of Status.t | `Done])
+    val free : t -> (unit -> [`Ok | `Wait of Status.t]) *
+                    (Status.t -> [`Ok | `Wait of Status.t])
   end
 
   module Stmt : sig
@@ -109,66 +108,47 @@ module Nonblocking : sig
 
     val store_result : [`Executed] t -> Res.t nonblocking
 
-    val fetch_start : [`Executed ] t -> [`Fetch] t fetch_result
-    val fetch_cont : [`Executed] t -> Status.t -> [`Fetch] t fetch_result
+    val fetch : [`Executed ] t
+             -> (unit -> [`Fetch] t fetch_result) *
+                (Status.t -> [`Fetch] t fetch_result)
 
-    val close_start : [< Stmt.state] t -> unit result
-    val close_cont : [< Stmt.state] t -> Status.t -> unit result
+    val close : [< Stmt.state] t -> unit nonblocking
 
-    val reset_start : [< Stmt.state] t -> unit result
-    val reset_cont : [< Stmt.state] t -> Status.t -> unit result
+    val reset : [< Stmt.state] t -> unit nonblocking
 
     (*val next_result_start : t -> bool result
     val next_result_cont : t -> Status.t -> bool result*)
   end
 
   module Tx : sig
-    val commit_start : [`Connected] t -> [`Tx] t result
-    val commit_cont : [`Connected] t -> Status.t -> [`Tx] t result
-
-    val rollback_start : [`Tx] t -> [`Connected] t result
-    val rollback_cont : [`Tx] t -> Status.t ->  [`Connected] t result
-
-    val autocommit_start : [`Connected] t -> bool -> [`Connected] t result
-    val autocommit_cont : [`Connected] t -> Status.t -> [`Connected] t result
+    val commit : [`Connected] t -> [`Tx] t nonblocking
+    val rollback : [`Tx] t -> [`Connected] t nonblocking
+    val autocommit : [`Connected] t -> bool -> [`Connected] t nonblocking
   end
 
   val init : unit -> [`Initialized] t option
-  val close_start : [`Connected] t -> [`Ok | `Wait of Status.t]
-  val close_cont : [`Connected] t -> Status.t -> [`Ok | `Wait of Status.t]
+  val close : [`Connected] t
+           -> (unit -> [`Ok | `Wait of Status.t]) *
+              (Status.t -> [`Ok | `Wait of Status.t])
 
-  val connect_start : [`Initialized] t
-                   -> ?host:string
-                   -> ?user:string
-                   -> ?pass:string
-                   -> ?db:string -> ?port:int -> ?socket:string
-                   -> ?flags:flag list -> unit
-                   -> [`Connected] t result
-
-  val connect_cont : [`Initialized] t -> Status.t
-                  -> [`Connected] t result
-
-  val query_start : [`Connected] t -> string -> unit result
-  val query_cont : [`Connected] t -> Status.t -> unit result
+  val connect : [`Initialized] t
+            -> ?host:string
+            -> ?user:string
+            -> ?pass:string
+            -> ?db:string -> ?port:int -> ?socket:string
+            -> ?flags:flag list -> unit
+            -> [`Connected] t nonblocking
 
   val fd : [< `Initialized | `Connected] t -> int
   val timeout : [< `Initialized | `Connected] t -> int
 
-  val set_charset_start : [`Connected] t -> string -> unit result
-  val set_charset_cont : [`Connected] t -> Status.t -> unit result
-
-  val select_db_start : [`Connected] t -> string -> unit result
-  val select_db_cont : [`Connected] t -> Status.t -> unit result
-
-  val change_user_start : [`Connected] t -> string -> string -> string option
-                       -> unit result
-  val change_user_cont : [`Connected] t -> Status.t -> unit result
-
-  val dump_debug_info_start : [`Connected] t -> unit result
-  val dump_debug_info_cont : [`Connected] t -> Status.t -> unit result
-
-  val set_server_option_start : [`Connected] t -> server_option -> unit result
-  val set_server_option_cont : [`Connected] t -> Status.t -> unit result
+  val set_charset : [`Connected] t -> string -> unit nonblocking
+  val select_db : [`Connected] t -> string -> unit nonblocking
+  val change_user : [`Connected] t -> string -> string -> string option
+                 -> unit nonblocking
+  val dump_debug_info : [`Connected] t -> unit nonblocking
+  val set_server_option : [`Connected] t -> server_option -> unit nonblocking
+  val ping : [`Connected] t -> unit nonblocking
 
   (*val list_dbs_start : [`Connected] t -> string -> Res.t result
   val list_dbs_cont : [`Connected] t -> Status.t -> Res.t result
