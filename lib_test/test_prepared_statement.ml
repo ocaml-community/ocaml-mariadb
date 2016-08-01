@@ -1,3 +1,5 @@
+open Printf
+
 let int_of_file_descr : Unix.file_descr -> int = Obj.magic
 let file_descr_of_int : int -> Unix.file_descr = Obj.magic
 
@@ -65,20 +67,40 @@ let store_result mariadb stmt =
   nonblocking mariadb ~name:"store result"
     (Mariadb.Nonblocking.Stmt.store_result stmt)
 
+let fetch mariadb res =
+  nonblocking mariadb ~name:"fetch" (Mariadb.Nonblocking.Res.fetch res)
+
 let close_stmt mariadb stmt =
   nonblocking mariadb ~name:"close result" (Mariadb.Nonblocking.Stmt.close stmt)
+
+let rec with_rows ?(i = 0) mariadb res f =
+  match fetch mariadb res with
+  | Some row ->
+      printf "> %d\n%!" i;
+      f row; with_rows ~i:(i + 1) mariadb res f
+  | None -> ()
+
+let print_row row =
+  Array.iter
+    (function
+    | `Int i -> printf "%d\n%!" i
+    | `Float x -> printf "%f\n%!" x
+    | `String s -> printf "%s\n%!" s
+    | `Bytes b -> printf "%s\n%!" (Bytes.to_string b)
+    | `Null -> printf "NULL\n%!")
+    row
 
 let () =
   let mariadb =
     match Mariadb.Nonblocking.init () with
     | Some m -> connect m
     | None -> failwith "cannot init" in
-  print_endline "connected!";
   let query =
     env "OCAML_MARIADB_QUERY" "SELECT * FROM user WHERE LENGTH(user) > ?" in
   let stmt = prepare mariadb query in
   let stmt = execute mariadb stmt [| `String "Problema%" |] in
   let res = store_result mariadb stmt in
-  print_endline @@ string_of_int @@ Mariadb.Res.num_rows res;
+  print_endline @@ "#rows: " ^ string_of_int @@ Mariadb.Res.num_rows res;
+  with_rows mariadb res print_row;
   close_stmt mariadb stmt;
-  print_endline "todo - results"
+  printf "done\n%!"

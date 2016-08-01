@@ -88,10 +88,18 @@ module Nonblocking : sig
 
   module Res : sig
     type t = [`Nonblocking] Res.t
+    type value =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      | `Null
+      ]
 
-    val fetch_row : t
-                 -> (unit -> [`Ok of row | `Wait of Status.t | `Done]) *
-                    (Status.t -> [`Ok of row | `Wait of Status.t | `Done])
+    val fetch_row : t -> row option nonblocking
+
+    val fetch : t -> value array option nonblocking
+
     val free : t -> (unit -> [`Ok | `Wait of Status.t]) *
                     (Status.t -> [`Ok | `Wait of Status.t])
   end
@@ -101,16 +109,11 @@ module Nonblocking : sig
       constraint 's = [< Stmt.state]
 
     type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Stmt.Error.t]
-    type 'a fetch_result = ['a result | `Done]
 
     val execute : [`Prepared] t -> Stmt.param array
                -> [ `Ok of ([`Executed] t nonblocking) | `Error of Stmt.Error.t]
 
     val store_result : [`Executed] t -> Res.t nonblocking
-
-    val fetch : [`Executed ] t
-             -> (unit -> [`Fetch] t fetch_result) *
-                (Status.t -> [`Fetch] t fetch_result)
 
     val close : [< Stmt.state] t -> unit nonblocking
 

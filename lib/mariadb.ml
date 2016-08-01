@@ -42,11 +42,61 @@ module Bind = struct
     ; is_unsigned : char
     }
 
+  type buffer_type =
+    [ `Null
+    | `Tiny
+    | `Year
+    | `Short
+    | `Int24
+    | `Long
+    | `Float
+    | `Long_long
+    | `Double
+    | `Decimal
+    | `New_decimal
+    | `String
+    | `Var_string
+    | `Tiny_blob
+    | `Blob
+    | `Medium_blob
+    | `Long_blob
+    | `Bit
+    | `Time
+    | `Date
+    | `Datetime
+    | `Timestamp
+    ]
+
+  let buffer_type_of_int i =
+    let open T.Type in
+    if i = null              then `Null
+    else if i = tiny         then `Tiny
+    else if i = year         then `Year
+    else if i = short        then `Short
+    else if i = int24        then `Int24
+    else if i = long         then `Long
+    else if i = float        then `Float
+    else if i = long_long    then `Long_long
+    else if i = double       then `Double
+    else if i = decimal      then `Decimal
+    else if i = new_decimal  then `New_decimal
+    else if i = string       then `String
+    else if i = var_string   then `Var_string
+    else if i = tiny_blob    then `Tiny_blob
+    else if i = blob         then `Blob
+    else if i = medium_blob  then `Medium_blob
+    else if i = long_blob    then `Long_blob
+    else if i = bit          then `Bit
+    else if i = time         then `Time
+    else if i = date         then `Date
+    else if i = datetime     then `Datetime
+    else if i = timestamp    then `Timestamp
+    else invalid_arg @@ "unknown buffer type " ^ (string_of_int i)
+
   let t = '\001'
   let f = '\000'
 
   let alloc n =
-    Printf.printf "allocatng %d binds - %d each\n%!" n (sizeof T.Bind.t);
     { n
     ; bind = allocate_n T.Bind.t ~count:n
     ; length = allocate_n ulong ~count:n
@@ -157,10 +207,9 @@ module Res = struct
 end
 
 let stmt_init mariadb =
-  let attr = T.Stmt_attr.update_max_length in
   match B.mysql_stmt_init mariadb with
   | Some stmt ->
-      B.mysql_stmt_attr_set_bool stmt attr true;
+      B.mysql_stmt_attr_set_bool stmt T.Stmt_attr.update_max_length true;
       Some stmt
   | None ->
       None
@@ -277,19 +326,15 @@ module Stmt = struct
 
   let buffer_size typ =
     let open T.Type in
-    if typ == null then Some 0
-    else if typ == tiny || typ == year then Some 1
-    else if typ == short then Some 2
-    else if typ == int24 || typ == long || typ == float then Some 4
-    else if typ == long_long || typ == double then Some 8
-    else if typ == decimal || typ = new_decimal || typ == string
-         || typ == var_string || typ == bit || typ == tiny_blob
-         || typ == blob || typ == medium_blob || typ == long_blob
-      then Some (-1)
-(* TODO else if typ == time || typ == date || typ == datetime || typ == timestamp
-      then Some (sizeof T.Time.t) *)
-    else
-      None
+    match Bind.buffer_type_of_int typ with
+    | `Null -> 0
+    | `Tiny | `Year -> 1
+    | `Short -> 2
+    | `Int24 | `Long | `Float -> 4
+    | `Long_long | `Double -> 8
+    | `Decimal | `New_decimal | `String | `Var_string
+    | `Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Bit -> -1
+    | `Time | `Date | `Datetime | `Timestamp -> assert false (* TODO *)
 
   let alloc_buffer bp fp typ =
     let open Ctypes in
@@ -297,13 +342,10 @@ module Stmt = struct
     let of_ulong = Unsigned.ULong.to_int in
     let size =
       match buffer_size typ with
-      | Some (-1) -> of_ulong (getf (!@fp) T.Field.max_length)
-      | Some n -> n
-      | None -> -1 in
-    if size > 0 then begin
-      setf (!@bp) T.Bind.buffer_length (to_ulong size);
-      setf (!@bp) T.Bind.buffer (malloc size)
-    end
+      | -1 -> of_ulong (getf (!@fp) T.Field.max_length)
+      | n -> n in
+    setf (!@bp) T.Bind.buffer_length (to_ulong size);
+    setf (!@bp) T.Bind.buffer (malloc size)
 
   let bind_result stmt =
     let n = stmt.result.Bind.n in
@@ -326,7 +368,6 @@ module Nonblocking = struct
   type 's t = ([`Nonblocking], 's) mariadb
   type 's mariadb = 's t
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
-  type 'a fetch_result = ['a result | `Done]
 
   type 'a start = unit -> 'a result
   type 'a cont = Status.t -> 'a result
@@ -527,11 +568,18 @@ module Nonblocking = struct
 
   module Res = struct
     type t = [`Nonblocking] Res.t
+    type value =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      | `Null
+      ]
 
     let handle_fetch_row res f =
       match f res.Res.raw with
-      | 0, Some row -> `Ok row
-      | 0, None -> `Done
+      | 0, Some row -> `Ok (Some row)
+      | 0, None -> `Ok (None)
       | s, _ -> `Wait (Status.of_int s)
 
     let fetch_row_start res () =
@@ -542,6 +590,82 @@ module Nonblocking = struct
 
     let fetch_row res =
       (fetch_row_start res, fetch_row_cont res)
+
+    let buffer_of_char_ptr p len =
+      let b = Buffer.create len in
+      let i = ref 0 in
+      let open Ctypes in
+      while !i < len do
+        let c = !@(p +@ !i) in
+        Buffer.add_char b c;
+        incr i
+      done;
+      b
+
+    let convert r at typ =
+      let open Ctypes in
+      let bp = r.Bind.bind +@ at in
+      let buf = getf (!@bp) T.Bind.buffer in
+      let cast_to t =
+        !@(coerce (ptr void) (ptr t) buf) in
+      let to_char_buffer () =
+        let lp = r.Bind.length +@ at in
+        let len = Unsigned.ULong.to_int @@ !@lp in
+        buffer_of_char_ptr (coerce (ptr void) (ptr char) buf) len in
+      match typ with
+      | `Null ->
+          `Null
+      | `Tiny | `Year ->
+          `Int (int_of_char @@ cast_to char)
+      | `Short ->
+          `Int (cast_to int)
+      | `Int24 | `Long ->
+          `Int (Signed.Int32.to_int @@ cast_to int32_t)
+      | `Long_long ->
+          `Int (Signed.Int64.to_int @@ cast_to int64_t)
+      | `Float ->
+          `Float (cast_to float)
+      | `Double ->
+          `Float (cast_to double)
+      | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
+          `String (to_char_buffer () |> Buffer.contents)
+      | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
+          `Bytes (to_char_buffer () |> Buffer.to_bytes)
+      | `Time  | `Date | `Datetime | `Timestamp ->
+          assert false (* TODO *)
+
+    let build_row res =
+      let r = res.Res.result in
+      let n = r.Bind.n in
+      let open Ctypes in
+      Array.init n
+        (fun i ->
+          let bp = r.Bind.bind +@ i in
+          (* TODO test is_null *)
+          let buffer_type = getf (!@bp) T.Bind.buffer_type in
+          (* TODO test is_unsigned *)
+          convert r i (Bind.buffer_type_of_int buffer_type))
+
+    let handle_fetch res f =
+      match f res.Res.stmt with
+      | 0, 0 -> `Ok (Some (build_row res))
+      | 0, 1 ->
+          let errno = B.mysql_stmt_errno res.Res.stmt in
+          let error = B.mysql_stmt_error res.Res.stmt in
+          `Error (Stmt.Error.make errno error)
+      | 0, r when r = T.Return_code.no_data -> `Ok None
+      | 0, r when r = T.Return_code.data_truncated ->
+          `Error (Stmt.Error.make 0 "truncated data")
+      | s, _ -> `Wait (Status.of_int s)
+
+    let fetch_start res () =
+      handle_fetch res B.mysql_stmt_fetch_start
+
+    let fetch_cont stmt status =
+      handle_fetch stmt ((flip B.mysql_stmt_fetch_cont) status)
+
+    let fetch res =
+      (fetch_start res, fetch_cont res)
 
     let handle_ok_wait res f =
       match f res.Res.raw with
@@ -563,8 +687,6 @@ module Nonblocking = struct
       constraint 's = [< Stmt.state]
 
     type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Stmt.Error.t]
-
-    type 'a fetch_result = ['a result | `Done]
 
     let init =
       Stmt.init
@@ -605,24 +727,6 @@ module Nonblocking = struct
 
     let store_result stmt =
       (store_result_start stmt, store_result_cont stmt)
-
-    let handle_fetch stmt f =
-      match f stmt.Stmt.raw with
-      | 0, 0 -> `Ok stmt
-      | 0, 1 -> `Error (Stmt.Error.create stmt)
-      | 0, r when r = T.Return_code.no_data -> `Done
-      | 0, r when r = T.Return_code.data_truncated ->
-          `Error (Stmt.Error.make 0 "truncated data")
-      | s, _ -> `Wait (Status.of_int s)
-
-    let fetch_start stmt () =
-      handle_fetch stmt (fun s -> B.mysql_stmt_fetch_start s)
-
-    let fetch_cont stmt status =
-      handle_fetch stmt (fun s -> B.mysql_stmt_fetch_cont s status)
-
-    let fetch stmt =
-      (fetch_start stmt, fetch_cont stmt)
 
     let handle_char stmt f =
       match f stmt.Stmt.raw with
