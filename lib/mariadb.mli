@@ -1,82 +1,93 @@
-type mode = [`Blocking | `Nonblocking]
-type state = [`Initialized | `Connected | `Tx]
-
-type ('m, 's) t
-  constraint 'm = [< mode]
-  constraint 's = [< state]
-type ('m, 's) mariadb = ('m, 's) t
-
-type row = string array
-
-type flag
-
-type server_option =
-  | Multi_statements of bool
-
-module Error : sig
-  type t = int * string
-
-  val create : ([< mode], [< state]) mariadb -> t
-  val errno : t -> int
-  val message : t -> string
-end
-
-module Res : sig
-  type 'm t constraint 'm = [< mode]
-
-  type time =
-    { year : int
-    ; month : int
-    ; day : int
-    ; hour : int
-    ; minute : int
-    ; second : int
-    }
-
-  type value =
-    [ `Int of int
-    | `Float of float
-    | `String of string
-    | `Bytes of bytes
-    | `Time of time
-    | `Null
-    ]
-
-  val num_rows : [< mode] t -> int
-  val free : [< mode] t -> unit
-end
-
-module Stmt : sig
-  type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
+module Common : sig
+  type mode = [`Blocking | `Nonblocking]
+  type state = [`Initialized | `Connected | `Tx]
 
   type ('m, 's) t
     constraint 'm = [< mode]
     constraint 's = [< state]
+  type ('m, 's) mariadb = ('m, 's) t
 
-  type param =
-    [ `Tiny of int
-    | `Short of int
-    | `Int of int
-    | `Float of float
-    | `Double of float
-    | `String of string
-    | `Blob of bytes
-    ]
+  type row = string array
+
+  type flag
+
+  type server_option =
+    | Multi_statements of bool
 
   module Error : sig
-    type ('m, 's) stmt = ('m, 's) t
     type t = int * string
 
-    val create : ('m, 's) stmt -> t
+    val create : ([< mode], [< state]) mariadb -> t
     val errno : t -> int
     val message : t -> string
   end
 
-  type 'a result = [`Ok of 'a | `Error of Error.t]
+  module Res : sig
+    type 'm t constraint 'm = [< mode]
 
-  val bind_params : ([< mode], [`Prepared]) t -> param array
-                 -> ([< mode], [`Bound]) t result
+    type time =
+      { year : int
+      ; month : int
+      ; day : int
+      ; hour : int
+      ; minute : int
+      ; second : int
+      }
+
+    type value =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      | `Time of time
+      | `Null
+      ]
+
+    val num_rows : [< mode] t -> int
+    val free : [< mode] t -> unit
+  end
+
+  module Stmt : sig
+    type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
+
+    type ('m, 's) t
+      constraint 'm = [< mode]
+      constraint 's = [< state]
+
+    type param =
+      [ `Tiny of int
+      | `Short of int
+      | `Int of int
+      | `Float of float
+      | `Double of float
+      | `String of string
+      | `Blob of bytes
+      ]
+
+    module Error : sig
+      type ('m, 's) stmt = ('m, 's) t
+      type t = int * string
+
+      val create : ('m, 's) stmt -> t
+      val errno : t -> int
+      val message : t -> string
+    end
+
+    type 'a result = [`Ok of 'a | `Error of Error.t]
+
+    val bind_params : ([< mode], [`Prepared]) t -> param array
+                   -> ([< mode], [`Bound]) t result
+  end
 end
+
+module Error = Common.Error
+module Stmt = Common.Stmt
+module Res = Common.Res
+
+type 's t = ([`Blocking], 's) Common.t
+
+val init : unit -> [`Initialized] t option
+val close : [`Connected] t -> unit
 
 module Nonblocking : sig
   module Status : sig
@@ -95,8 +106,9 @@ module Nonblocking : sig
     val timeout : t -> bool
   end
 
-  type 's t = ([`Nonblocking], 's) mariadb
-  type 's mariadb = 's t
+  module Error = Common.Error
+
+  type 's t = ([`Nonblocking], 's) Common.t
 
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
@@ -105,30 +117,32 @@ module Nonblocking : sig
   type 'a nonblocking = 'a start * 'a cont
 
   module Res : sig
-    type t = [`Nonblocking] Res.t
+    type t = [`Nonblocking] Common.Res.t
 
-    val fetch_row : t -> row option nonblocking
+    val fetch_row : t -> Common.row option nonblocking
 
-    val fetch : t -> Res.value array option nonblocking
+    val fetch : t -> Common.Res.value array option nonblocking
 
     val free : t -> (unit -> [`Ok | `Wait of Status.t]) *
                     (Status.t -> [`Ok | `Wait of Status.t])
   end
 
   module Stmt : sig
-    type 's t = ([`Nonblocking], 's) Stmt.t
-      constraint 's = [< Stmt.state]
+    module Error = Common.Stmt.Error
 
-    type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Stmt.Error.t]
+    type 's t = ([`Nonblocking], 's) Common.Stmt.t
+      constraint 's = [< Common.Stmt.state]
 
-    val execute : [`Prepared] t -> Stmt.param array
-               -> [ `Ok of ([`Executed] t nonblocking) | `Error of Stmt.Error.t]
+    type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
+
+    val execute : [`Prepared] t -> Common.Stmt.param array
+               -> [ `Ok of ([`Executed] t nonblocking) | `Error of Error.t]
 
     val store_result : [`Executed] t -> Res.t nonblocking
 
-    val close : [< Stmt.state] t -> unit nonblocking
+    val close : [< Common.Stmt.state] t -> unit nonblocking
 
-    val reset : [< Stmt.state] t -> unit nonblocking
+    val reset : [< Common.Stmt.state] t -> unit nonblocking
 
     (*val next_result_start : t -> bool result
     val next_result_cont : t -> Status.t -> bool result*)
@@ -150,7 +164,7 @@ module Nonblocking : sig
             -> ?user:string
             -> ?pass:string
             -> ?db:string -> ?port:int -> ?socket:string
-            -> ?flags:flag list -> unit
+            -> ?flags:Common.flag list -> unit
             -> [`Connected] t nonblocking
 
   val fd : [< `Initialized | `Connected] t -> int
@@ -161,7 +175,8 @@ module Nonblocking : sig
   val change_user : [`Connected] t -> string -> string -> string option
                  -> unit nonblocking
   val dump_debug_info : [`Connected] t -> unit nonblocking
-  val set_server_option : [`Connected] t -> server_option -> unit nonblocking
+  val set_server_option : [`Connected] t -> Common.server_option
+                       -> unit nonblocking
   val ping : [`Connected] t -> unit nonblocking
 
   (*val list_dbs_start : [`Connected] t -> string -> Res.t result
@@ -176,7 +191,3 @@ module Nonblocking : sig
   val prepare : [`Connected] t -> string
              -> [ `Ok of ([`Prepared] Stmt.t nonblocking) | `Error of Error.t]
 end
-
-val init : unit -> ([`Blocking], [`Initialized]) t option
-val close : ([< mode], [`Connected]) t -> unit
-(* val use_result: ([< mode], [`Connected]) t -> [< mode] Res.t option *)

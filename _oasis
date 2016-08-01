@@ -12,7 +12,11 @@ Library "mariadb"
   FindlibName:      mariadb
   Path:             lib
   Modules:          Mariadb
-  InternalModules:  Wait_status,
+  InternalModules:  Common,
+                    Blocking,
+                    Nonblocking,
+                    Wait_status,
+                    Util,
                     Ffi_generated,
                     Ffi_generated_types
   CSources:         ffi_generated_stubs.c
