@@ -192,6 +192,24 @@ module Res = struct
     }
   type 'm t = u constraint 'm = [< mode]
 
+  type time =
+    { year : int
+    ; month : int
+    ; day : int
+    ; hour : int
+    ; minute : int
+    ; second : int
+    }
+
+  type value =
+    [ `Int of int
+    | `Float of float
+    | `String of string
+    | `Bytes of bytes
+    | `Time of time
+    | `Null
+    ]
+
   let create stmt result raw =
     { stmt; result; raw }
 
@@ -334,7 +352,7 @@ module Stmt = struct
     | `Long_long | `Double -> 8
     | `Decimal | `New_decimal | `String | `Var_string
     | `Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Bit -> -1
-    | `Time | `Date | `Datetime | `Timestamp -> assert false (* TODO *)
+    | `Time | `Date | `Datetime | `Timestamp -> Ctypes.sizeof T.Time.t
 
   let alloc_buffer bp fp typ =
     let open Ctypes in
@@ -568,13 +586,6 @@ module Nonblocking = struct
 
   module Res = struct
     type t = [`Nonblocking] Res.t
-    type value =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      | `Null
-      ]
 
     let handle_fetch_row res f =
       match f res.Res.raw with
@@ -632,7 +643,17 @@ module Nonblocking = struct
       | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
           `Bytes (to_char_buffer () |> Buffer.to_bytes)
       | `Time  | `Date | `Datetime | `Timestamp ->
-          assert false (* TODO *)
+          let tp = coerce (ptr void) (ptr T.Time.t) buf in
+          let field f = Unsigned.UInt.to_int @@ getf (!@tp) f in
+          `Time
+            { Res.
+              year   = field T.Time.year
+            ; month  = field T.Time.month
+            ; day    = field T.Time.day
+            ; hour   = field T.Time.hour
+            ; minute = field T.Time.minute
+            ; second = field T.Time.second
+            }
 
     let build_row res =
       let r = res.Res.result in

@@ -85,6 +85,21 @@ module Types (F: Cstubs.Types.TYPE) = struct
 
     let () = seal t
   end
+
+  module Time = struct
+    type time
+    type t = time structure
+    let t : t typ = structure "st_mysql_time"
+
+    let year = field t "year" uint
+    let month = field t "month" uint
+    let day = field t "day" uint
+    let hour = field t "hour" uint
+    let minute = field t "minute" uint
+    let second = field t "second" uint
+
+    let () = seal t
+  end
 end
 
 module Foreign_bindings = struct

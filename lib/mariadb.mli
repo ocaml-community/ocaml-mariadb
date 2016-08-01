@@ -24,6 +24,24 @@ end
 module Res : sig
   type 'm t constraint 'm = [< mode]
 
+  type time =
+    { year : int
+    ; month : int
+    ; day : int
+    ; hour : int
+    ; minute : int
+    ; second : int
+    }
+
+  type value =
+    [ `Int of int
+    | `Float of float
+    | `String of string
+    | `Bytes of bytes
+    | `Time of time
+    | `Null
+    ]
+
   val num_rows : [< mode] t -> int
   val free : [< mode] t -> unit
 end
@@ -88,17 +106,10 @@ module Nonblocking : sig
 
   module Res : sig
     type t = [`Nonblocking] Res.t
-    type value =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      | `Null
-      ]
 
     val fetch_row : t -> row option nonblocking
 
-    val fetch : t -> value array option nonblocking
+    val fetch : t -> Res.value array option nonblocking
 
     val free : t -> (unit -> [`Ok | `Wait of Status.t]) *
                     (Status.t -> [`Ok | `Wait of Status.t])

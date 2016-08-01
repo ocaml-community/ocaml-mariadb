@@ -73,20 +73,26 @@ let fetch mariadb res =
 let close_stmt mariadb stmt =
   nonblocking mariadb ~name:"close result" (Mariadb.Nonblocking.Stmt.close stmt)
 
-let rec with_rows ?(i = 0) mariadb res f =
+let rec with_rows mariadb res f =
   match fetch mariadb res with
-  | Some row ->
-      printf "> %d\n%!" i;
-      f row; with_rows ~i:(i + 1) mariadb res f
+  | Some row -> f row; with_rows mariadb res f
   | None -> ()
 
 let print_row row =
+  printf "---\n%!";
   Array.iter
     (function
     | `Int i -> printf "%d\n%!" i
     | `Float x -> printf "%f\n%!" x
     | `String s -> printf "%s\n%!" s
     | `Bytes b -> printf "%s\n%!" (Bytes.to_string b)
+    | `Time t -> printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
+          (t.Mariadb.Res.year)
+          (t.Mariadb.Res.month)
+          (t.Mariadb.Res.day)
+          (t.Mariadb.Res.hour)
+          (t.Mariadb.Res.minute)
+          (t.Mariadb.Res.second)
     | `Null -> printf "NULL\n%!")
     row
 
