@@ -75,17 +75,18 @@ module Nonblocking : sig
   end
 
   val init : unit -> [`Initialized] t option
+
+  val connect : [`Initialized] t
+             -> ?host:string
+             -> ?user:string
+             -> ?pass:string
+             -> ?db:string -> ?port:int -> ?socket:string
+             -> ?flags:Common.flag list -> unit
+             -> [`Connected] t nonblocking
+
   val close : [`Connected | `Tx] t
            -> (unit -> [`Ok | `Wait of Status.t]) *
               (Status.t -> [`Ok | `Wait of Status.t])
-
-  val connect : [`Initialized] t
-            -> ?host:string
-            -> ?user:string
-            -> ?pass:string
-            -> ?db:string -> ?port:int -> ?socket:string
-            -> ?flags:Common.flag list -> unit
-            -> [`Connected] t nonblocking
 
   val fd : [< `Initialized | `Connected] t -> int
   val timeout : [< `Initialized | `Connected] t -> int

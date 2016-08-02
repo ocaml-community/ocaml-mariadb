@@ -91,8 +91,8 @@ let () =
     match M.init () with
     | Some m -> connect m
     | None -> failwith "cannot init" in
-  let query =
-    env "OCAML_MARIADB_QUERY" "SELECT * FROM user WHERE LENGTH(user) > ?" in
+  let query = env "OCAML_MARIADB_QUERY"
+    "SELECT * FROM user WHERE LENGTH(user) > ?" in
   let stmt = prepare mariadb query in
   let stmt = execute mariadb stmt [| `Int 5 |] in
   let res = store_result mariadb stmt in

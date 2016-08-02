@@ -571,10 +571,14 @@ module Make (W : Wait) : Mariadb_intf.S = struct
 
   let init = init
 
-  let close m = nonblocking_noerr m (close m)
+  let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
+    match init () with
+    | Some m ->
+        nonblocking m (connect m ?host ?user ?pass ?db ~port ?socket ~flags ())
+    | None ->
+        Error (2008, "out of memory")
 
-  let connect m ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
-    nonblocking m (connect m ?host ?user ?pass ?db ~port ?socket ~flags ())
+  let close m = nonblocking_noerr m (close m)
 
   let set_charset m c = nonblocking m (set_charset m c)
 

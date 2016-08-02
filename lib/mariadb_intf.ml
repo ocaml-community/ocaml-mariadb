@@ -61,17 +61,14 @@ module type S = sig
   type server_option =
     | Multi_statements of bool
 
-  val init : unit -> [`Initialized] t option
+  val connect : ?host:string
+             -> ?user:string
+             -> ?pass:string
+             -> ?db:string -> ?port:int -> ?socket:string
+             -> ?flags:flag list -> unit
+             -> [`Connected] t result
 
   val close : [< `Connected | `Tx] t -> unit
-
-  val connect : [`Initialized] t
-            -> ?host:string
-            -> ?user:string
-            -> ?pass:string
-            -> ?db:string -> ?port:int -> ?socket:string
-            -> ?flags:flag list -> unit
-            -> [`Connected] t result
 
   val set_charset : [`Connected] t -> string -> unit result
   val select_db : [`Connected] t -> string -> unit result

@@ -57,20 +57,17 @@ let print_row row =
     | `Null -> printf "NULL\n%!")
     row
 
-let connect mariadb =
-  M.connect mariadb
+let connect () =
+  M.connect
     ~host:(env "OCAML_MARIADB_HOST" "localhost")
     ~user:(env "OCAML_MARIADB_USER" "root")
     ~pass:(env "OCAML_MARIADB_PASS" "")
-    ~db:(env "OCAML_MARIADB_DB" "mysql") () |> or_die
+    ~db:(env "OCAML_MARIADB_DB" "mysql") ()
 
 let () =
-  let mariadb =
-    match M.init () with
-    | Some m -> connect m
-    | None -> failwith "cannot init" in
-  let query =
-    env "OCAML_MARIADB_QUERY" "SELECT * FROM user WHERE LENGTH(user) > ?" in
+  let mariadb = connect () |> or_die in
+  let query = env "OCAML_MARIADB_QUERY"
+    "SELECT * FROM user WHERE LENGTH(user) > ?" in
   let stmt = M.prepare mariadb query |> or_die in
   let res = M.Stmt.execute stmt [| `Int 5 |] |> or_die in
   printf "#rows: %d\n%!" (M.Res.num_rows res);

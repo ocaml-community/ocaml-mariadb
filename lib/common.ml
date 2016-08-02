@@ -377,37 +377,3 @@ module Stmt = struct
     else
       `Error (Error.create stmt)
 end
-
-
-module type S = sig
-  module Error : sig
-    type t = int * string
-  end
-
-  module Stmt : sig
-    type 's t constraint 's = [< Stmt.state]
-  end
-
-  type 's t constraint 's = [< state]
-  type 'a result = ('a, Error.t) Pervasives.result
-
-  val init : unit -> [`Initialized] t option
-  val close : [`Connected | `Tx] t -> unit
-
-  val connect : [`Initialized] t
-            -> ?host:string
-            -> ?user:string
-            -> ?pass:string
-            -> ?db:string -> ?port:int -> ?socket:string
-            -> ?flags:flag list -> unit
-            -> [`Connected] t result
-
-  val set_charset : [`Connected] t -> string -> unit result
-  val select_db : [`Connected] t -> string -> unit result
-  val change_user : [`Connected] t -> string -> string -> string option
-                 -> unit result
-  val dump_debug_info : [`Connected] t -> unit result
-  val set_server_option : [`Connected] t -> server_option -> unit result
-  val ping : [`Connected] t -> unit result
-  val prepare : [`Connected] t -> string -> [`Prepared] Stmt.t result
-end
