@@ -96,7 +96,7 @@ let () =
   let stmt = prepare mariadb query in
   let stmt = execute mariadb stmt [| `Int 5 |] in
   let res = store_result mariadb stmt in
-  print_endline @@ "#rows: " ^ string_of_int @@ M.Res.num_rows res;
+  printf "#rows: %d\n%!" (M.Res.num_rows res);
   each_result mariadb res print_row;
   close_stmt mariadb stmt;
   printf "done\n%!"

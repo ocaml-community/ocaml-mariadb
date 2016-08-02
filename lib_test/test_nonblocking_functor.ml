@@ -73,7 +73,9 @@ let () =
     env "OCAML_MARIADB_QUERY" "SELECT * FROM user WHERE LENGTH(user) > ?" in
   let stmt = M.prepare mariadb query |> or_die in
   let res = M.Stmt.execute stmt [| `Int 5 |] |> or_die in
-  print_endline @@ "#rows: " ^ string_of_int @@ M.Res.num_rows res;
+  printf "#rows: %d\n%!" (M.Res.num_rows res);
   each_result res print_row;
+  M.Res.free res;
   M.Stmt.close stmt |> or_die;
+  M.close mariadb;
   printf "done\n%!"
