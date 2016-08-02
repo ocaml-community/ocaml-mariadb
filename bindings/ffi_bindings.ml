@@ -205,6 +205,9 @@ module Foreign_bindings = struct
   let mysql_stmt_num_rows = foreign "mysql_stmt_num_rows"
     (T.stmt @-> returning ullong)
 
+  let mysql_stmt_affected_rows = foreign "mysql_stmt_affected_rows"
+    (T.res @-> returning ullong)
+
   (* Nonblocking API *)
 
   let mysql_close_start = foreign "mysql_close_start"
@@ -412,6 +415,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_stmt_num_rows stmt =
     Unsigned.ULLong.to_int @@ mysql_stmt_num_rows stmt
+
+  let mysql_stmt_affected_rows stmt =
+    Unsigned.ULLong.to_int @@ mysql_stmt_affected_rows stmt
 
   (* Nonblocking API *)
 

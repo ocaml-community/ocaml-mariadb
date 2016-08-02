@@ -212,6 +212,9 @@ module Res = struct
   let num_rows res =
     B.mysql_stmt_num_rows res.stmt
 
+  let affected_rows res =
+    B.mysql_stmt_affected_rows res.stmt
+
   let fetch_field res i =
     let open Ctypes in
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res.raw i)

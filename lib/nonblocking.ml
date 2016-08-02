@@ -333,11 +333,14 @@ module Res = struct
   let free_cont res status =
     handle_ok_wait res ((flip B.mysql_free_result_cont) status)
 
-  let free res =
-    (free_start res, free_cont res)
-
   let num_rows =
     Common.Res.num_rows
+
+  let affected_rows =
+    Common.Res.affected_rows
+
+  let free res =
+    (free_start res, free_cont res)
 end
 
 module Stmt = struct
@@ -519,6 +522,9 @@ module Make (W : Wait) : Mariadb_intf.S = struct
 
     let num_rows =
       Res.num_rows
+
+    let affected_rows =
+      Res.affected_rows
 
     let free res =
       nonblocking_noerr res.Common.Res.mariadb (Res.free res)
