@@ -63,7 +63,7 @@ module type S = sig
 
   val init : unit -> [`Initialized] t option
 
-  val close : [`Connected | `Tx] t -> unit
+  val close : [< `Connected | `Tx] t -> unit
 
   val connect : [`Initialized] t
             -> ?host:string
