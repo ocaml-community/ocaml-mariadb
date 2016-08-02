@@ -63,9 +63,9 @@ let fetch mariadb res =
 let close_stmt mariadb stmt =
   nonblocking mariadb ~name:"close result" (M.Stmt.close stmt)
 
-let rec with_rows mariadb res f =
+let rec each_result mariadb res f =
   match fetch mariadb res with
-  | Some row -> f row; with_rows mariadb res f
+  | Some row -> f row; each_result mariadb res f
   | None -> ()
 
 let print_row row =
@@ -97,6 +97,6 @@ let () =
   let stmt = execute mariadb stmt [| `Int 5 |] in
   let res = store_result mariadb stmt in
   print_endline @@ "#rows: " ^ string_of_int @@ M.Res.num_rows res;
-  with_rows mariadb res print_row;
+  each_result mariadb res print_row;
   close_stmt mariadb stmt;
   printf "done\n%!"

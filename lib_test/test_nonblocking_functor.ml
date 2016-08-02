@@ -34,9 +34,9 @@ let or_die = function
   | Ok r -> r
   | Error (i, e) -> failwith @@ "error " ^ string_of_int i ^ ": " ^ e
 
-let rec with_rows res f =
+let rec each_result res f =
   match M.Res.fetch res |> or_die with
-  | Some row -> f row; with_rows res f
+  | Some row -> f row; each_result res f
   | None -> ()
 
 let print_row row =
@@ -74,6 +74,6 @@ let () =
   let stmt = M.prepare mariadb query |> or_die in
   let res = M.Stmt.execute stmt [| `Int 5 |] |> or_die in
   print_endline @@ "#rows: " ^ string_of_int @@ M.Res.num_rows res;
-  with_rows res print_row;
+  each_result res print_row;
   M.Stmt.close stmt |> or_die;
   printf "done\n%!"
