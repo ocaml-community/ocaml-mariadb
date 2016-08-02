@@ -62,7 +62,7 @@ module Nonblocking : sig
 
     val close : [< Common.Stmt.state] t -> unit nonblocking
 
-    val reset : [< Common.Stmt.state] t -> unit nonblocking
+    val reset : [`Executed] t -> [`Prepared] t nonblocking
 
     (*val next_result_start : t -> bool result
     val next_result_cont : t -> Status.t -> bool result*)

@@ -51,7 +51,7 @@ module type S = sig
 
     val close : [< state] t -> unit result
 
-    val reset : [< state] t -> unit result
+    val reset : [`Executed] t -> [`Prepared] t result
   end
 
   type state = [`Initialized | `Connected | `Tx]

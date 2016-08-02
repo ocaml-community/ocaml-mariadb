@@ -375,20 +375,26 @@ module Stmt = struct
   let store_result stmt =
     (store_result_start stmt, store_result_cont stmt)
 
-  let handle_char stmt f =
+  let handle_char_unit stmt f =
     match f stmt.Common.Stmt.raw with
     | 0, '\000' -> `Ok ()
     | 0, _ -> `Error (Error.create stmt)
     | s, _ -> `Wait (Status.of_int s)
 
   let close_start stmt () =
-    handle_char stmt (fun s -> B.mysql_stmt_close_start s)
+    handle_char_unit stmt (fun s -> B.mysql_stmt_close_start s)
 
   let close_cont stmt status =
-    handle_char stmt (fun s -> B.mysql_stmt_close_cont s status)
+    handle_char_unit stmt (fun s -> B.mysql_stmt_close_cont s status)
 
   let close stmt =
     (close_start stmt, close_cont stmt)
+
+  let handle_char stmt f =
+    match f stmt.Common.Stmt.raw with
+    | 0, '\000' -> `Ok stmt
+    | 0, _ -> `Error (Error.create stmt)
+    | s, _ -> `Wait (Status.of_int s)
 
   let reset_start stmt () =
     handle_char stmt B.mysql_stmt_reset_start
@@ -400,10 +406,10 @@ module Stmt = struct
     (reset_start stmt, reset_cont stmt)
 
   let free_result_start stmt =
-    handle_char stmt B.mysql_stmt_free_result_start
+    handle_char_unit stmt B.mysql_stmt_free_result_start
 
   let free_result_cont stmt status =
-    handle_char stmt ((flip B.mysql_stmt_free_result_cont) status)
+    handle_char_unit stmt ((flip B.mysql_stmt_free_result_cont) status)
 
   let handle_next stmt f =
     match f stmt.Common.Stmt.raw with
