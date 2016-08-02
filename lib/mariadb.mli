@@ -49,7 +49,6 @@ module Nonblocking : sig
 
   module Stmt : sig
     type 's t = ([`Nonblocking], 's) Common.Stmt.t
-      constraint 's = [< Common.Stmt.state]
 
     type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
 
@@ -72,9 +71,9 @@ module Nonblocking : sig
     val autocommit : [`Connected] t -> bool -> [`Connected] t nonblocking
   end
 
-  val init : unit -> [`Initialized] t option
+  val init : unit -> [`Unconnected] t option
 
-  val connect : [`Initialized] t
+  val connect : [`Unconnected] t
              -> ?host:string
              -> ?user:string
              -> ?pass:string
@@ -86,8 +85,8 @@ module Nonblocking : sig
            -> (unit -> [`Ok | `Wait of Status.t]) *
               (Status.t -> [`Ok | `Wait of Status.t])
 
-  val fd : [< `Initialized | `Connected] t -> int
-  val timeout : [< `Initialized | `Connected] t -> int
+  val fd : [< `Unconnected | `Connected] t -> int
+  val timeout : [< `Unconnected | `Connected] t -> int
 
   val set_charset : [`Connected] t -> string -> unit nonblocking
   val select_db : [`Connected] t -> string -> unit nonblocking

@@ -462,7 +462,7 @@ module type Wait = sig
 end
 
 module Make (W : Wait) : Mariadb_intf.S = struct
-  type state = [`Initialized | `Connected | `Tx]
+  type state = [`Unconnected | `Connected | `Tx]
   type 's t = 's mariadb
 
   type error = int * string
@@ -519,7 +519,7 @@ module Make (W : Wait) : Mariadb_intf.S = struct
   end
 
   module Stmt = struct
-    type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
+    type state = [`Prepared | `Executed]
     type 's t = 's Stmt.t
     type 'a result = ('a, error) Pervasives.result
 
@@ -544,6 +544,11 @@ module Make (W : Wait) : Mariadb_intf.S = struct
       match Stmt.execute stmt ps with
       | `Ok nb -> nonblocking stmt.Common.Stmt.mariadb nb |> handle_execute
       | `Error e -> Error e
+
+    let execute' stmt ps =
+      match execute stmt ps with
+      | Ok res -> Ok (stmt, res)
+      | Error _ as e -> e
 
     let close stmt =
       nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)

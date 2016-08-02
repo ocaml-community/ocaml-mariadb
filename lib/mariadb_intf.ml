@@ -31,7 +31,7 @@ module type S = sig
   end
 
   module Stmt : sig
-    type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
+    type state = [`Prepared | `Executed]
     type 's t constraint 's = [< state]
 
     type param =
@@ -46,12 +46,15 @@ module type S = sig
 
     val execute : [`Prepared] t -> param array -> [< mode] Res.t result
 
+    val execute' : [`Prepared] t -> param array
+                -> ([`Executed] t * [< mode] Res.t) result
+
     val close : [< state] t -> unit result
 
     val reset : [`Executed] t -> [`Prepared] t result
   end
 
-  type state = [`Initialized | `Connected | `Tx]
+  type state = [`Unconnected | `Connected | `Tx]
   type 's t constraint 's = [< state]
 
   type flag

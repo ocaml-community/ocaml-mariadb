@@ -2,7 +2,7 @@ module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
 type mode = [`Blocking | `Nonblocking]
-type state = [`Initialized | `Connected | `Tx]
+type state = [`Unconnected | `Connected | `Tx]
 
 type ('m, 's) t = B.Types.mysql
   constraint 'm = [< mode]
@@ -223,7 +223,7 @@ let stmt_init mariadb =
       None
 
 module Stmt = struct
-  type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
+  type state = [`Prepared | `Executed]
 
   type u =
     { raw : B.Types.stmt
