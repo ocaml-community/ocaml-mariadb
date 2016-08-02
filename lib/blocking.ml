@@ -4,7 +4,6 @@ module B = Ffi_bindings.Bindings(Ffi_generated)
 
 module Stmt = Common.Stmt
 module Res = Common.Res
-module Error = Common.Error
 
 type 's t = ([`Blocking], 's) Common.t
 

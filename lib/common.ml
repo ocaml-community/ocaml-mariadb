@@ -15,16 +15,10 @@ type flag
 type server_option =
   | Multi_statements of bool
 
-module Error = struct
-  type t = int * string
+type error = int * string
 
-  let create mariadb =
-    (B.mysql_errno mariadb, B.mysql_error mariadb)
-
-  let errno = fst
-  let message = snd
-  let make errno msg = (errno, msg)
-end
+let error mariadb =
+  (B.mysql_errno mariadb, B.mysql_error mariadb)
 
 module Bind = struct
   open Ctypes
@@ -262,20 +256,8 @@ module Stmt = struct
     | `Blob of bytes
     ]
 
-  module Error = struct
-    type ('m, 's) stmt = ('m, 's) t
-    type t = int * string
-
-    let create stmt =
-      (B.mysql_stmt_errno stmt.raw, B.mysql_error stmt.raw)
-
-    let errno = fst
-    let message = snd
-
-    let make errno msg = (errno, msg)
-  end
-
-  type 'a result = [`Ok of 'a | `Error of Error.t]
+  let error stmt =
+    (B.mysql_stmt_errno stmt.raw, B.mysql_error stmt.raw)
 
   let fetch_field res i =
     let open Ctypes in
@@ -333,7 +315,7 @@ module Stmt = struct
         if B.mysql_stmt_bind_param stmt.raw b.Bind.bind then
           `Ok stmt
         else
-          `Error (Error.create stmt)
+          `Error (error stmt)
 
   let malloc n =
     let open Ctypes in
@@ -375,5 +357,5 @@ module Stmt = struct
     if B.mysql_stmt_bind_result stmt.raw stmt.result.Bind.bind then
       `Ok (Res.create stmt.mariadb stmt.raw stmt.result stmt.res)
     else
-      `Error (Error.create stmt)
+      `Error (error stmt)
 end

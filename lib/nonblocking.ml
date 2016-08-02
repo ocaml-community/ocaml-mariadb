@@ -4,12 +4,12 @@ module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
 module Status = Wait_status
-module Error = Common.Error
 
 type 's t = ([`Nonblocking], 's) Common.t
 type 's mariadb = 's t
 
-type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
+type error = Common.error
+type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
 
 type server_option = Common.server_option
 
@@ -40,7 +40,7 @@ let init () =
 let handle_opt mariadb f =
   match f mariadb with
   | 0, Some r -> `Ok r
-  | 0, None -> `Error (Error.create mariadb)
+  | 0, None -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
 let handle_unit mariadb f =
@@ -52,19 +52,19 @@ let handle_unit mariadb f =
 let handle_int_ret mariadb f =
   match f mariadb with
   | 0, 0 -> `Ok mariadb
-  | 0, _ -> `Error (Error.create mariadb)
+  | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
 let handle_int mariadb f =
   match f mariadb with
   | 0, 0 -> `Ok ()
-  | 0, _ -> `Error (Error.create mariadb)
+  | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
 let handle_char mariadb f =
   match f mariadb with
   | 0, '\000' -> `Ok ()
-  | 0, _ -> `Error (Error.create mariadb)
+  | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
 let connect_start mariadb host user pass db port socket flags () =
@@ -188,12 +188,12 @@ let next_result_cont mariadb status =
 let build_stmt mariadb raw =
   match Common.Stmt.init mariadb raw with
   | Some stmt -> `Ok stmt
-  | None -> `Error (Error.create mariadb)
+  | None -> `Error (Common.error mariadb)
 
 let handle_prepare mariadb raw f =
   match f raw with
   | 0, 0 -> build_stmt mariadb raw
-  | 0, _ -> `Error (B.mysql_stmt_errno raw, B.mysql_stmt_error raw)
+  | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
 let prepare_start mariadb raw_stmt query () =
@@ -207,7 +207,7 @@ let prepare mariadb query =
   | Some raw ->
       `Ok (prepare_start mariadb raw query, prepare_cont mariadb raw)
   | None ->
-      `Error (Error.create mariadb)
+      `Error (Common.error mariadb)
 
 module Res = struct
   type t = [`Nonblocking] Common.Res.t
@@ -298,10 +298,9 @@ module Res = struct
     | 0, 1 ->
         let errno = B.mysql_stmt_errno res.Common.Res.stmt in
         let error = B.mysql_stmt_error res.Common.Res.stmt in
-        `Error (Common.Stmt.Error.make errno error)
+        `Error (errno, error)
     | 0, r when r = T.Return_code.no_data -> `Ok None
-    | 0, r when r = T.Return_code.data_truncated ->
-        `Error (Common.Stmt.Error.make 0 "truncated data")
+    | 0, r when r = T.Return_code.data_truncated -> `Error (2032, "truncated")
     | s, _ -> `Wait (Status.of_int s)
 
   let fetch_start res () =
@@ -329,11 +328,9 @@ module Res = struct
 end
 
 module Stmt = struct
-  module Error = Common.Stmt.Error
-
   type 's t = ([`Nonblocking], 's) Common.Stmt.t
 
-  type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
+  type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
 
   let init =
     Common.Stmt.init
@@ -341,7 +338,7 @@ module Stmt = struct
   let handle_execute stmt f =
     match f stmt.Common.Stmt.raw with
     | 0, 0 ->  `Ok stmt
-    | 0, _ -> `Error (Error.create stmt)
+    | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
   let execute_start stmt () =
@@ -353,7 +350,7 @@ module Stmt = struct
   let execute stmt params =
     let n = B.mysql_stmt_param_count stmt.Common.Stmt.raw in
     if n <> Array.length params then
-      `Error (Error.make 0 "parameter count mismatch")
+      `Error (0, "parameter count mismatch")
     else begin
       match Common.Stmt.bind_params stmt params with
       | `Ok bound -> `Ok (execute_start bound, execute_cont bound)
@@ -363,7 +360,7 @@ module Stmt = struct
   let handle_store_result stmt f =
     match f stmt.Common.Stmt.raw with
     | 0, 0 -> Common.Stmt.bind_result stmt
-    | 0, _ -> `Error (Error.create stmt)
+    | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
   let store_result_start stmt () =
@@ -378,7 +375,7 @@ module Stmt = struct
   let handle_char_unit stmt f =
     match f stmt.Common.Stmt.raw with
     | 0, '\000' -> `Ok ()
-    | 0, _ -> `Error (Error.create stmt)
+    | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
   let close_start stmt () =
@@ -393,7 +390,7 @@ module Stmt = struct
   let handle_char stmt f =
     match f stmt.Common.Stmt.raw with
     | 0, '\000' -> `Ok stmt
-    | 0, _ -> `Error (Error.create stmt)
+    | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
   let reset_start stmt () =
@@ -415,7 +412,7 @@ module Stmt = struct
     match f stmt.Common.Stmt.raw with
     | 0, 0 -> `Ok true
     | 0, -1 -> `Ok false
-    | 0, _ -> `Error (Error.create stmt)
+    | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
   let next_result_start stmt =
@@ -429,7 +426,7 @@ module Tx = struct
   let handle_tx mariadb f =
     match f mariadb with
     | 0, '\000' -> `Ok mariadb
-    | 0, _ -> `Error (Error.create mariadb)
+    | 0, _ -> `Error (Common.error mariadb)
     | s, _ -> `Wait (Status.of_int s)
 
   let commit_start mariadb () =
@@ -465,11 +462,11 @@ module type Wait = sig
 end
 
 module Make (W : Wait) : Mariadb_intf.S = struct
-  module Error = Error
-
   type state = [`Initialized | `Connected | `Tx]
   type 's t = 's mariadb
-  type 'a result = ('a, Error.t) Pervasives.result
+
+  type error = int * string
+  type 'a result = ('a, error) Pervasives.result
 
   type flag
   type server_option = Common.server_option =
@@ -522,13 +519,9 @@ module Make (W : Wait) : Mariadb_intf.S = struct
   end
 
   module Stmt = struct
-    module Error = struct
-      type t = int * string
-    end
-
     type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
     type 's t = 's Stmt.t
-    type 'a result = ('a, Error.t) Pervasives.result
+    type 'a result = ('a, error) Pervasives.result
 
     type param =
       [ `Tiny of int
@@ -550,8 +543,7 @@ module Make (W : Wait) : Mariadb_intf.S = struct
     let execute stmt ps =
       match Stmt.execute stmt ps with
       | `Ok nb -> nonblocking stmt.Common.Stmt.mariadb nb |> handle_execute
-      | `Error e ->
-          Error e
+      | `Error e -> Error e
 
     let close stmt =
       nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)

@@ -1,11 +1,8 @@
 type mode = [`Blocking | `Nonblocking]
 
 module type S = sig
-  module Error : sig
-    type t = int * string
-  end
-
-  type 'a result = ('a, Error.t) Pervasives.result
+  type error = int * string
+  type 'a result = ('a, error) Pervasives.result
 
   module Res : sig
     type 'm t constraint 'm = [< mode]

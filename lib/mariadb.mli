@@ -1,3 +1,5 @@
+type error = int * string
+
 (*module Blocking : Mariadb_intf.S*)
 
 module Nonblocking : sig
@@ -17,11 +19,9 @@ module Nonblocking : sig
     val timeout : t -> bool
   end
 
-  module Error = Common.Error
-
   type 's t = ([`Nonblocking], 's) Common.t
 
-  type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
+  type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
 
   type 'a start = unit -> 'a result
   type 'a cont = Status.t -> 'a result
@@ -48,15 +48,13 @@ module Nonblocking : sig
   end
 
   module Stmt : sig
-    module Error = Common.Stmt.Error
-
     type 's t = ([`Nonblocking], 's) Common.Stmt.t
       constraint 's = [< Common.Stmt.state]
 
-    type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
+    type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
 
     val execute : [`Prepared] t -> Common.Stmt.param array
-               -> [ `Ok of ([`Executed] t nonblocking) | `Error of Error.t]
+               -> [ `Ok of ([`Executed] t nonblocking) | `Error of error]
 
     val store_result : [`Executed] t -> Res.t nonblocking
 
@@ -110,7 +108,7 @@ module Nonblocking : sig
   val next_result_cont : [`Connected] t -> Status.t -> bool result*)
 
   val prepare : [`Connected] t -> string
-             -> [ `Ok of ([`Prepared] Stmt.t nonblocking) | `Error of Error.t]
+             -> [ `Ok of ([`Prepared] Stmt.t nonblocking) | `Error of error]
 
   module type Wait = sig
     val wait : [< `Connected | `Tx] t -> Status.t -> Status.t
