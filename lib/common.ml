@@ -218,9 +218,6 @@ module Res = struct
   let fetch_field res i =
     let open Ctypes in
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res.raw i)
-
-  let free res =
-    B.mysql_free_result res.raw
 end
 
 let stmt_init mariadb =

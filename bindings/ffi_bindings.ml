@@ -151,16 +151,7 @@ module Foreign_bindings = struct
   let mysql_options = foreign "mysql_options"
     (T.mysql @-> int @-> ptr void @-> returning int)
 
-  let mysql_use_result = foreign "mysql_use_result"
-    (T.mysql @-> returning T.res_opt)
-
-  let mysql_free_result = foreign "mysql_free_result"
-    (T.res @-> returning void)
-
   let mysql_num_fields = foreign "mysql_num_fields"
-    (T.res @-> returning int)
-
-  let mysql_num_rows = foreign "mysql_num_rows"
     (T.res @-> returning int)
 
   let mysql_errno = foreign "mysql_errno"
@@ -437,44 +428,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_real_query_cont mysql status =
     handle_int (fun err -> mysql_real_query_cont err mysql status)
-
-  let string_of_char_ptr p =
-    let b = Buffer.create 256 in
-    let continue = ref true in
-    let i = ref 0 in
-    while !continue do
-      let c = !@(p +@ !i) in
-      if c = '\x00' then
-        continue := false
-      else
-        Buffer.add_char b c;
-      incr i
-    done;
-    Buffer.contents b
-
-  let make_array pp len =
-    let a = Array.make len "" in
-    let p = ref (!@pp) in
-    for i = 0 to len - 1 do
-      let s = string_of_char_ptr !p in
-      a.(i) <- s;
-      p := !p +@ (String.length s + 1)
-    done;
-    a
-
-  let fetch_row res f =
-    let row = allocate T.row_opt None in
-    let status = f row in
-    let num = mysql_num_fields res in
-    match !@row with
-    | Some r -> (status, Some (make_array r num))
-    | None -> (status, None)
-
-  let mysql_fetch_row_start res =
-    fetch_row res (fun row -> mysql_fetch_row_start row res)
-
-  let mysql_fetch_row_cont res status =
-    fetch_row res (fun row -> mysql_fetch_row_cont row res status)
 
   let mysql_get_timeout_value mysql =
     Unsigned.UInt.to_int @@ mysql_get_timeout_value mysql

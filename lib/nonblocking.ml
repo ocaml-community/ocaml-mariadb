@@ -221,20 +221,11 @@ module Res = struct
     ; second : int
     }
 
-  let handle_fetch_row res f =
-    match f res.Common.Res.raw with
-    | 0, Some row -> `Ok (Some row)
-    | 0, None -> `Ok (None)
-    | s, _ -> `Wait (Status.of_int s)
+  let num_rows =
+    Common.Res.num_rows
 
-  let fetch_row_start res () =
-    handle_fetch_row res B.mysql_fetch_row_start
-
-  let fetch_row_cont res status =
-    handle_fetch_row res ((flip B.mysql_fetch_row_cont) status)
-
-  let fetch_row res =
-    (fetch_row_start res, fetch_row_cont res)
+  let affected_rows =
+    Common.Res.affected_rows
 
   let buffer_of_char_ptr p len =
     let b = Buffer.create len in
@@ -332,12 +323,6 @@ module Res = struct
 
   let free_cont res status =
     handle_ok_wait res ((flip B.mysql_free_result_cont) status)
-
-  let num_rows =
-    Common.Res.num_rows
-
-  let affected_rows =
-    Common.Res.affected_rows
 
   let free res =
     (free_start res, free_cont res)
