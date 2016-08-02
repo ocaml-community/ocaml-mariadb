@@ -10,8 +10,6 @@ type ('m, 's) t = B.Types.mysql
 
 type ('m, 's) mariadb = ('m, 's) t
 
-type row = string array
-
 type flag
 
 type server_option =
@@ -183,9 +181,10 @@ end
 
 module Res = struct
   type u =
-    { stmt   : B.Types.stmt
-    ; result : Bind.t
-    ; raw    : B.Types.res
+    { mariadb : B.Types.mysql
+    ; stmt    : B.Types.stmt
+    ; result  : Bind.t
+    ; raw     : B.Types.res
     }
   type 'm t = u constraint 'm = [< mode]
 
@@ -207,8 +206,8 @@ module Res = struct
     | `Null
     ]
 
-  let create stmt result raw =
-    { stmt; result; raw }
+  let create mariadb stmt result raw =
+    { mariadb; stmt; result; raw }
 
   let num_rows res =
     B.mysql_stmt_num_rows res.stmt
@@ -234,6 +233,7 @@ module Stmt = struct
 
   type u =
     { raw : B.Types.stmt
+    ; mariadb : B.Types.mysql
     ; res : B.Types.res
     ; num_params : int
     ; params : Bind.t
@@ -299,12 +299,13 @@ module Stmt = struct
     done;
     r
 
-  let init raw =
+  let init mariadb raw =
     let n = B.mysql_stmt_param_count raw in
     match B.mysql_stmt_result_metadata raw with
     | Some res ->
         Some
           { raw
+          ; mariadb
           ; res
           ; num_params = n
           ; params = Bind.alloc n
@@ -372,7 +373,41 @@ module Stmt = struct
       alloc_buffer bp fp typ
     done;
     if B.mysql_stmt_bind_result stmt.raw stmt.result.Bind.bind then
-      `Ok (Res.create stmt.raw stmt.result stmt.res)
+      `Ok (Res.create stmt.mariadb stmt.raw stmt.result stmt.res)
     else
       `Error (Error.create stmt)
+end
+
+
+module type S = sig
+  module Error : sig
+    type t = int * string
+  end
+
+  module Stmt : sig
+    type 's t constraint 's = [< Stmt.state]
+  end
+
+  type 's t constraint 's = [< state]
+  type 'a result = ('a, Error.t) Pervasives.result
+
+  val init : unit -> [`Initialized] t option
+  val close : [`Connected | `Tx] t -> unit
+
+  val connect : [`Initialized] t
+            -> ?host:string
+            -> ?user:string
+            -> ?pass:string
+            -> ?db:string -> ?port:int -> ?socket:string
+            -> ?flags:flag list -> unit
+            -> [`Connected] t result
+
+  val set_charset : [`Connected] t -> string -> unit result
+  val select_db : [`Connected] t -> string -> unit result
+  val change_user : [`Connected] t -> string -> string -> string option
+                 -> unit result
+  val dump_debug_info : [`Connected] t -> unit result
+  val set_server_option : [`Connected] t -> server_option -> unit result
+  val ping : [`Connected] t -> unit result
+  val prepare : [`Connected] t -> string -> [`Prepared] Stmt.t result
 end

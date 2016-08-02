@@ -1,43 +1,33 @@
 open Printf
 
-let int_of_file_descr : Unix.file_descr -> int = Obj.magic
+module M = Mariadb.Nonblocking
+
 let file_descr_of_int : int -> Unix.file_descr = Obj.magic
 
-let die where err =
-  failwith @@ Printf.sprintf "%s: (%d) %s\n%!"
-    where (Mariadb.Error.errno err) (Mariadb.Error.message err)
-
 let wait mariadb status =
-  let fd = file_descr_of_int @@ Mariadb.Nonblocking.fd mariadb in
-  let rfd = if Mariadb.Nonblocking.Status.read status then [fd] else [] in
-  let wfd = if Mariadb.Nonblocking.Status.write status then [fd] else [] in
-  let efd = if Mariadb.Nonblocking.Status.except status then [fd] else [] in
+  let fd = file_descr_of_int @@ M.fd mariadb in
+  let rfd = if M.Status.read status then [fd] else [] in
+  let wfd = if M.Status.write status then [fd] else [] in
+  let efd = if M.Status.except status then [fd] else [] in
   let timeout =
-    if Mariadb.Nonblocking.Status.timeout status
-    then float @@ Mariadb.Nonblocking.timeout mariadb
+    if M.Status.timeout status
+    then float @@ M.timeout mariadb
     else -1.0 in
   try
     let rfd, wfd, efd = Unix.select rfd wfd efd timeout in
     let status =
-      Mariadb.Nonblocking.Status.create
+      M.Status.create
         ~read:(rfd <> [])
         ~write:(wfd <> [])
         ~except:(efd <> [])
         () in
     status
   with Unix.Unix_error (e, _, _) ->
-    Mariadb.Nonblocking.Status.create ~timeout: true ()
+    M.Status.create ~timeout: true ()
 
 let env var def =
   try Sys.getenv var
   with Not_found -> def
-
-let bind_params stmt args =
-  match Mariadb.Stmt.bind_params stmt args with
-  | `Ok bound -> bound
-  | `Error err ->
-      let errno = Mariadb.Stmt.Error.errno err in
-      failwith @@ "bind_params: " ^ string_of_int errno
 
 let rec nonblocking mariadb ~name (f, g) =
   match f () with
@@ -47,31 +37,31 @@ let rec nonblocking mariadb ~name (f, g) =
 
 let connect mariadb =
   nonblocking mariadb ~name:"connect"
-    (Mariadb.Nonblocking.connect mariadb
+    (M.connect mariadb
       ~host:(env "OCAML_MARIADB_HOST" "localhost")
       ~user:(env "OCAML_MARIADB_USER" "root")
       ~pass:(env "OCAML_MARIADB_PASS" "")
       ~db:(env "OCAML_MARIADB_DB" "mysql") ())
 
 let prepare mariadb query =
-  match Mariadb.Nonblocking.prepare mariadb query with
+  match M.prepare mariadb query with
   | `Ok nb -> nonblocking mariadb ~name:"nonblocking prepare" nb
   | `Error e -> failwith "prepare failed"
 
 let execute mariadb stmt params =
-  match Mariadb.Nonblocking.Stmt.execute stmt params with
+  match M.Stmt.execute stmt params with
   | `Ok nb -> nonblocking mariadb ~name:"nonblocking execute" nb
   | `Error e -> failwith "execute failed"
 
 let store_result mariadb stmt =
   nonblocking mariadb ~name:"store result"
-    (Mariadb.Nonblocking.Stmt.store_result stmt)
+    (M.Stmt.store_result stmt)
 
 let fetch mariadb res =
-  nonblocking mariadb ~name:"fetch" (Mariadb.Nonblocking.Res.fetch res)
+  nonblocking mariadb ~name:"fetch" (M.Res.fetch res)
 
 let close_stmt mariadb stmt =
-  nonblocking mariadb ~name:"close result" (Mariadb.Nonblocking.Stmt.close stmt)
+  nonblocking mariadb ~name:"close result" (M.Stmt.close stmt)
 
 let rec with_rows mariadb res f =
   match fetch mariadb res with
@@ -87,26 +77,26 @@ let print_row row =
     | `String s -> printf "%s\n%!" s
     | `Bytes b -> printf "%s\n%!" (Bytes.to_string b)
     | `Time t -> printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
-          (t.Mariadb.Res.year)
-          (t.Mariadb.Res.month)
-          (t.Mariadb.Res.day)
-          (t.Mariadb.Res.hour)
-          (t.Mariadb.Res.minute)
-          (t.Mariadb.Res.second)
+          (t.M.Res.year)
+          (t.M.Res.month)
+          (t.M.Res.day)
+          (t.M.Res.hour)
+          (t.M.Res.minute)
+          (t.M.Res.second)
     | `Null -> printf "NULL\n%!")
     row
 
 let () =
   let mariadb =
-    match Mariadb.Nonblocking.init () with
+    match M.init () with
     | Some m -> connect m
     | None -> failwith "cannot init" in
   let query =
     env "OCAML_MARIADB_QUERY" "SELECT * FROM user WHERE LENGTH(user) > ?" in
   let stmt = prepare mariadb query in
-  let stmt = execute mariadb stmt [| `String "Problema%" |] in
+  let stmt = execute mariadb stmt [| `Int 5 |] in
   let res = store_result mariadb stmt in
-  print_endline @@ "#rows: " ^ string_of_int @@ Mariadb.Res.num_rows res;
+  print_endline @@ "#rows: " ^ string_of_int @@ M.Res.num_rows res;
   with_rows mariadb res print_row;
   close_stmt mariadb stmt;
   printf "done\n%!"

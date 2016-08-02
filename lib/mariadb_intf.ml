@@ -1,7 +1,3 @@
-module Common = Common
-module Blocking = Blocking
-module Nonblocking = Nonblocking
-
 type mode = [`Blocking | `Nonblocking]
 
 module type S = sig
@@ -51,9 +47,7 @@ module type S = sig
       | `Blob of bytes
       ]
 
-    val execute : [`Prepared] t -> param array -> [`Executed] t result
-
-    val store_result : [`Executed] t -> 'm Res.t result
+    val execute : [`Prepared] t -> param array -> [< mode] Res.t result
 
     val close : [< state] t -> unit result
 

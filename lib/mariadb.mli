@@ -1,93 +1,4 @@
-module Common : sig
-  type mode = [`Blocking | `Nonblocking]
-  type state = [`Initialized | `Connected | `Tx]
-
-  type ('m, 's) t
-    constraint 'm = [< mode]
-    constraint 's = [< state]
-  type ('m, 's) mariadb = ('m, 's) t
-
-  type row = string array
-
-  type flag
-
-  type server_option =
-    | Multi_statements of bool
-
-  module Error : sig
-    type t = int * string
-
-    val create : ([< mode], [< state]) mariadb -> t
-    val errno : t -> int
-    val message : t -> string
-  end
-
-  module Res : sig
-    type 'm t constraint 'm = [< mode]
-
-    type time =
-      { year : int
-      ; month : int
-      ; day : int
-      ; hour : int
-      ; minute : int
-      ; second : int
-      }
-
-    type value =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      | `Time of time
-      | `Null
-      ]
-
-    val num_rows : [< mode] t -> int
-    val free : [< mode] t -> unit
-  end
-
-  module Stmt : sig
-    type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
-
-    type ('m, 's) t
-      constraint 'm = [< mode]
-      constraint 's = [< state]
-
-    type param =
-      [ `Tiny of int
-      | `Short of int
-      | `Int of int
-      | `Float of float
-      | `Double of float
-      | `String of string
-      | `Blob of bytes
-      ]
-
-    module Error : sig
-      type ('m, 's) stmt = ('m, 's) t
-      type t = int * string
-
-      val create : ('m, 's) stmt -> t
-      val errno : t -> int
-      val message : t -> string
-    end
-
-    type 'a result = [`Ok of 'a | `Error of Error.t]
-
-    val bind_params : ([< mode], [`Prepared]) t -> param array
-                   -> ([< mode], [`Bound]) t result
-  end
-end
-
-module Error = Common.Error
-module Stmt = Common.Stmt
-module Res = Common.Res
-
-type 's t = ([`Blocking], 's) Common.t
-
-val init : unit -> [`Initialized] t option
-val close : [`Connected] t -> unit
+(*module Blocking : Mariadb_intf.S*)
 
 module Nonblocking : sig
   module Status : sig
@@ -119,9 +30,18 @@ module Nonblocking : sig
   module Res : sig
     type t = [`Nonblocking] Common.Res.t
 
-    val fetch_row : t -> Common.row option nonblocking
+    type time = Common.Res.time =
+      { year : int
+      ; month : int
+      ; day : int
+      ; hour : int
+      ; minute : int
+      ; second : int
+      }
 
     val fetch : t -> Common.Res.value array option nonblocking
+
+    val num_rows : t -> int
 
     val free : t -> (unit -> [`Ok | `Wait of Status.t]) *
                     (Status.t -> [`Ok | `Wait of Status.t])
@@ -155,7 +75,7 @@ module Nonblocking : sig
   end
 
   val init : unit -> [`Initialized] t option
-  val close : [`Connected] t
+  val close : [`Connected | `Tx] t
            -> (unit -> [`Ok | `Wait of Status.t]) *
               (Status.t -> [`Ok | `Wait of Status.t])
 
@@ -190,4 +110,10 @@ module Nonblocking : sig
 
   val prepare : [`Connected] t -> string
              -> [ `Ok of ([`Prepared] Stmt.t nonblocking) | `Error of Error.t]
+
+  module type Wait = sig
+    val wait : [< `Connected | `Tx] t -> Status.t -> Status.t
+  end
+
+  module Make (W : Wait) : Mariadb_intf.S
 end

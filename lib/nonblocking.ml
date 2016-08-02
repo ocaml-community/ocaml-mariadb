@@ -7,6 +7,8 @@ module Status = Wait_status
 module Error = Common.Error
 
 type 's t = ([`Nonblocking], 's) Common.t
+type 's mariadb = 's t
+
 type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
 type server_option = Common.server_option
@@ -184,7 +186,7 @@ let next_result_cont mariadb status =
   handle_next mariadb (fun m -> B.mysql_next_result_cont m status)*)
 
 let build_stmt mariadb raw =
-  match Common.Stmt.init raw with
+  match Common.Stmt.init mariadb raw with
   | Some stmt -> `Ok stmt
   | None -> `Error (Error.create mariadb)
 
@@ -209,6 +211,15 @@ let prepare mariadb query =
 
 module Res = struct
   type t = [`Nonblocking] Common.Res.t
+
+  type time = Common.Res.time =
+    { year : int
+    ; month : int
+    ; day : int
+    ; hour : int
+    ; minute : int
+    ; second : int
+    }
 
   let handle_fetch_row res f =
     match f res.Common.Res.raw with
@@ -324,13 +335,15 @@ module Res = struct
 
   let free res =
     (free_start res, free_cont res)
+
+  let num_rows =
+    Common.Res.num_rows
 end
 
 module Stmt = struct
   module Error = Common.Stmt.Error
 
   type 's t = ([`Nonblocking], 's) Common.Stmt.t
-    constraint 's = [< Common.Stmt.state]
 
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of Error.t]
 
@@ -451,4 +464,132 @@ module Tx = struct
 
   let autocommit mariadb auto =
     (autocommit_start mariadb auto, autocommit_cont mariadb)
+end
+
+module type Wait = sig
+  val wait : [< `Connected | `Tx] t -> Status.t -> Status.t
+end
+
+module Make (W : Wait) : Mariadb_intf.S = struct
+  module Error = Error
+
+  type state = [`Initialized | `Connected | `Tx]
+  type 's t = 's mariadb
+  type 'a result = ('a, Error.t) Pervasives.result
+
+  type flag
+  type server_option = Common.server_option =
+    | Multi_statements of bool
+
+  let rec nonblocking m (f, g) =
+    match f () with
+    | `Ok v -> Ok v
+    | `Wait s -> nonblocking m ((fun () -> g (W.wait m s)), g)
+    | `Error e -> Error e
+
+  let rec nonblocking_noerr m (f, g) =
+    match f () with
+    | `Ok -> ()
+    | `Wait s -> nonblocking_noerr m ((fun () -> g (W.wait m s)), g)
+
+  module Res = struct
+    type 'm t = Res.t
+      constraint 'm = [< Mariadb_intf.mode]
+
+    type time = Common.Res.time =
+      { year : int
+      ; month : int
+      ; day : int
+      ; hour : int
+      ; minute : int
+      ; second : int
+      }
+
+    type value =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      | `Time of time
+      | `Null
+      ]
+
+    let fetch res =
+      nonblocking res.Common.Res.mariadb (Res.fetch res)
+
+    let num_rows =
+      Res.num_rows
+
+    let free res =
+      nonblocking_noerr res.Common.Res.mariadb (Res.free res)
+  end
+
+  module Stmt = struct
+    module Error = struct
+      type t = int * string
+    end
+
+    type state = [`Prepared | `Bound | `Executed | `Stored | `Fetch]
+    type 's t = 's Stmt.t
+    type 'a result = ('a, Error.t) Pervasives.result
+
+    type param =
+      [ `Tiny of int
+      | `Short of int
+      | `Int of int
+      | `Float of float
+      | `Double of float
+      | `String of string
+      | `Blob of bytes
+      ]
+
+    let store_result stmt =
+      nonblocking stmt.Common.Stmt.mariadb (Stmt.store_result stmt)
+
+    let handle_execute = function
+      | Ok stmt -> store_result stmt
+      | Error _ as e -> e
+
+    let execute stmt ps =
+      match Stmt.execute stmt ps with
+      | `Ok nb -> nonblocking stmt.Common.Stmt.mariadb nb |> handle_execute
+      | `Error e ->
+          Error e
+
+    let close stmt =
+      nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)
+
+    let reset stmt =
+      nonblocking stmt.Common.Stmt.mariadb (Stmt.reset stmt)
+  end
+
+  module Tx = struct
+    let commit m = nonblocking m (Tx.commit m)
+    let rollback m = nonblocking m (Tx.rollback m)
+    let autocommit m b = nonblocking m (Tx.autocommit m b)
+  end
+
+  let init = init
+
+  let close m = nonblocking_noerr m (close m)
+
+  let connect m ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
+    nonblocking m (connect m ?host ?user ?pass ?db ~port ?socket ~flags ())
+
+  let set_charset m c = nonblocking m (set_charset m c)
+
+  let select_db m db = nonblocking m (select_db m db)
+
+  let change_user m user pass db = nonblocking m (change_user m user pass db)
+
+  let dump_debug_info m = nonblocking m (dump_debug_info m)
+
+  let set_server_option m opt = nonblocking m (set_server_option m opt)
+
+  let ping m = nonblocking m (ping m)
+
+  let prepare m q =
+    match prepare m q with
+    | `Ok nb -> nonblocking m nb
+    | `Error e -> Error e
 end
