@@ -337,7 +337,7 @@ module Stmt = struct
 
   let handle_execute stmt f =
     match f stmt.Common.Stmt.raw with
-    | 0, 0 ->  `Ok stmt
+    | 0, 0 -> `Ok stmt
     | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
