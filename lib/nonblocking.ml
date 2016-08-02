@@ -296,11 +296,13 @@ module Res = struct
     match f res.Common.Res.stmt with
     | 0, 0 -> `Ok (Some (build_row res))
     | 0, 1 ->
+        (* Build error manually to avoid mutually recursive modules. *)
         let errno = B.mysql_stmt_errno res.Common.Res.stmt in
         let error = B.mysql_stmt_error res.Common.Res.stmt in
         `Error (errno, error)
     | 0, r when r = T.Return_code.no_data -> `Ok None
-    | 0, r when r = T.Return_code.data_truncated -> `Error (2032, "truncated")
+    | 0, r when r = T.Return_code.data_truncated ->
+        `Error (2032, "truncated data")
     | s, _ -> `Wait (Status.of_int s)
 
   let fetch_start res () =
