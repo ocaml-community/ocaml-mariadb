@@ -210,6 +210,8 @@ let prepare mariadb query =
       `Error (Common.error mariadb)
 
 module Res = struct
+  open Ctypes
+
   type t = [`Nonblocking] Common.Res.t
 
   type time = Common.Res.time =
@@ -227,79 +229,101 @@ module Res = struct
   let affected_rows =
     Common.Res.affected_rows
 
-  let buffer_of_char_ptr p len =
-    let b = Buffer.create len in
-    let i = ref 0 in
-    let open Ctypes in
-    while !i < len do
-      let c = !@(p +@ !i) in
-      Buffer.add_char b c;
-      incr i
+  let bytes_of_char_ptr p len =
+    let b = Bytes.make len '?' in
+    for i = 0 to len - 1 do
+      let c = !@(p +@ i) in
+      if c <> '\000' then
+        Bytes.set b i c;
     done;
     b
 
-  let convert r at typ =
-    let open Ctypes in
+  let get_buffer r at =
     let bp = r.Common.Bind.bind +@ at in
-    let buf = getf (!@bp) T.Bind.buffer in
-    let cast_to t =
-      !@(coerce (ptr void) (ptr t) buf) in
-    let to_char_buffer () =
-      let lp = r.Common.Bind.length +@ at in
-      let len = Unsigned.ULong.to_int @@ !@lp in
-      buffer_of_char_ptr (coerce (ptr void) (ptr char) buf) len in
-    match typ with
+    getf (!@bp) T.Bind.buffer
+
+  let cast buf typ =
+    coerce (ptr void) (ptr typ) buf
+
+  let cast_buf r at typ =
+    !@(cast (get_buffer r at) typ)
+
+  let to_bytes r at =
+    let buf = get_buffer r at in
+    let lp = r.Common.Bind.length +@ at in
+    let len = Unsigned.ULong.to_int !@lp in
+    bytes_of_char_ptr (cast buf char) len
+
+  let to_time r at =
+    let buf = get_buffer r at in
+    let tp = cast buf T.Time.t in
+    let field f = Unsigned.UInt.to_int @@ getf (!@tp) f in
+    { Common.Res.
+      year   = field T.Time.year
+    ; month  = field T.Time.month
+    ; day    = field T.Time.day
+    ; hour   = field T.Time.hour
+    ; minute = field T.Time.minute
+    ; second = field T.Time.second
+    }
+
+  let convert r at = function
     | `Null ->
         `Null
     | `Tiny | `Year ->
-        `Int (int_of_char @@ cast_to char)
+        `Int (int_of_char @@ cast_buf r at char)
     | `Short ->
-        `Int (cast_to int)
+        `Int (cast_buf r at int)
     | `Int24 | `Long ->
-        `Int (Signed.Int32.to_int @@ cast_to int32_t)
+        `Int (Signed.Int32.to_int @@ cast_buf r at int32_t)
     | `Long_long ->
-        `Int (Signed.Int64.to_int @@ cast_to int64_t)
+        `Int (Signed.Int64.to_int @@ cast_buf r at int64_t)
     | `Float ->
-        `Float (cast_to float)
+        `Float (cast_buf r at float)
     | `Double ->
-        `Float (cast_to double)
+        `Float (cast_buf r at double)
     | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
-        `String (to_char_buffer () |> Buffer.contents)
+        `String (Bytes.to_string (to_bytes r at))
     | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
-        `Bytes (to_char_buffer () |> Buffer.to_bytes)
-    | `Time  | `Date | `Datetime | `Timestamp ->
-        let tp = coerce (ptr void) (ptr T.Time.t) buf in
-        let field f = Unsigned.UInt.to_int @@ getf (!@tp) f in
-        `Time
-          { Common.Res.
-            year   = field T.Time.year
-          ; month  = field T.Time.month
-          ; day    = field T.Time.day
-          ; hour   = field T.Time.hour
-          ; minute = field T.Time.minute
-          ; second = field T.Time.second
-          }
+        `Bytes (to_bytes r at)
+    | `Time  | `Date | `Datetime | `Timestamp -> `Time (to_time r at)
+
+  let convert_unsigned r at = function
+    | `Null -> `Null
+    | `Tiny | `Year -> `Int (int_of_char @@ cast_buf r at char)
+    | `Short -> `Int (Unsigned.UInt.to_int @@ cast_buf r at uint)
+    | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int @@ cast_buf r at uint32_t)
+    | `Long_long -> `Int (Unsigned.UInt64.to_int @@ cast_buf r at uint64_t)
+    | `Timestamp -> `Time (to_time r at)
+    | _ -> failwith "unexpected unsigned type"
+
+  let is_null r at =
+    let np = r.Common.Bind.is_null +@ at in
+    !@np = '\001'
+
+  let is_unsigned bp =
+    getf (!@bp) T.Bind.is_unsigned = '\001'
 
   let build_row res =
     let r = res.Common.Res.result in
     let n = r.Common.Bind.n in
-    let open Ctypes in
     Array.init n
       (fun i ->
         let bp = r.Common.Bind.bind +@ i in
-        (* TODO test is_null *)
-        let buffer_type = getf (!@bp) T.Bind.buffer_type in
-        (* TODO test is_unsigned *)
-        convert r i (Common.Bind.buffer_type_of_int buffer_type))
+        if is_null r i then
+          `Null
+        else begin
+          let typ = getf (!@bp) T.Bind.buffer_type in
+          let typ = Common.Bind.buffer_type_of_int typ in
+          let conv = if is_unsigned bp then convert_unsigned else convert in
+          conv r i typ
+        end)
 
   let handle_fetch res f =
-    match f res.Common.Res.stmt with
+    let stmt = res.Common.Res.stmt in
+    match f stmt with
     | 0, 0 -> `Ok (Some (build_row res))
-    | 0, 1 ->
-        (* Build error manually to avoid mutually recursive modules. *)
-        let errno = B.mysql_stmt_errno res.Common.Res.stmt in
-        let error = B.mysql_stmt_error res.Common.Res.stmt in
-        `Error (errno, error)
+    | 0, 1 -> `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
     | 0, r when r = T.Return_code.no_data -> `Ok None
     | 0, r when r = T.Return_code.data_truncated ->
         `Error (2032, "truncated data")
@@ -308,8 +332,8 @@ module Res = struct
   let fetch_start res () =
     handle_fetch res B.mysql_stmt_fetch_start
 
-  let fetch_cont stmt status =
-    handle_fetch stmt ((flip B.mysql_stmt_fetch_cont) status)
+  let fetch_cont res status =
+    handle_fetch res ((flip B.mysql_stmt_fetch_cont) status)
 
   let fetch res =
     (fetch_start res, fetch_cont res)
