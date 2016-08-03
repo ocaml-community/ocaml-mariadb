@@ -13,13 +13,11 @@ module M = Mariadb.Nonblocking.Make(struct
       else -1.0 in
     try
       let rfd, wfd, efd = Unix.select rfd wfd efd timeout in
-      let status =
-        S.create
-          ~read:(rfd <> [])
-          ~write:(wfd <> [])
-          ~except:(efd <> [])
-          () in
-      status
+      S.create
+        ~read:(rfd <> [])
+        ~write:(wfd <> [])
+        ~except:(efd <> [])
+        ()
     with Unix.Unix_error (e, _, _) ->
       S.create ~timeout: true ()
 end)
