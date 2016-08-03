@@ -1,6 +1,6 @@
 type error = int * string
 
-(*module Blocking : Mariadb_intf.S*)
+module Blocking : Mariadb_intf.S
 
 module Nonblocking : sig
   module Status : sig
@@ -43,8 +43,7 @@ module Nonblocking : sig
 
     val num_rows : t -> int
 
-    val free : t -> (unit -> [`Ok | `Wait of Status.t]) *
-                    (Status.t -> [`Ok | `Wait of Status.t])
+    val free : t -> unit nonblocking
   end
 
   module Stmt : sig

@@ -204,14 +204,10 @@ let prepare_cont mariadb raw_stmt status =
 
 let prepare mariadb query =
   match Common.stmt_init mariadb with
-  | Some raw ->
-      `Ok (prepare_start mariadb raw query, prepare_cont mariadb raw)
-  | None ->
-      `Error (Common.error mariadb)
+  | Some raw -> `Ok (prepare_start mariadb raw query, prepare_cont mariadb raw)
+  | None -> `Error (Common.error mariadb)
 
 module Res = struct
-  open Ctypes
-
   type t = [`Nonblocking] Common.Res.t
 
   type time = Common.Res.time =
@@ -229,100 +225,10 @@ module Res = struct
   let affected_rows =
     Common.Res.affected_rows
 
-  let bytes_of_char_ptr p len =
-    let b = Bytes.make len '?' in
-    for i = 0 to len - 1 do
-      let c = !@(p +@ i) in
-      if c <> '\000' then
-        Bytes.set b i c;
-    done;
-    b
-
-  let get_buffer r at =
-    let bp = r.Common.Bind.bind +@ at in
-    getf (!@bp) T.Bind.buffer
-
-  let cast buf typ =
-    coerce (ptr void) (ptr typ) buf
-
-  let cast_buf r at typ =
-    !@(cast (get_buffer r at) typ)
-
-  let to_bytes r at =
-    let buf = get_buffer r at in
-    let lp = r.Common.Bind.length +@ at in
-    let len = Unsigned.ULong.to_int !@lp in
-    bytes_of_char_ptr (cast buf char) len
-
-  let to_time r at =
-    let buf = get_buffer r at in
-    let tp = cast buf T.Time.t in
-    let field f = Unsigned.UInt.to_int @@ getf (!@tp) f in
-    { Common.Res.
-      year   = field T.Time.year
-    ; month  = field T.Time.month
-    ; day    = field T.Time.day
-    ; hour   = field T.Time.hour
-    ; minute = field T.Time.minute
-    ; second = field T.Time.second
-    }
-
-  let convert r at = function
-    | `Null ->
-        `Null
-    | `Tiny | `Year ->
-        `Int (int_of_char @@ cast_buf r at char)
-    | `Short ->
-        `Int (cast_buf r at int)
-    | `Int24 | `Long ->
-        `Int (Signed.Int32.to_int @@ cast_buf r at int32_t)
-    | `Long_long ->
-        `Int (Signed.Int64.to_int @@ cast_buf r at int64_t)
-    | `Float ->
-        `Float (cast_buf r at float)
-    | `Double ->
-        `Float (cast_buf r at double)
-    | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
-        `String (Bytes.to_string (to_bytes r at))
-    | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
-        `Bytes (to_bytes r at)
-    | `Time  | `Date | `Datetime | `Timestamp -> `Time (to_time r at)
-
-  let convert_unsigned r at = function
-    | `Null -> `Null
-    | `Tiny | `Year -> `Int (int_of_char @@ cast_buf r at char)
-    | `Short -> `Int (Unsigned.UInt.to_int @@ cast_buf r at uint)
-    | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int @@ cast_buf r at uint32_t)
-    | `Long_long -> `Int (Unsigned.UInt64.to_int @@ cast_buf r at uint64_t)
-    | `Timestamp -> `Time (to_time r at)
-    | _ -> failwith "unexpected unsigned type"
-
-  let is_null r at =
-    let np = r.Common.Bind.is_null +@ at in
-    !@np = '\001'
-
-  let is_unsigned bp =
-    getf (!@bp) T.Bind.is_unsigned = '\001'
-
-  let build_row res =
-    let r = res.Common.Res.result in
-    let n = r.Common.Bind.n in
-    Array.init n
-      (fun i ->
-        let bp = r.Common.Bind.bind +@ i in
-        if is_null r i then
-          `Null
-        else begin
-          let typ = getf (!@bp) T.Bind.buffer_type in
-          let typ = Common.Bind.buffer_type_of_int typ in
-          let conv = if is_unsigned bp then convert_unsigned else convert in
-          conv r i typ
-        end)
-
   let handle_fetch res f =
     let stmt = res.Common.Res.stmt in
     match f stmt with
-    | 0, 0 -> `Ok (Some (build_row res))
+    | 0, 0 -> `Ok (Some (Common.Res.build_row res))
     | 0, 1 -> `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
     | 0, r when r = T.Return_code.no_data -> `Ok None
     | 0, r when r = T.Return_code.data_truncated ->
@@ -338,16 +244,18 @@ module Res = struct
   let fetch res =
     (fetch_start res, fetch_cont res)
 
-  let handle_ok_wait res f =
-    match f res.Common.Res.raw with
-    | 0 -> `Ok
-    | s -> `Wait (Status.of_int s)
+  let handle_free res f =
+    let stmt = res.Common.Res.stmt in
+    match f stmt with
+    | 0, '\000' -> `Ok ()
+    | 0, _ -> `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
+    | s, _ -> `Wait (Status.of_int s)
 
   let free_start res () =
-    handle_ok_wait res B.mysql_free_result_start
+    handle_free res B.mysql_stmt_free_result_start
 
   let free_cont res status =
-    handle_ok_wait res ((flip B.mysql_free_result_cont) status)
+    handle_free res ((flip B.mysql_stmt_free_result_cont) status)
 
   let free res =
     (free_start res, free_cont res)
@@ -355,7 +263,6 @@ end
 
 module Stmt = struct
   type 's t = ([`Nonblocking], 's) Common.Stmt.t
-
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
 
   let init =
@@ -427,12 +334,6 @@ module Stmt = struct
 
   let reset stmt =
     (reset_start stmt, reset_cont stmt)
-
-  let free_result_start stmt =
-    handle_char_unit stmt B.mysql_stmt_free_result_start
-
-  let free_result_cont stmt status =
-    handle_char_unit stmt ((flip B.mysql_stmt_free_result_cont) status)
 
   let handle_next stmt f =
     match f stmt.Common.Stmt.raw with
@@ -510,8 +411,7 @@ module Make (W : Wait) : Mariadb_intf.S = struct
     | `Wait s -> nonblocking_noerr m ((fun () -> g (W.wait m s)), g)
 
   module Res = struct
-    type 'm t = Res.t
-      constraint 'm = [< Mariadb_intf.mode]
+    type t = Res.t
 
     type time = Common.Res.time =
       { year : int
@@ -541,13 +441,12 @@ module Make (W : Wait) : Mariadb_intf.S = struct
       Res.affected_rows
 
     let free res =
-      nonblocking_noerr res.Common.Res.mariadb (Res.free res)
+      nonblocking res.Common.Res.mariadb (Res.free res)
   end
 
   module Stmt = struct
     type state = [`Prepared | `Executed]
     type 's t = 's Stmt.t
-    type 'a result = ('a, error) Pervasives.result
 
     type param =
       [ `Tiny of int
@@ -559,11 +458,8 @@ module Make (W : Wait) : Mariadb_intf.S = struct
       | `Blob of bytes
       ]
 
-    let store_result stmt =
-      nonblocking stmt.Common.Stmt.mariadb (Stmt.store_result stmt)
-
     let handle_execute = function
-      | Ok stmt -> store_result stmt
+      | Ok stmt -> nonblocking stmt.Common.Stmt.mariadb (Stmt.store_result stmt)
       | Error _ as e -> e
 
     let execute stmt ps =
@@ -576,8 +472,20 @@ module Make (W : Wait) : Mariadb_intf.S = struct
       | Ok res -> Ok (stmt, res)
       | Error _ as e -> e
 
+    let free_res stmt =
+      let handle_free f =
+        match f stmt.Common.Stmt.raw with
+        | 0, '\000' -> `Ok ()
+        | 0, _ -> `Error (Common.Stmt.error stmt)
+        | s, _ -> `Wait (Status.of_int s) in
+      let start () = handle_free B.mysql_stmt_free_result_start in
+      let cont s = handle_free ((flip B.mysql_stmt_free_result_cont) s) in
+      nonblocking stmt.Common.Stmt.mariadb (start, cont)
+
     let close stmt =
-      nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)
+      match free_res stmt with
+      | Ok () -> nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)
+      | Error _ as e -> e
 
     let reset stmt =
       nonblocking stmt.Common.Stmt.mariadb (Stmt.reset stmt)
@@ -588,8 +496,6 @@ module Make (W : Wait) : Mariadb_intf.S = struct
     let rollback m = nonblocking m (Tx.rollback m)
     let autocommit m b = nonblocking m (Tx.autocommit m b)
   end
-
-  let init = init
 
   let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
     match init () with

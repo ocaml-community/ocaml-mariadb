@@ -5,7 +5,7 @@ module type S = sig
   type 'a result = ('a, error) Pervasives.result
 
   module Res : sig
-    type 'm t constraint 'm = [< mode]
+    type t
 
     type time = Common.Res.time =
       { year : int
@@ -25,9 +25,8 @@ module type S = sig
       | `Null
       ]
 
-    val fetch : [< mode] t -> value array option result
-    val num_rows : [< mode] t -> int
-    val free : [< mode] t -> unit
+    val fetch : t -> value array option result
+    val num_rows : t -> int
   end
 
   module Stmt : sig
@@ -44,14 +43,14 @@ module type S = sig
       | `Blob of bytes
       ]
 
-    val execute : [`Prepared] t -> param array -> [< mode] Res.t result
+    val execute : [`Prepared] t -> param array -> Res.t result
 
     val execute' : [`Prepared] t -> param array
-                -> ([`Executed] t * [< mode] Res.t) result
+                -> ([`Executed] t * Res.t) result
 
     val close : [< state] t -> unit result
 
-    val reset : [`Executed] t -> [`Prepared] t result
+    (*val reset : [`Executed] t -> [`Prepared] t result*)
   end
 
   type state = [`Unconnected | `Connected | `Tx]
@@ -70,19 +69,19 @@ module type S = sig
 
   val close : [< `Connected | `Tx] t -> unit
 
-  val set_charset : [`Connected] t -> string -> unit result
+  (*val set_charset : [`Connected] t -> string -> unit result
   val select_db : [`Connected] t -> string -> unit result
   val change_user : [`Connected] t -> string -> string -> string option
                  -> unit result
   val dump_debug_info : [`Connected] t -> unit result
   val set_server_option : [`Connected] t -> server_option
                        -> unit result
-  val ping : [`Connected] t -> unit result
+  val ping : [`Connected] t -> unit result*)
   val prepare : [`Connected] t -> string -> [`Prepared] Stmt.t result
 
-  module Tx : sig
+  (*module Tx : sig
     val commit : [`Connected] t -> [`Tx] t result
     val rollback : [`Tx] t -> [`Connected] t result
     val autocommit : [`Connected] t -> bool -> [`Connected] t result
-  end
+  end*)
 end

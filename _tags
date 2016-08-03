@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: b3baa8668d960d4f4f5f4d7b73253658)
+# DO NOT EDIT (digest: 1fe3a2a2e788b1e7d4980612a159141e)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -78,9 +78,18 @@ true: annot, bin_annot
 <lib_test/test_nonblocking_functor.{native,byte}>: pkg_unix
 <lib_test/test_nonblocking_functor.{native,byte}>: use_mariadb
 <lib_test/test_nonblocking_functor.{native,byte}>: use_mariadb_bindings
+<lib_test/*.ml{,i,y}>: pkg_unix
+# Executable test_blocking_functor
+<lib_test/test_blocking_functor.{native,byte}>: oasis_executable_test_blocking_functor_byte
+<lib_test/*.ml{,i,y}>: oasis_executable_test_blocking_functor_byte
+<lib_test/test_blocking_functor.{native,byte}>: oasis_executable_test_blocking_functor_native
+<lib_test/*.ml{,i,y}>: oasis_executable_test_blocking_functor_native
+<lib_test/test_blocking_functor.{native,byte}>: pkg_ctypes.foreign
+<lib_test/test_blocking_functor.{native,byte}>: pkg_ctypes.stubs
+<lib_test/test_blocking_functor.{native,byte}>: use_mariadb
+<lib_test/test_blocking_functor.{native,byte}>: use_mariadb_bindings
 <lib_test/*.ml{,i,y}>: pkg_ctypes.foreign
 <lib_test/*.ml{,i,y}>: pkg_ctypes.stubs
-<lib_test/*.ml{,i,y}>: pkg_unix
 <lib_test/*.ml{,i,y}>: use_mariadb
 <lib_test/*.ml{,i,y}>: use_mariadb_bindings
 # OASIS_STOP

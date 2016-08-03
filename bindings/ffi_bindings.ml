@@ -62,6 +62,7 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let length = field t "length" (ptr ulong)
     let is_null = field t "is_null" (ptr char)
     let buffer = field t "buffer" (ptr void)
+    let error = field t "error" (ptr char)
     let buffer_length = field t "buffer_length" ulong
     let buffer_type = field t "buffer_type" int
     let is_unsigned = field t "is_unsigned" char
@@ -142,6 +143,14 @@ module Foreign_bindings = struct
 
   module T = Types
 
+  (* Common API *)
+
+  let mysql_library_init = foreign "mysql_server_init"
+    (int @-> ptr_opt (ptr char) @-> ptr_opt (ptr char) @-> returning int)
+
+  let mysql_library_end = foreign "mysql_server_end"
+    (void @-> returning void)
+
   let mysql_init = foreign "mysql_init"
     (T.mysql_opt @-> returning T.mysql_opt)
 
@@ -199,6 +208,31 @@ module Foreign_bindings = struct
   let mysql_stmt_affected_rows = foreign "mysql_stmt_affected_rows"
     (T.res @-> returning ullong)
 
+  (* Blocking API *)
+
+  let mysql_real_connect = foreign "mysql_real_connect"
+    (T.mysql @-> ptr_opt char @-> ptr_opt char @->
+     ptr_opt char @-> ptr_opt char @-> uint @-> ptr_opt char @-> ulong @->
+     returning T.mysql_opt)
+
+  let mysql_stmt_prepare = foreign "mysql_stmt_prepare"
+    (T.stmt @-> ptr char @-> ulong @-> returning int)
+
+  let mysql_stmt_execute = foreign "mysql_stmt_execute"
+    (T.stmt @-> returning int)
+
+  let mysql_stmt_fetch = foreign "mysql_stmt_fetch"
+    (T.stmt @-> returning int)
+
+  let mysql_stmt_close = foreign "mysql_stmt_close"
+    (T.stmt @-> returning T.my_bool)
+
+  let mysql_stmt_store_result = foreign "mysql_stmt_store_result"
+    (T.stmt @-> returning int)
+
+  let mysql_stmt_free_result = foreign "mysql_stmt_free_result"
+    (T.stmt @-> returning T.my_bool)
+
   (* Nonblocking API *)
 
   let mysql_close_start = foreign "mysql_close_start"
@@ -208,15 +242,15 @@ module Foreign_bindings = struct
     (T.mysql @-> int @-> returning int)
 
   let mysql_real_connect_start = foreign "mysql_real_connect_start"
-    (ptr T.mysql_opt @-> T.mysql @-> string_opt @-> string_opt @->
-     string_opt @-> string_opt @-> uint @-> string_opt @-> ulong @->
+    (ptr T.mysql_opt @-> T.mysql @-> ptr_opt char @-> ptr_opt char @->
+     ptr_opt char @-> ptr_opt char @-> uint @-> ptr_opt char @-> ulong @->
      returning int)
 
   let mysql_real_connect_cont = foreign "mysql_real_connect_cont"
     (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
 
   let mysql_real_query_start = foreign "mysql_real_query_start"
-    (ptr int @-> T.mysql @-> string @-> ulong @-> returning int)
+    (ptr int @-> T.mysql @-> ptr char @-> ulong @-> returning int)
 
   let mysql_real_query_cont = foreign "mysql_real_query_cont"
     (ptr int @-> T.mysql @-> int @-> returning int)
@@ -240,19 +274,19 @@ module Foreign_bindings = struct
     (T.mysql @-> returning uint)
 
   let mysql_set_character_set_start = foreign "mysql_set_character_set_start"
-    (ptr T.mysql_opt @-> T.mysql @-> string @-> returning int)
+    (ptr T.mysql_opt @-> T.mysql @-> ptr char @-> returning int)
 
   let mysql_set_character_set_cont = foreign "mysql_set_character_set_cont"
     (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
 
   let mysql_select_db_start = foreign "mysql_select_db_start"
-    (ptr T.mysql_opt @-> T.mysql @-> string @-> returning int)
+    (ptr T.mysql_opt @-> T.mysql @-> ptr char @-> returning int)
 
   let mysql_select_db_cont = foreign "mysql_select_db_cont"
     (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
 
   let mysql_change_user_start = foreign "mysql_change_user_start"
-    (ptr T.mysql_opt @-> T.mysql @-> string @-> string @-> string_opt @->
+    (ptr T.mysql_opt @-> T.mysql @-> ptr char @-> ptr char @-> ptr_opt char @->
      returning int)
 
   let mysql_change_user_cont = foreign "mysql_change_user_cont"
@@ -289,7 +323,7 @@ module Foreign_bindings = struct
     (ptr T.res_opt @-> T.mysql @-> int @-> returning int)
 
   let mysql_stmt_prepare_start = foreign "mysql_stmt_prepare_start"
-    (ptr int @-> T.stmt @-> string @-> ulong @-> returning int)
+    (ptr int @-> T.stmt @-> ptr char @-> ulong @-> returning int)
 
   let mysql_stmt_prepare_cont = foreign "mysql_stmt_prepare_cont"
     (ptr int @-> T.stmt @-> int @-> returning int)
@@ -392,17 +426,13 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     Unsigned.ULong.to_int @@ mysql_stmt_param_count stmt
 
   let mysql_stmt_bind_param stmt bind =
-    match mysql_stmt_bind_param stmt (to_voidp bind) with
-    | '\000' -> true
-    | _ -> false
+    mysql_stmt_bind_param stmt (to_voidp bind) = '\000'
 
   let mysql_fetch_field_direct res i =
     mysql_fetch_field_direct res (Unsigned.UInt.of_int i)
 
   let mysql_stmt_bind_result stmt bind =
-    match mysql_stmt_bind_result stmt (to_voidp bind) with
-    | '\000' -> true
-    | _ -> false
+    mysql_stmt_bind_result stmt (to_voidp bind) = '\000'
 
   let mysql_stmt_num_rows stmt =
     Unsigned.ULLong.to_int @@ mysql_stmt_num_rows stmt
@@ -410,10 +440,58 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let mysql_stmt_affected_rows stmt =
     Unsigned.ULLong.to_int @@ mysql_stmt_affected_rows stmt
 
+  let char_ptr_buffer_of_string s =
+    let len = String.length s in
+    let buf = allocate_n char ~count:(len + 1) in
+    for i = 0 to len - 1 do
+      let p = buf +@ i in
+      p <-@ s.[i]
+    done;
+    (buf +@ len) <-@ '\000';
+    buf
+
+  let char_ptr_opt_buffer_of_string = function
+    | None -> None
+    | Some s -> Some (char_ptr_buffer_of_string s)
+
+  (* Blocking APi *)
+
+  let mysql_real_connect mysql host user pass db port socket flags =
+    let host = char_ptr_opt_buffer_of_string host in
+    let user = char_ptr_opt_buffer_of_string user in
+    let pass = char_ptr_opt_buffer_of_string pass in
+    let db = char_ptr_opt_buffer_of_string db in
+    let port = Unsigned.UInt.of_int port in
+    let socket = char_ptr_opt_buffer_of_string socket in
+    let flags = Unsigned.ULong.of_int flags in
+    mysql_real_connect mysql host user pass db port socket flags
+
+  let mysql_stmt_prepare stmt query =
+    let len = Unsigned.ULong.of_int (String.length query) in
+    let query = char_ptr_buffer_of_string query in
+    mysql_stmt_prepare stmt query len = 0
+
+  let mysql_stmt_execute stmt =
+    mysql_stmt_execute stmt = 0
+
+  let mysql_stmt_close stmt =
+    mysql_stmt_close stmt = '\000'
+
+  let mysql_stmt_store_result stmt =
+    mysql_stmt_store_result stmt = 0
+
+  let mysql_stmt_free_result stmt =
+    mysql_stmt_free_result stmt = '\000'
+
   (* Nonblocking API *)
 
   let mysql_real_connect_start mysql host user pass db port socket flags =
+    let host = char_ptr_opt_buffer_of_string host in
+    let user = char_ptr_opt_buffer_of_string user in
+    let pass = char_ptr_opt_buffer_of_string pass in
+    let db = char_ptr_opt_buffer_of_string db in
     let port = Unsigned.UInt.of_int port in
+    let socket = char_ptr_opt_buffer_of_string socket in
     let flags = Unsigned.ULong.of_int flags in
     handle_ret
       (fun ret ->
@@ -424,6 +502,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_real_query_start mysql query =
     let len = Unsigned.ULong.of_int (String.length query) in
+    let query = char_ptr_buffer_of_string query in
     handle_int (fun err -> mysql_real_query_start err mysql query len)
 
   let mysql_real_query_cont mysql status =
@@ -433,18 +512,23 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     Unsigned.UInt.to_int @@ mysql_get_timeout_value mysql
 
   let mysql_set_character_set_start mysql charset =
+    let charset = char_ptr_buffer_of_string charset in
     handle_ret (fun ret -> mysql_set_character_set_start ret mysql charset)
 
   let mysql_set_character_set_cont mysql status =
     handle_ret (fun ret -> mysql_set_character_set_cont ret mysql status)
 
   let mysql_select_db_start mysql db =
+    let db = char_ptr_buffer_of_string db in
     handle_ret (fun ret -> mysql_select_db_start ret mysql db)
 
   let mysql_select_db_cont mysql status =
     handle_ret (fun ret -> mysql_select_db_cont ret mysql status)
 
   let mysql_change_user_start mysql user pass db =
+    let user = char_ptr_buffer_of_string user in
+    let pass = char_ptr_buffer_of_string pass in
+    let db = char_ptr_opt_buffer_of_string db in
     handle_ret (fun ret -> mysql_change_user_start ret mysql user pass db)
 
   let mysql_change_user_cont mysql status =
@@ -482,6 +566,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_stmt_prepare_start stmt query =
     let len = Unsigned.ULong.of_int (String.length query) in
+    let query = char_ptr_buffer_of_string query in
     handle_int (fun err -> mysql_stmt_prepare_start err stmt query len)
 
   let mysql_stmt_prepare_cont stmt status =

@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 252161d5cddd67dc3739a5c1b58b2d20) *)
+(* DO NOT EDIT (digest: 346762b92ca682d27112128e957813aa) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -965,6 +965,48 @@ let package_default =
               "compile";
               "native"
            ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_blocking_functor_byte";
+              "ocaml";
+              "link";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_blocking_functor_native";
+              "ocaml";
+              "link";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_blocking_functor_byte";
+              "ocaml";
+              "ocamldep";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_blocking_functor_native";
+              "ocaml";
+              "ocamldep";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_blocking_functor_byte";
+              "ocaml";
+              "compile";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_blocking_functor_native";
+              "ocaml";
+              "compile";
+              "native"
+           ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])])
        ];
      includes =
@@ -980,7 +1022,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 984 "myocamlbuild.ml"
+# 1026 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let dispatch = function

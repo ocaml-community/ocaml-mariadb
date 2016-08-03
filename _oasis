@@ -69,3 +69,12 @@ Executable "test_nonblocking_functor"
   CompiledObject:   best
   BuildDepends:     mariadb,
                     unix
+
+Executable "test_blocking_functor"
+  Install:          false
+  Path:             lib_test
+  MainIs:           test_blocking_functor.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb
