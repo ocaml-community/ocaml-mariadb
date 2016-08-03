@@ -29,6 +29,7 @@ module Bind = struct
     ; length : Unsigned.ulong ptr
     ; is_null : char ptr
     ; is_unsigned : char
+    ; error : char ptr
     }
 
   type buffer_type =
@@ -85,12 +86,13 @@ module Bind = struct
   let t = '\001'
   let f = '\000'
 
-  let alloc n =
-    { n
-    ; bind = allocate_n T.Bind.t ~count:n
-    ; length = allocate_n ulong ~count:n
-    ; is_null = allocate_n char ~count:n
+  let alloc count =
+    { n = count
+    ; bind = allocate_n T.Bind.t ~count
+    ; length = allocate_n ulong ~count
+    ; is_null = allocate_n char ~count
     ; is_unsigned = f
+    ; error = allocate_n char ~count
     }
 
   let bind b ~buffer ~size ~mysql_type ~unsigned ~at =
@@ -266,18 +268,22 @@ module Stmt = struct
   let alloc_result res =
     let n = B.mysql_num_fields res in
     let r = Bind.alloc n in
+    let open Ctypes in
     for i = 0 to n - 1 do
-      let open Ctypes in
       let bp = r.Bind.bind +@ i in
       let fp = fetch_field res i in
-      let flags = Unsigned.UInt.to_int @@ getf (!@fp) T.Field.flags in
+      let flags = getf (!@fp) T.Field.flags in
       let is_unsigned =
-        if flags land T.Field_flags.unsigned <> 0 then '\001'
-        else '\001' in
+        let logand = Unsigned.UInt.logand in
+        let unsigned_flag = Unsigned.UInt.of_int T.Field_flags.unsigned in
+        if logand flags unsigned_flag <> Unsigned.UInt.zero
+        then '\001'
+        else '\000' in
       setf (!@bp) T.Bind.buffer_type (getf (!@fp) T.Field.type_);
       setf (!@bp) T.Bind.length (r.Bind.length +@ i);
       setf (!@bp) T.Bind.is_null (r.Bind.is_null +@ i);
-      setf (!@bp) T.Bind.is_unsigned is_unsigned
+      setf (!@bp) T.Bind.is_unsigned is_unsigned;
+      setf (!@bp) T.Bind.error (r.Bind.error +@ i)
     done;
     r
 
@@ -317,11 +323,12 @@ module Stmt = struct
         else
           `Error (error stmt)
 
-  let malloc n =
+  let malloc count =
     let open Ctypes in
-    let p = allocate_n char ~count:n in
+    let p = allocate_n char ~count in
     coerce (ptr char) (ptr void) p
 
+  (* From http://dev.mysql.com/doc/refman/5.7/en/mysql-stmt-fetch.html *)
   let buffer_size typ =
     let open T.Type in
     match Bind.buffer_type_of_int typ with
@@ -334,25 +341,27 @@ module Stmt = struct
     | `Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Bit -> -1
     | `Time | `Date | `Datetime | `Timestamp -> Ctypes.sizeof T.Time.t
 
-  let alloc_buffer bp fp typ =
+  let alloc_size fp typ =
     let open Ctypes in
-    let to_ulong = Unsigned.ULong.of_int in
-    let of_ulong = Unsigned.ULong.to_int in
-    let size =
-      match buffer_size typ with
-      | -1 -> of_ulong (getf (!@fp) T.Field.max_length)
-      | n -> n in
-    setf (!@bp) T.Bind.buffer_length (to_ulong size);
+    match buffer_size typ with
+    | -1 -> Unsigned.ULong.to_int (getf (!@fp) T.Field.max_length)
+    | n -> n
+
+  let alloc_buffer bp fp =
+    let open Ctypes in
+    let typ = getf (!@bp) T.Bind.buffer_type in
+    let size = alloc_size fp typ in
+    setf (!@bp) T.Bind.buffer_length (Unsigned.ULong.of_int size);
     setf (!@bp) T.Bind.buffer (malloc size)
 
   let bind_result stmt =
-    let n = stmt.result.Bind.n in
+    let b = stmt.result in
+    let n = b.Bind.n in
     let open Ctypes in
     for i = 0 to n - 1 do
-      let bp = stmt.result.Bind.bind +@ i in
+      let bp = b.Bind.bind +@ i in
       let fp = fetch_field stmt.res i in
-      let typ = getf (!@fp) T.Field.type_ in
-      alloc_buffer bp fp typ
+      alloc_buffer bp fp
     done;
     if B.mysql_stmt_bind_result stmt.raw stmt.result.Bind.bind then
       `Ok (Res.create stmt.mariadb stmt.raw stmt.result stmt.res)
