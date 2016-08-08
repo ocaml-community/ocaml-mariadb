@@ -43,12 +43,6 @@ let handle_opt mariadb f =
   | 0, None -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
-let handle_unit mariadb f =
-  match handle_opt mariadb f with
-  | `Ok _ -> `Ok ()
-  | `Wait s -> `Wait s
-  | `Error e -> `Error e
-
 let handle_int_ret mariadb f =
   match f mariadb with
   | 0, 0 -> `Ok mariadb
@@ -103,56 +97,56 @@ let timeout =
   B.mysql_get_timeout_value
 
 let set_character_set_start mariadb charset () =
-  handle_unit mariadb ((flip B.mysql_set_character_set_start) charset)
+  handle_int mariadb ((flip B.mysql_set_character_set_start) charset)
 
 let set_character_set_cont mariadb status =
-  handle_unit mariadb ((flip B.mysql_set_character_set_cont) status)
+  handle_int mariadb ((flip B.mysql_set_character_set_cont) status)
 
 let set_character_set mariadb charset =
   (set_character_set_start mariadb charset, set_character_set_cont mariadb)
 
 let select_db_start mariadb db () =
-  handle_unit mariadb ((flip B.mysql_select_db_start) db)
+  handle_int mariadb ((flip B.mysql_select_db_start) db)
 
 let select_db_cont mariadb status =
-  handle_unit mariadb ((flip B.mysql_select_db_cont) status)
+  handle_int mariadb ((flip B.mysql_select_db_cont) status)
 
 let select_db mariadb db =
   (select_db_start mariadb db, select_db_cont mariadb)
 
 let change_user_start mariadb user pass db () =
-  handle_unit mariadb (fun m -> B.mysql_change_user_start m user pass db)
+  handle_char mariadb (fun m -> B.mysql_change_user_start m user pass db)
 
 let change_user_cont mariadb status =
-  handle_unit mariadb ((flip B.mysql_change_user_cont) status)
+  handle_char mariadb ((flip B.mysql_change_user_cont) status)
 
 let change_user mariadb user pass db =
   (change_user_start mariadb user pass db, change_user_cont mariadb)
 
 let dump_debug_info_start mariadb () =
-  handle_unit mariadb B.mysql_dump_debug_info_start
+  handle_int mariadb B.mysql_dump_debug_info_start
 
 let dump_debug_info_cont mariadb status =
-  handle_unit mariadb ((flip B.mysql_dump_debug_info_cont) status)
+  handle_int mariadb ((flip B.mysql_dump_debug_info_cont) status)
 
 let dump_debug_info mariadb =
   (dump_debug_info_start mariadb, dump_debug_info_cont mariadb)
 
 let set_server_option_start mariadb opt () =
   let opt = Common.int_of_server_option opt in
-  handle_unit mariadb ((flip B.mysql_set_server_option_start) opt)
+  handle_int mariadb ((flip B.mysql_set_server_option_start) opt)
 
 let set_server_option_cont mariadb status =
-  handle_unit mariadb ((flip B.mysql_set_server_option_cont) status)
+  handle_int mariadb ((flip B.mysql_set_server_option_cont) status)
 
 let set_server_option mariadb opt =
   (set_server_option_start mariadb opt, set_server_option_cont mariadb)
 
 let ping_start mariadb () =
-  handle_unit mariadb B.mysql_ping_start
+  handle_int mariadb B.mysql_ping_start
 
 let ping_cont mariadb status =
-  handle_unit mariadb ((flip B.mysql_ping_cont) status)
+  handle_int mariadb ((flip B.mysql_ping_cont) status)
 
 let ping mariadb =
   (ping_start mariadb, ping_cont mariadb)

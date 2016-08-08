@@ -301,41 +301,41 @@ module Foreign_bindings = struct
     (T.mysql @-> returning uint)
 
   let mysql_set_character_set_start = foreign "mysql_set_character_set_start"
-    (ptr T.mysql_opt @-> T.mysql @-> ptr char @-> returning int)
+    (ptr int @-> T.mysql @-> ptr char @-> returning int)
 
   let mysql_set_character_set_cont = foreign "mysql_set_character_set_cont"
-    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+    (ptr int @-> T.mysql @-> int @-> returning int)
 
   let mysql_select_db_start = foreign "mysql_select_db_start"
-    (ptr T.mysql_opt @-> T.mysql @-> ptr char @-> returning int)
+    (ptr int @-> T.mysql @-> ptr char @-> returning int)
 
   let mysql_select_db_cont = foreign "mysql_select_db_cont"
-    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+    (ptr int @-> T.mysql @-> int @-> returning int)
 
   let mysql_change_user_start = foreign "mysql_change_user_start"
-    (ptr T.mysql_opt @-> T.mysql @-> ptr char @-> ptr char @-> ptr_opt char @->
+    (ptr T.my_bool @-> T.mysql @-> ptr char @-> ptr char @-> ptr_opt char @->
      returning int)
 
   let mysql_change_user_cont = foreign "mysql_change_user_cont"
-    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+    (ptr T.my_bool @-> T.mysql @-> int @-> returning int)
 
   let mysql_dump_debug_info_start = foreign "mysql_dump_debug_info_start"
-    (ptr T.mysql_opt @-> T.mysql @-> returning int)
+    (ptr int @-> T.mysql @-> returning int)
 
   let mysql_dump_debug_info_cont = foreign "mysql_dump_debug_info_cont"
-    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+    (ptr int @-> T.mysql @-> int @-> returning int)
 
   let mysql_set_server_option_start = foreign "mysql_set_server_option_start"
-    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+    (ptr int @-> T.mysql @-> int @-> returning int)
 
   let mysql_set_server_option_cont = foreign "mysql_set_server_option_cont"
-    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+    (ptr int @-> T.mysql @-> int @-> returning int)
 
   let mysql_ping_start = foreign "mysql_ping_start"
-    (ptr T.mysql_opt @-> T.mysql @-> returning int)
+    (ptr int @-> T.mysql @-> returning int)
 
   let mysql_ping_cont = foreign "mysql_ping_cont"
-    (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
+    (ptr int @-> T.mysql @-> int @-> returning int)
 
   let mysql_stmt_prepare_start = foreign "mysql_stmt_prepare_start"
     (ptr int @-> T.stmt @-> ptr char @-> ulong @-> returning int)
@@ -553,44 +553,44 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_set_character_set_start mysql charset =
     let charset = char_ptr_buffer_of_string charset in
-    handle_ret (fun ret -> mysql_set_character_set_start ret mysql charset)
+    handle_int (fun ret -> mysql_set_character_set_start ret mysql charset)
 
   let mysql_set_character_set_cont mysql status =
-    handle_ret (fun ret -> mysql_set_character_set_cont ret mysql status)
+    handle_int (fun ret -> mysql_set_character_set_cont ret mysql status)
 
   let mysql_select_db_start mysql db =
     let db = char_ptr_buffer_of_string db in
-    handle_ret (fun ret -> mysql_select_db_start ret mysql db)
+    handle_int (fun ret -> mysql_select_db_start ret mysql db)
 
   let mysql_select_db_cont mysql status =
-    handle_ret (fun ret -> mysql_select_db_cont ret mysql status)
+    handle_int (fun ret -> mysql_select_db_cont ret mysql status)
 
   let mysql_change_user_start mysql user pass db =
     let user = char_ptr_buffer_of_string user in
     let pass = char_ptr_buffer_of_string pass in
     let db = char_ptr_opt_buffer_of_string db in
-    handle_ret (fun ret -> mysql_change_user_start ret mysql user pass db)
+    handle_char (fun ret -> mysql_change_user_start ret mysql user pass db)
 
   let mysql_change_user_cont mysql status =
-    handle_ret (fun ret -> mysql_change_user_cont ret mysql status)
+    handle_char (fun ret -> mysql_change_user_cont ret mysql status)
 
   let mysql_dump_debug_info_start mysql =
-    handle_ret (fun ret -> mysql_dump_debug_info_start ret mysql)
+    handle_int (fun ret -> mysql_dump_debug_info_start ret mysql)
 
   let mysql_dump_debug_info_cont mysql status =
-    handle_ret (fun ret -> mysql_dump_debug_info_cont ret mysql status)
+    handle_int (fun ret -> mysql_dump_debug_info_cont ret mysql status)
 
   let mysql_set_server_option_start mysql opt =
-    handle_ret (fun ret -> mysql_set_server_option_start ret mysql opt)
+    handle_int (fun ret -> mysql_set_server_option_start ret mysql opt)
 
   let mysql_set_server_option_cont mysql status =
-    handle_ret (fun ret -> mysql_set_server_option_cont ret mysql status)
+    handle_int (fun ret -> mysql_set_server_option_cont ret mysql status)
 
   let mysql_ping_start mysql =
-    handle_ret (fun ret -> mysql_ping_start ret mysql)
+    handle_int (fun ret -> mysql_ping_start ret mysql)
 
   let mysql_ping_cont mysql status =
-    handle_ret (fun ret -> mysql_ping_cont ret mysql status)
+    handle_int (fun ret -> mysql_ping_cont ret mysql status)
 
   let mysql_stmt_prepare_start stmt query =
     let len = Unsigned.ULong.of_int (String.length query) in
