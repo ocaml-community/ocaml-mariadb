@@ -402,13 +402,13 @@ module Make (W : Wait) : Mariadb_intf.S = struct
   let rec nonblocking m (f, g) =
     match f () with
     | `Ok v -> Ok v
-    | `Wait s -> nonblocking m ((fun () -> g (W.wait m s)), g)
+    | `Wait s -> let s = W.wait m s in nonblocking m ((fun () -> g s), g)
     | `Error e -> Error e
 
   let rec nonblocking_noerr m (f, g) =
     match f () with
     | `Ok -> ()
-    | `Wait s -> nonblocking_noerr m ((fun () -> g (W.wait m s)), g)
+    | `Wait s -> let s = W.wait m s in nonblocking_noerr m ((fun () -> g s), g)
 
   module Res = struct
     type t = Res.t
