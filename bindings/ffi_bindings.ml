@@ -337,18 +337,6 @@ module Foreign_bindings = struct
   let mysql_ping_cont = foreign "mysql_ping_cont"
     (ptr T.mysql_opt @-> T.mysql @-> int @-> returning int)
 
-  let mysql_list_dbs_start = foreign "mysql_list_dbs_start"
-    (ptr T.res_opt @-> T.mysql @-> string @-> returning int)
-
-  let mysql_list_dbs_cont = foreign "mysql_list_dbs_cont"
-    (ptr T.res_opt @-> T.mysql @-> int @-> returning int)
-
-  let mysql_list_tables_start = foreign "mysql_list_tables_start"
-    (ptr T.res_opt @-> T.mysql @-> string @-> returning int)
-
-  let mysql_list_tables_cont = foreign "mysql_list_tables_cont"
-    (ptr T.res_opt @-> T.mysql @-> int @-> returning int)
-
   let mysql_stmt_prepare_start = foreign "mysql_stmt_prepare_start"
     (ptr int @-> T.stmt @-> ptr char @-> ulong @-> returning int)
 
@@ -409,12 +397,6 @@ module Foreign_bindings = struct
   let mysql_autocommit_cont = foreign "mysql_autocommit_cont"
     (ptr T.my_bool @-> T.mysql @-> int @-> returning int)
 
-  let mysql_next_result_start = foreign "mysql_next_result_start"
-    (ptr int @-> T.mysql @-> returning int)
-
-  let mysql_next_result_cont = foreign "mysql_next_result_cont"
-    (ptr int @-> T.mysql @-> int @-> returning int)
-
   let mysql_stmt_next_result_start = foreign "mysql_stmt_next_result_start"
     (ptr int @-> T.stmt @-> returning int)
 
@@ -434,9 +416,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let handle_opt typ = handle (typ, None)
   let handle_int f = handle (int, 0) f
   let handle_char f = handle (char, '\000') f
-
   let handle_ret = handle_opt T.mysql_opt
-  let handle_res = handle_opt T.res_opt
 
   let mysql_init () =
     mysql_init None
@@ -612,18 +592,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let mysql_ping_cont mysql status =
     handle_ret (fun ret -> mysql_ping_cont ret mysql status)
 
-  let mysql_list_dbs_start mysql wild =
-    handle_res (fun res -> mysql_list_dbs_start res mysql wild)
-
-  let mysql_list_dbs_cont mysql status =
-    handle_res (fun res -> mysql_list_dbs_cont res mysql status)
-
-  let mysql_list_tables_start mysql wild =
-    handle_res (fun res -> mysql_list_tables_start res mysql wild)
-
-  let mysql_list_tables_cont mysql status =
-    handle_res (fun res -> mysql_list_tables_cont res mysql status)
-
   let mysql_stmt_prepare_start stmt query =
     let len = Unsigned.ULong.of_int (String.length query) in
     let query = char_ptr_buffer_of_string query in
@@ -686,12 +654,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_autocommit_cont mysql status =
     handle_char (fun err -> mysql_autocommit_cont err mysql status)
-
-  let mysql_next_result_start mysql =
-    handle_int (fun err -> mysql_next_result_start err mysql)
-
-  let mysql_next_result_cont mysql status =
-    handle_int (fun err -> mysql_next_result_cont err mysql status)
 
   let mysql_stmt_next_result_start stmt =
     handle_int (fun err -> mysql_stmt_next_result_start err stmt)

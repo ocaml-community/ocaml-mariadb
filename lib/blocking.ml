@@ -50,14 +50,6 @@ let set_server_option mariadb opt =
 let ping mariadb =
   wrap_unit mariadb B.mysql_ping
 
-(*
-
-let mysql_dump_debug_info mysql =
-  mysql_dump_debug_info mysql = 0
-
-let mysql_set_server_option mysql opt =
-  mysql_set_server_option mysql opt = 0*)
-
 let prepare mariadb query =
   let build_stmt raw =
     if B.mysql_stmt_prepare raw query then

@@ -157,31 +157,6 @@ let ping_cont mariadb status =
 let ping mariadb =
   (ping_start mariadb, ping_cont mariadb)
 
-(*let list_dbs_start mariadb wild =
-  handle_opt mariadb (fun m -> B.mysql_list_dbs_start m wild)
-
-let list_dbs_cont mariadb status =
-handle_opt mariadb (fun m -> B.mysql_list_dbs_cont m status)
-
-let list_tables_start mariadb wild =
-handle_opt mariadb (fun m -> B.mysql_list_tables_start m wild)
-
-let list_tables_cont mariadb status =
-  handle_opt mariadb (fun m -> B.mysql_list_tables_cont m status)
-
-let handle_next mariadb f errf =
-  match f mariadb with
-  | 0, 0 -> `Ok true
-  | 0, -1 -> `Ok false
-  | 0, _ -> `Error (Error.create mariadb)
-  | s, _ -> `Wait (Status.of_int s)
-
-let next_result_start mariadb =
-  handle_next mariadb (fun m -> B.mysql_next_result_start m)
-
-let next_result_cont mariadb status =
-  handle_next mariadb (fun m -> B.mysql_next_result_cont m status)*)
-
 let build_stmt mariadb raw =
   match Common.Stmt.init mariadb raw with
   | Some stmt -> `Ok stmt

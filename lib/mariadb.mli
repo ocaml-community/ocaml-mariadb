@@ -96,15 +96,6 @@ module Nonblocking : sig
                        -> unit nonblocking
   val ping : [`Connected] t -> unit nonblocking
 
-  (*val list_dbs_start : [`Connected] t -> string -> Res.t result
-  val list_dbs_cont : [`Connected] t -> Status.t -> Res.t result
-
-  val list_tables_start : [`Connected] t -> string -> Res.t result
-  val list_tables_cont : [`Connected] t -> Status.t -> Res.t result
-
-  val next_result_start : [`Connected] t -> bool result
-  val next_result_cont : [`Connected] t -> Status.t -> bool result*)
-
   val prepare : [`Connected] t -> string
              -> [ `Ok of ([`Prepared] Stmt.t nonblocking) | `Error of error]
 
