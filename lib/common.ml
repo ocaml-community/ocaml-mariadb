@@ -216,15 +216,6 @@ module Res = struct
   let fetch_field res i =
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res.raw i)
 
-  let bytes_of_char_ptr p len =
-    let b = Bytes.make len '?' in
-    for i = 0 to len - 1 do
-      let c = !@(p +@ i) in
-      if c <> '\000' then
-        Bytes.set b i c;
-    done;
-    Bytes.copy b
-
   let get_buffer r at =
     let bp = r.Bind.bind +@ at in
     getf (!@bp) T.Bind.buffer
@@ -239,7 +230,8 @@ module Res = struct
     let buf = get_buffer r at in
     let lp = r.Bind.length +@ at in
     let len = Unsigned.ULong.to_int !@lp in
-    bytes_of_char_ptr (cast buf char) len
+    let p = coerce (ptr void) (ptr char) buf in
+    Bytes.init len (fun i -> !@(p +@ i))
 
   let to_time r at =
     let buf = get_buffer r at in
@@ -292,8 +284,7 @@ module Res = struct
 
   let build_row res =
     let r = res.result in
-    let n = r.Bind.n in
-    Array.init n
+    Array.init r.Bind.n
       (fun i ->
         let bp = r.Bind.bind +@ i in
         if is_null r i then
