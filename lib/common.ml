@@ -214,7 +214,6 @@ module Res = struct
     B.mysql_stmt_affected_rows res.stmt
 
   let fetch_field res i =
-    let open Ctypes in
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res.raw i)
 
   let bytes_of_char_ptr p len =
@@ -316,6 +315,8 @@ let stmt_init mariadb =
       None
 
 module Stmt = struct
+  open Ctypes
+
   type state = [`Prepared | `Executed]
 
   type u =
@@ -353,13 +354,11 @@ module Stmt = struct
     (B.mysql_stmt_errno stmt.raw, B.mysql_error stmt.raw)
 
   let fetch_field res i =
-    let open Ctypes in
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res i)
 
   let alloc_result res =
     let n = B.mysql_num_fields res in
     let r = Bind.alloc n in
-    let open Ctypes in
     for i = 0 to n - 1 do
       let bp = r.Bind.bind +@ i in
       let fp = fetch_field res i in
@@ -414,14 +413,8 @@ module Stmt = struct
         else
           `Error (error stmt)
 
-  let malloc count =
-    let open Ctypes in
-    let p = allocate_n char ~count in
-    coerce (ptr char) (ptr void) p
-
   (* From http://dev.mysql.com/doc/refman/5.7/en/mysql-stmt-fetch.html *)
   let buffer_size typ =
-    let open T.Type in
     match Bind.buffer_type_of_int typ with
     | `Null -> 0
     | `Tiny | `Year -> 1
@@ -432,23 +425,24 @@ module Stmt = struct
     | `Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Bit -> -1
     | `Time | `Date | `Datetime | `Timestamp -> Ctypes.sizeof T.Time.t
 
-  let alloc_size fp typ =
-    let open Ctypes in
-    match buffer_size typ with
-    | -1 -> Unsigned.ULong.to_int (getf (!@fp) T.Field.max_length)
-    | n -> n
+  let malloc count =
+    let p = allocate_n char ~count in
+    coerce (ptr char) (ptr void) p
 
   let alloc_buffer bp fp =
-    let open Ctypes in
     let typ = getf (!@bp) T.Bind.buffer_type in
-    let size = alloc_size fp typ in
-    setf (!@bp) T.Bind.buffer_length (Unsigned.ULong.of_int size);
-    setf (!@bp) T.Bind.buffer (malloc size)
+    match buffer_size typ with
+    | -1 ->
+        let n = getf (!@fp) T.Field.max_length in
+        setf (!@bp) T.Bind.buffer_length n;
+        setf (!@bp) T.Bind.buffer (malloc (Unsigned.ULong.to_int n))
+    | n ->
+        setf (!@bp) T.Bind.buffer_length (Unsigned.ULong.of_int n);
+        setf (!@bp) T.Bind.buffer (malloc n)
 
   let bind_result stmt =
     let b = stmt.result in
     let n = b.Bind.n in
-    let open Ctypes in
     for i = 0 to n - 1 do
       let bp = b.Bind.bind +@ i in
       let fp = fetch_field stmt.res i in
