@@ -233,7 +233,7 @@ module Res = struct
   let cast buf typ =
     coerce (ptr void) (ptr typ) buf
 
-  let cast_buf r at typ =
+  let cast_val r at typ =
     !@(cast (get_buffer r at) typ)
 
   let to_bytes r at =
@@ -258,29 +258,29 @@ module Res = struct
     | `Null ->
         `Null
     | `Tiny | `Year ->
-        `Int (int_of_char @@ cast_buf r at char)
+        `Int (int_of_char @@ cast_val r at char)
     | `Short ->
-        `Int (cast_buf r at int)
+        `Int (cast_val r at int)
     | `Int24 | `Long ->
-        `Int (Signed.Int32.to_int @@ cast_buf r at int32_t)
+        `Int (Signed.Int32.to_int @@ cast_val r at int32_t)
     | `Long_long ->
-        `Int (Signed.Int64.to_int @@ cast_buf r at int64_t)
+        `Int (Signed.Int64.to_int @@ cast_val r at int64_t)
     | `Float ->
-        `Float (cast_buf r at float)
+        `Float (cast_val r at float)
     | `Double ->
-        `Float (cast_buf r at double)
+        `Float (cast_val r at double)
     | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
-        `String (Bytes.to_string (to_bytes r at))
+        `String (Bytes.to_string @@ to_bytes r at)
     | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
         `Bytes (to_bytes r at)
     | `Time  | `Date | `Datetime | `Timestamp -> `Time (to_time r at)
 
   let convert_unsigned r at = function
     | `Null -> `Null
-    | `Tiny | `Year -> `Int (int_of_char @@ cast_buf r at char)
-    | `Short -> `Int (Unsigned.UInt.to_int @@ cast_buf r at uint)
-    | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int @@ cast_buf r at uint32_t)
-    | `Long_long -> `Int (Unsigned.UInt64.to_int @@ cast_buf r at uint64_t)
+    | `Tiny | `Year -> `Int (int_of_char @@ cast_val r at char)
+    | `Short -> `Int (Unsigned.UInt.to_int @@ cast_val r at uint)
+    | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int @@ cast_val r at uint32_t)
+    | `Long_long -> `Int (Unsigned.UInt64.to_int @@ cast_val r at uint64_t)
     | `Timestamp -> `Time (to_time r at)
     | _ -> failwith "unexpected unsigned type"
 
