@@ -60,7 +60,6 @@ module Res = struct
 
   let fetch res =
     let stmt = res.Common.Res.stmt in
-    Gc.compact();
     match B.mysql_stmt_fetch stmt with
     | 0 -> Ok (Some (Common.Res.build_row res))
     | r when r = T.Return_code.no_data -> Ok None
@@ -118,4 +117,3 @@ module Stmt = struct
     else
       Error (Common.Stmt.error stmt)
 end
-
