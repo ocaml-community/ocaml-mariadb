@@ -354,7 +354,7 @@ module type Wait = sig
   val wait : [< `Connected | `Tx] t -> Status.t -> Status.t
 end
 
-module Make (W : Wait) : Mariadb_intf.S = struct
+module Make (W : Wait) = struct
   type state = [`Unconnected | `Connected | `Tx]
   type 's t = 's mariadb
 

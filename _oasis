@@ -12,8 +12,7 @@ Library "mariadb"
   FindlibName:      mariadb
   Path:             lib
   Modules:          Mariadb
-  InternalModules:  Mariadb_intf,
-                    Common,
+  InternalModules:  Common,
                     Blocking,
                     Nonblocking,
                     Wait_status,
