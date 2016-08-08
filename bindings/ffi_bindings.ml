@@ -70,10 +70,6 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let () = seal t
   end
 
-  module Field_flags = struct
-    let unsigned = constant "UNSIGNED_FLAG" int
-  end
-
   module Field = struct
     type field
     type t = field structure
@@ -82,9 +78,13 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let name = field t "name" string
     let max_length = field t "max_length" ulong
     let flags = field t "flags" uint
-    let type_ = field t "type" int
+    let typ = field t "type" int
 
     let () = seal t
+
+    module Flags = struct
+      let unsigned = constant "UNSIGNED_FLAG" int
+    end
   end
 
   module Time = struct

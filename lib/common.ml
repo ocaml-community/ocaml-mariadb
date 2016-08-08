@@ -366,11 +366,11 @@ module Stmt = struct
       let flags = getf (!@fp) T.Field.flags in
       let is_unsigned =
         let logand = Unsigned.UInt.logand in
-        let unsigned_flag = Unsigned.UInt.of_int T.Field_flags.unsigned in
+        let unsigned_flag = Unsigned.UInt.of_int T.Field.Flags.unsigned in
         if logand flags unsigned_flag <> Unsigned.UInt.zero
         then '\001'
         else '\000' in
-      setf (!@bp) T.Bind.buffer_type (getf (!@fp) T.Field.type_);
+      setf (!@bp) T.Bind.buffer_type (getf (!@fp) T.Field.typ);
       setf (!@bp) T.Bind.length (r.Bind.length +@ i);
       setf (!@bp) T.Bind.is_null (r.Bind.is_null +@ i);
       setf (!@bp) T.Bind.is_unsigned is_unsigned;
