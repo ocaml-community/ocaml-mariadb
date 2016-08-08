@@ -69,19 +69,19 @@ module type S = sig
 
   val close : [< `Connected | `Tx] t -> unit
 
-  (*val set_charset : [`Connected] t -> string -> unit result
+  val set_character_set : [`Connected] t -> string -> unit result
   val select_db : [`Connected] t -> string -> unit result
   val change_user : [`Connected] t -> string -> string -> string option
                  -> unit result
   val dump_debug_info : [`Connected] t -> unit result
   val set_server_option : [`Connected] t -> server_option
                        -> unit result
-  val ping : [`Connected] t -> unit result*)
+  val ping : [`Connected] t -> unit result
   val prepare : [`Connected] t -> string -> [`Prepared] Stmt.t result
 
-  (*module Tx : sig
+  module Tx : sig
     val commit : [`Connected] t -> [`Tx] t result
     val rollback : [`Tx] t -> [`Connected] t result
     val autocommit : [`Connected] t -> bool -> [`Connected] t result
-  end*)
+  end
 end

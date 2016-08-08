@@ -215,6 +215,33 @@ module Foreign_bindings = struct
      ptr_opt char @-> ptr_opt char @-> uint @-> ptr_opt char @-> ulong @->
      returning T.mysql_opt)
 
+  let mysql_commit = foreign "mysql_commit"
+    (T.mysql @-> returning T.my_bool)
+
+  let mysql_rollback = foreign "mysql_rollback"
+    (T.mysql @-> returning T.my_bool)
+
+  let mysql_autocommit = foreign "mysql_autocommit"
+    (T.mysql @-> T.my_bool @-> returning T.my_bool)
+
+  let mysql_set_character_set = foreign "mysql_set_character_set"
+    (T.mysql @-> ptr char @-> returning int)
+
+  let mysql_select_db = foreign "mysql_select_db"
+    (T.mysql @-> ptr char @-> returning int)
+
+  let mysql_change_user = foreign "mysql_change_user"
+    (T.mysql @-> ptr char @-> ptr char @-> ptr_opt char @-> returning T.my_bool)
+
+  let mysql_dump_debug_info = foreign "mysql_dump_debug_info"
+    (T.mysql @-> returning int)
+
+  let mysql_set_server_option = foreign "mysql_set_server_option"
+    (T.mysql @-> int @-> returning int)
+
+  let mysql_ping = foreign "mysql_ping"
+    (T.mysql @-> returning int)
+
   let mysql_stmt_prepare = foreign "mysql_stmt_prepare"
     (T.stmt @-> ptr char @-> ulong @-> returning int)
 
@@ -465,6 +492,39 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     let socket = char_ptr_opt_buffer_of_string socket in
     let flags = Unsigned.ULong.of_int flags in
     mysql_real_connect mysql host user pass db port socket flags
+
+  let mysql_commit mysql =
+    mysql_commit mysql = '\000'
+
+  let mysql_rollback mysql =
+    mysql_rollback mysql = '\000'
+
+  let mysql_autocommit mysql auto =
+    let auto = if auto then '\001' else '\000' in
+    mysql_autocommit mysql auto = '\000'
+
+  let mysql_set_character_set mysql charset =
+    let charset = char_ptr_buffer_of_string charset in
+    mysql_set_character_set mysql charset = 0
+
+  let mysql_select_db mysql db =
+    let db = char_ptr_buffer_of_string db in
+    mysql_select_db mysql db = 0
+
+  let mysql_change_user mysql user pass db =
+    let user = char_ptr_buffer_of_string user in
+    let pass = char_ptr_buffer_of_string pass in
+    let db = char_ptr_opt_buffer_of_string db in
+    mysql_change_user mysql user pass db = '\000'
+
+  let mysql_dump_debug_info mysql =
+    mysql_dump_debug_info mysql = 0
+
+  let mysql_set_server_option mysql opt =
+    mysql_set_server_option mysql opt = 0
+
+  let mysql_ping mysql =
+    mysql_ping mysql = 0
 
   let mysql_stmt_prepare stmt query =
     let len = Unsigned.ULong.of_int (String.length query) in

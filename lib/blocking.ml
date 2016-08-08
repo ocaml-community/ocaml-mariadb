@@ -1,3 +1,5 @@
+open Util
+
 module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
@@ -24,6 +26,37 @@ let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
   match B.mysql_init () with
   | Some m -> connect m
   | None -> Error (2008, "out of memory")
+
+let wrap_unit mariadb f =
+  if f mariadb then Ok ()
+  else Error (Common.error mariadb)
+
+let set_character_set mariadb charset =
+  wrap_unit mariadb ((flip B.mysql_set_character_set) charset)
+
+let select_db mariadb db =
+  wrap_unit mariadb ((flip B.mysql_select_db) db)
+
+let change_user mariadb user pass db =
+  wrap_unit mariadb (fun m -> B.mysql_change_user m user pass db)
+
+let dump_debug_info mariadb =
+  wrap_unit mariadb B.mysql_dump_debug_info
+
+let set_server_option mariadb opt =
+  let opt = Common.int_of_server_option opt in
+  wrap_unit mariadb ((flip B.mysql_set_server_option) opt)
+
+let ping mariadb =
+  wrap_unit mariadb B.mysql_ping
+
+(*
+
+let mysql_dump_debug_info mysql =
+  mysql_dump_debug_info mysql = 0
+
+let mysql_set_server_option mysql opt =
+  mysql_set_server_option mysql opt = 0*)
 
 let prepare mariadb query =
   let build_stmt raw =
@@ -116,4 +149,19 @@ module Stmt = struct
       Ok ()
     else
       Error (Common.Stmt.error stmt)
+end
+
+module Tx = struct
+  let wrap mariadb f =
+    if f mariadb then Ok mariadb
+    else Error (Common.error mariadb)
+
+  let commit mariadb =
+    wrap mariadb B.mysql_commit
+
+  let rollback mariadb =
+    wrap mariadb B.mysql_rollback
+
+  let autocommit mariadb auto =
+    wrap mariadb ((flip B.mysql_autocommit) auto)
 end

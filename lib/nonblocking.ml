@@ -102,14 +102,14 @@ let fd =
 let timeout =
   B.mysql_get_timeout_value
 
-let set_charset_start mariadb charset () =
+let set_character_set_start mariadb charset () =
   handle_unit mariadb ((flip B.mysql_set_character_set_start) charset)
 
-let set_charset_cont mariadb status =
+let set_character_set_cont mariadb status =
   handle_unit mariadb ((flip B.mysql_set_character_set_cont) status)
 
-let set_charset mariadb charset =
-  (set_charset_start mariadb charset, set_charset_cont mariadb)
+let set_character_set mariadb charset =
+  (set_character_set_start mariadb charset, set_character_set_cont mariadb)
 
 let select_db_start mariadb db () =
   handle_unit mariadb ((flip B.mysql_select_db_start) db)
@@ -139,10 +139,7 @@ let dump_debug_info mariadb =
   (dump_debug_info_start mariadb, dump_debug_info_cont mariadb)
 
 let set_server_option_start mariadb opt () =
-  let opt =
-    match opt with
-    | Common.Multi_statements true -> T.Server_options.multi_statements_on
-    | Common.Multi_statements false -> T.Server_options.multi_statements_off in
+  let opt = Common.int_of_server_option opt in
   handle_unit mariadb ((flip B.mysql_set_server_option_start) opt)
 
 let set_server_option_cont mariadb status =
@@ -506,7 +503,7 @@ module Make (W : Wait) : Mariadb_intf.S = struct
 
   let close m = nonblocking_noerr m (close m)
 
-  let set_charset m c = nonblocking m (set_charset m c)
+  let set_character_set m c = nonblocking m (set_character_set m c)
 
   let select_db m db = nonblocking m (select_db m db)
 

@@ -20,6 +20,10 @@ type error = int * string
 let error mariadb =
   (B.mysql_errno mariadb, B.mysql_error mariadb)
 
+let int_of_server_option = function
+  | Multi_statements true -> T.Server_options.multi_statements_on
+  | Multi_statements false -> T.Server_options.multi_statements_off
+
 module Bind = struct
   open Ctypes
 

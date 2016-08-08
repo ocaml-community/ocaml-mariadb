@@ -87,7 +87,7 @@ module Nonblocking : sig
   val fd : [< `Unconnected | `Connected] t -> int
   val timeout : [< `Unconnected | `Connected] t -> int
 
-  val set_charset : [`Connected] t -> string -> unit nonblocking
+  val set_character_set : [`Connected] t -> string -> unit nonblocking
   val select_db : [`Connected] t -> string -> unit nonblocking
   val change_user : [`Connected] t -> string -> string -> string option
                  -> unit nonblocking
