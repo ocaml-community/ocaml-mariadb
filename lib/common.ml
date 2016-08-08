@@ -183,6 +183,7 @@ module Res = struct
     ; stmt    : B.Types.stmt
     ; result  : Bind.t
     ; raw     : B.Types.res
+    ; buffers : unit ptr array
     }
   type 'm t = u constraint 'm = [< mode]
 
@@ -204,8 +205,8 @@ module Res = struct
     | `Null
     ]
 
-  let create mariadb stmt result raw =
-    { mariadb; stmt; result; raw }
+  let create ~mariadb ~stmt ~result ~raw ~buffers =
+    { mariadb; stmt; result; raw; buffers }
 
   let num_rows res =
     B.mysql_stmt_num_rows res.stmt
@@ -216,26 +217,20 @@ module Res = struct
   let fetch_field res i =
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res.raw i)
 
-  let get_buffer r at =
-    let bp = r.Bind.bind +@ at in
-    getf (!@bp) T.Bind.buffer
+  let cast_to typ res at =
+    !@(coerce (ptr void) (ptr typ) res.buffers.(at))
 
-  let cast buf typ =
-    coerce (ptr void) (ptr typ) buf
-
-  let cast_val r at typ =
-    !@(cast (get_buffer r at) typ)
-
-  let to_bytes r at =
-    let buf = get_buffer r at in
+  let to_bytes res at =
+    let buf = res.buffers.(at) in
+    let r = res.result in
     let lp = r.Bind.length +@ at in
     let len = Unsigned.ULong.to_int !@lp in
     let p = coerce (ptr void) (ptr char) buf in
     Bytes.init len (fun i -> !@(p +@ i))
 
-  let to_time r at =
-    let buf = get_buffer r at in
-    let tp = cast buf T.Time.t in
+  let to_time res at =
+    let buf = res.buffers.(at) in
+    let tp = coerce (ptr void) (ptr T.Time.t) buf in
     let field f = Unsigned.UInt.to_int @@ getf (!@tp) f in
     { year   = field T.Time.year
     ; month  = field T.Time.month
@@ -249,17 +244,17 @@ module Res = struct
     | `Null ->
         `Null
     | `Tiny | `Year ->
-        `Int (int_of_char @@ cast_val r at char)
+        `Int (int_of_char @@ cast_to char r at)
     | `Short ->
-        `Int (cast_val r at int)
+        `Int (cast_to int r at)
     | `Int24 | `Long ->
-        `Int (Signed.Int32.to_int @@ cast_val r at int32_t)
+        `Int (Signed.Int32.to_int @@ cast_to int32_t r at)
     | `Long_long ->
-        `Int (Signed.Int64.to_int @@ cast_val r at int64_t)
+        `Int (Signed.Int64.to_int @@ cast_to int64_t r at)
     | `Float ->
-        `Float (cast_val r at float)
+        `Float (cast_to float r at)
     | `Double ->
-        `Float (cast_val r at double)
+        `Float (cast_to double r at)
     | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
         `String (Bytes.to_string @@ to_bytes r at)
     | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
@@ -268,10 +263,10 @@ module Res = struct
 
   let convert_unsigned r at = function
     | `Null -> `Null
-    | `Tiny | `Year -> `Int (int_of_char @@ cast_val r at char)
-    | `Short -> `Int (Unsigned.UInt.to_int @@ cast_val r at uint)
-    | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int @@ cast_val r at uint32_t)
-    | `Long_long -> `Int (Unsigned.UInt64.to_int @@ cast_val r at uint64_t)
+    | `Tiny | `Year -> `Int (int_of_char @@ cast_to char r at)
+    | `Short -> `Int (Unsigned.UInt.to_int @@ cast_to uint r at)
+    | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int @@ cast_to uint32_t r at)
+    | `Long_long -> `Int (Unsigned.UInt64.to_int @@ cast_to uint64_t r at)
     | `Timestamp -> `Time (to_time r at)
     | _ -> failwith "unexpected unsigned type"
 
@@ -289,12 +284,10 @@ module Res = struct
         let bp = r.Bind.bind +@ i in
         if is_null r i then
           `Null
-        else begin
-          let typ = getf (!@bp) T.Bind.buffer_type in
-          let typ = Bind.buffer_type_of_int typ in
+        else
+          let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
           let conv = if is_unsigned bp then convert_unsigned else convert in
-          conv r i typ
-        end)
+          conv res i typ)
 end
 
 let stmt_init mariadb =
@@ -317,6 +310,7 @@ module Stmt = struct
     ; num_params : int
     ; params : Bind.t
     ; result : Bind.t
+    ; result_buffers : unit ptr array
     }
   type ('m, 's) t = u
     constraint 'm = [< mode]
@@ -347,8 +341,7 @@ module Stmt = struct
   let fetch_field res i =
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res i)
 
-  let alloc_result res =
-    let n = B.mysql_num_fields res in
+  let alloc_result res n =
     let r = Bind.alloc n in
     for i = 0 to n - 1 do
       let bp = r.Bind.bind +@ i in
@@ -369,16 +362,18 @@ module Stmt = struct
     r
 
   let init mariadb raw =
-    let n = B.mysql_stmt_param_count raw in
+    let np = B.mysql_stmt_param_count raw in
     match B.mysql_stmt_result_metadata raw with
     | Some res ->
+        let nf = B.mysql_num_fields res in
         Some
           { raw
           ; mariadb
           ; res
-          ; num_params = n
-          ; params = Bind.alloc n
-          ; result = alloc_result res
+          ; num_params = np
+          ; params = Bind.alloc np
+          ; result = alloc_result res nf
+          ; result_buffers = Array.make nf null
           }
     | None ->
         None
@@ -420,16 +415,18 @@ module Stmt = struct
     let p = allocate_n char ~count in
     coerce (ptr char) (ptr void) p
 
-  let alloc_buffer bp fp =
+  let alloc_buffer stmt bp fp i =
     let typ = getf (!@bp) T.Bind.buffer_type in
     match buffer_size typ with
     | -1 ->
         let n = getf (!@fp) T.Field.max_length in
         setf (!@bp) T.Bind.buffer_length n;
-        setf (!@bp) T.Bind.buffer (malloc (Unsigned.ULong.to_int n))
+        stmt.result_buffers.(i) <- malloc (Unsigned.ULong.to_int n);
+        setf (!@bp) T.Bind.buffer stmt.result_buffers.(i)
     | n ->
         setf (!@bp) T.Bind.buffer_length (Unsigned.ULong.of_int n);
-        setf (!@bp) T.Bind.buffer (malloc n)
+        stmt.result_buffers.(i) <- malloc n;
+        setf (!@bp) T.Bind.buffer stmt.result_buffers.(i)
 
   let bind_result stmt =
     let b = stmt.result in
@@ -437,10 +434,17 @@ module Stmt = struct
     for i = 0 to n - 1 do
       let bp = b.Bind.bind +@ i in
       let fp = fetch_field stmt.res i in
-      alloc_buffer bp fp
+      alloc_buffer stmt bp fp i
     done;
     if B.mysql_stmt_bind_result stmt.raw stmt.result.Bind.bind then
-      `Ok (Res.create stmt.mariadb stmt.raw stmt.result stmt.res)
+      let res =
+        Res.create
+          ~mariadb:stmt.mariadb
+          ~stmt:stmt.raw
+          ~result:stmt.result
+          ~raw:stmt.res
+          ~buffers:stmt.result_buffers in
+      `Ok res
     else
       `Error (error stmt)
 end
