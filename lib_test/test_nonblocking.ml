@@ -95,7 +95,7 @@ let () =
   let query = env "OCAML_MARIADB_QUERY"
     "SELECT * FROM user WHERE LENGTH(user) > ?" in
   let stmt = prepare mariadb query in
-  let stmt = execute mariadb stmt [| `String "Problema%" |] in
+  let stmt = execute mariadb stmt [| `Int 5 |] in
   let res = store_result mariadb stmt in
   printf "#rows: %d\n%!" (M.Res.num_rows res);
   each_result mariadb res print_row;
