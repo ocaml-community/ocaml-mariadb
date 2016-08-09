@@ -1,6 +1,6 @@
 open Printf
 
-module Make (M : Mariadb_intf.S) = struct
+module Make (M : Mariadb.S) = struct
   let env var def =
     try Sys.getenv var
     with Not_found -> def
@@ -47,7 +47,7 @@ module Make (M : Mariadb_intf.S) = struct
     let res = M.Stmt.execute stmt [| `Int 5 |] |> or_die () in
     printf "#rows: %d\n%!" (M.Res.num_rows res);
     each_result res print_row;
-    (*M.Stmt.close stmt |> or_die ();
-    M.close mariadb;*)
+    M.Stmt.close stmt |> or_die ();
+    M.close mariadb;
     printf "done\n%!"
 end
