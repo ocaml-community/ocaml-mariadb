@@ -46,7 +46,8 @@ module Make (M : Mariadb.S) = struct
     let stmt = M.prepare mariadb query |> or_die ~info:"prepare" () in
     let res = M.Stmt.execute stmt [| `Int 5 |] |> or_die () in
     printf "#rows: %d\n%!" (M.Res.num_rows res);
-    each_result res print_row;
+    let stream = M.Res.stream res |> or_die () in
+    Stream.iter print_row stream;
     M.Stmt.close stmt |> or_die ();
     M.close mariadb;
     printf "done\n%!"

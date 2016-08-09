@@ -385,6 +385,9 @@ module Make (W : Wait) = struct
     let fetch res =
       nonblocking res.Common.Res.mariadb (Res.fetch res)
 
+    let stream res =
+      Common.Res.stream res fetch
+
     let num_rows =
       Res.num_rows
 

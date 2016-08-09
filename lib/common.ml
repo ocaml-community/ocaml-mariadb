@@ -292,6 +292,16 @@ module Res = struct
           let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
           let conv = if is_unsigned bp then convert_unsigned else convert in
           conv res i typ)
+
+  let stream res fetch =
+    let module M = struct exception E of error end in
+    let next _ =
+      match fetch res with
+      | Ok (Some _ as row) -> row
+      | Ok None -> None
+      | Error e -> raise (M.E e) in
+    try Ok (Stream.from next)
+    with M.E e -> Error e
 end
 
 let stmt_init mariadb =

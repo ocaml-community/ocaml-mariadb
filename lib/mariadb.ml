@@ -27,6 +27,7 @@ module type S = sig
       ]
 
     val fetch : t -> value array option result
+    val stream : t -> value array Stream.t result
     val num_rows : t -> int
   end
 
