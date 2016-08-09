@@ -45,13 +45,7 @@ module type S = sig
       ]
 
     val execute : [`Prepared] t -> param array -> Res.t result
-
-    val execute' : [`Prepared] t -> param array
-                -> ([`Executed] t * Res.t) result
-
     val close : [< state] t -> unit result
-
-    (*val reset : [`Executed] t -> [`Prepared] t result*)
   end
 
   type state = [`Unconnected | `Connected | `Tx]
@@ -144,11 +138,6 @@ module Nonblocking : sig
     val store_result : [`Executed] t -> Res.t nonblocking
 
     val close : [< Common.Stmt.state] t -> unit nonblocking
-
-    val reset : [`Executed] t -> [`Prepared] t nonblocking
-
-    (*val next_result_start : t -> bool result
-    val next_result_cont : t -> Status.t -> bool result*)
   end
 
   module Tx : sig

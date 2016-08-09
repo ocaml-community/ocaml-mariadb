@@ -286,21 +286,6 @@ module Stmt = struct
   let close stmt =
     (close_start stmt, close_cont stmt)
 
-  let handle_char stmt f =
-    match f stmt.Common.Stmt.raw with
-    | 0, '\000' -> `Ok stmt
-    | 0, _ -> `Error (Common.Stmt.error stmt)
-    | s, _ -> `Wait (Status.of_int s)
-
-  let reset_start stmt () =
-    handle_char stmt B.mysql_stmt_reset_start
-
-  let reset_cont stmt status =
-    handle_char stmt ((flip B.mysql_stmt_reset_cont) status)
-
-  let reset stmt =
-    (reset_start stmt, reset_cont stmt)
-
   let handle_next stmt f =
     match f stmt.Common.Stmt.raw with
     | 0, 0 -> `Ok true
@@ -433,11 +418,6 @@ module Make (W : Wait) = struct
       | `Ok nb -> nonblocking stmt.Common.Stmt.mariadb nb |> handle_execute
       | `Error e -> Error e
 
-    let execute' stmt ps =
-      match execute stmt ps with
-      | Ok res -> Ok (stmt, res)
-      | Error _ as e -> e
-
     let free_res stmt =
       let handle_free f =
         match f stmt.Common.Stmt.raw with
@@ -452,9 +432,6 @@ module Make (W : Wait) = struct
       match free_res stmt with
       | Ok () -> nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)
       | Error _ as e -> e
-
-    let reset stmt =
-      nonblocking stmt.Common.Stmt.mariadb (Stmt.reset stmt)
   end
 
   module Tx = struct

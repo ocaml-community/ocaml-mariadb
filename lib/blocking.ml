@@ -130,11 +130,6 @@ module Stmt = struct
       | `Error e -> Error e
     end
 
-  let execute' stmt params =
-    match execute stmt params with
-    | Ok res -> Ok (stmt, res)
-    | Error _ as e -> e
-
   let close stmt =
     let raw = stmt.Common.Stmt.raw in
     if B.mysql_stmt_free_result raw && B.mysql_stmt_close raw then

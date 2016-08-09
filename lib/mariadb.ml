@@ -45,13 +45,7 @@ module type S = sig
       ]
 
     val execute : [`Prepared] t -> param array -> Res.t result
-
-    val execute' : [`Prepared] t -> param array
-                -> ([`Executed] t * Res.t) result
-
     val close : [< state] t -> unit result
-
-    (*val reset : [`Executed] t -> [`Prepared] t result*)
   end
 
   type state = [`Unconnected | `Connected | `Tx]

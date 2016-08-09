@@ -367,12 +367,6 @@ module Foreign_bindings = struct
   let mysql_stmt_close_cont = foreign "mysql_stmt_close_cont"
     (ptr T.my_bool @-> T.stmt @-> int @-> returning int)
 
-  let mysql_stmt_reset_start = foreign "mysql_stmt_reset_start"
-    (ptr T.my_bool @-> T.stmt @-> returning int)
-
-  let mysql_stmt_reset_cont = foreign "mysql_stmt_reset_cont"
-    (ptr T.my_bool @-> T.stmt @-> int @-> returning int)
-
   let mysql_stmt_free_result_start = foreign "mysql_stmt_free_result_start"
     (ptr T.my_bool @-> T.stmt @-> returning int)
 
@@ -623,12 +617,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_stmt_close_cont stmt status =
     handle_char (fun err -> mysql_stmt_close_cont err stmt status)
-
-  let mysql_stmt_reset_start stmt =
-    handle_char (fun err -> mysql_stmt_reset_start err stmt)
-
-  let mysql_stmt_reset_cont stmt status =
-    handle_char (fun err -> mysql_stmt_reset_cont err stmt status)
 
   let mysql_stmt_free_result_start stmt =
     handle_char (fun err -> mysql_stmt_free_result_start err stmt)
