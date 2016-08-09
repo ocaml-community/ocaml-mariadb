@@ -65,34 +65,16 @@ let prepare mariadb query =
 module Res = struct
   type t = [`Blocking] Common.Res.t
 
-  type time = Common.Res.time =
-    { year : int
-    ; month : int
-    ; day : int
-    ; hour : int
-    ; minute : int
-    ; second : int
-    }
-
-  type value =
-    [ `Int of int
-    | `Float of float
-    | `String of string
-    | `Bytes of bytes
-    | `Time of time
-    | `Null
-    ]
-
-  let fetch res =
+  let fetch (type t) (module R : Row.S with type t = t) res =
     let stmt = res.Common.Res.stmt in
     match B.mysql_stmt_fetch stmt with
-    | 0 -> Ok (Some (Common.Res.build_row res))
+    | 0 -> Ok (Some (Common.Res.build_row (module R) res))
     | r when r = T.Return_code.no_data -> Ok None
     | r when r = T.Return_code.data_truncated -> Error (2032, "truncated data")
     | _ -> Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
 
-  let stream res =
-    Common.Res.stream res fetch
+  let stream (type t) (module R : Row.S with type t = t) res =
+    Common.Res.stream (module R) res fetch
 
   let num_rows =
     Common.Res.num_rows

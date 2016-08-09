@@ -1,9 +1,11 @@
 # OASIS_START
-# DO NOT EDIT (digest: 7eb7be9e94b9d514e7795e6b26ecd10e)
+# DO NOT EDIT (digest: c282c49ccc5a6a9bb6897aff4e9a9909)
 Mariadb
 Common
 Blocking
 Nonblocking
+Field
+Row
 Wait_status
 Util
 Ffi_generated

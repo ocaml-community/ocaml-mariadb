@@ -191,24 +191,6 @@ module Res = struct
     }
   type 'm t = u constraint 'm = [< mode]
 
-  type time =
-    { year : int
-    ; month : int
-    ; day : int
-    ; hour : int
-    ; minute : int
-    ; second : int
-    }
-
-  type value =
-    [ `Int of int
-    | `Float of float
-    | `String of string
-    | `Bytes of bytes
-    | `Time of time
-    | `Null
-    ]
-
   let create ~mariadb ~stmt ~result ~raw ~buffers =
     { mariadb; stmt; result; raw; buffers }
 
@@ -236,7 +218,8 @@ module Res = struct
     let buf = res.buffers.(at) in
     let tp = coerce (ptr void) (ptr T.Time.t) buf in
     let field f = Unsigned.UInt.to_int @@ getf (!@tp) f in
-    { year   = field T.Time.year
+    { Field.
+      year   = field T.Time.year
     ; month  = field T.Time.month
     ; day    = field T.Time.day
     ; hour   = field T.Time.hour
@@ -281,22 +264,29 @@ module Res = struct
   let is_unsigned bp =
     getf (!@bp) T.Bind.is_unsigned = '\001'
 
-  let build_row res =
+  let build_row (type t) (module R : Row.S with type t = t) res =
     let r = res.result in
-    Array.init r.Bind.n
+    R.build r.Bind.n
       (fun i ->
         let bp = r.Bind.bind +@ i in
-        if is_null r i then
-          `Null
-        else
-          let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
-          let conv = if is_unsigned bp then convert_unsigned else convert in
-          conv res i typ)
+        let fp = fetch_field res i in
+        let value =
+          if is_null r i then
+            `Null
+          else
+            let typ =
+              Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
+            let conv =
+              if is_unsigned bp then convert_unsigned
+              else convert in
+            conv res i typ in
+        Field.create bp fp value)
 
-  let stream res fetch =
+
+  let stream (type t) (module R : Row.S with type t = t) res fetch =
     let module M = struct exception E of error end in
     let next _ =
-      match fetch res with
+      match fetch (module R : Row.S with type t = t) res with
       | Ok (Some _ as row) -> row
       | Ok None -> None
       | Error e -> raise (M.E e) in

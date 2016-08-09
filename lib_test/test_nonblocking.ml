@@ -58,7 +58,7 @@ let store_result mariadb stmt =
     (M.Stmt.store_result stmt)
 
 let fetch mariadb res =
-  nonblocking mariadb ~name:"fetch" (M.Res.fetch res)
+  nonblocking mariadb ~name:"fetch" (M.Res.fetch (module Mariadb.Row.Array) res)
 
 let close_stmt mariadb stmt =
   nonblocking mariadb ~name:"close result" (M.Stmt.close stmt)
@@ -71,19 +71,20 @@ let rec each_result mariadb res f =
 let print_row row =
   printf "---\n%!";
   Array.iter
-    (function
-    | `Int i -> printf "%d\n%!" i
-    | `Float x -> printf "%f\n%!" x
-    | `String s -> printf "%s\n%!" s
-    | `Bytes b -> printf "%s\n%!" (Bytes.to_string b)
-    | `Time t -> printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
-          (t.M.Res.year)
-          (t.M.Res.month)
-          (t.M.Res.day)
-          (t.M.Res.hour)
-          (t.M.Res.minute)
-          (t.M.Res.second)
-    | `Null -> printf "NULL\n%!")
+    (fun field ->
+      match Mariadb.Field.value field with
+      | `Int i -> printf "%d\n%!" i
+      | `Float x -> printf "%f\n%!" x
+      | `String s -> printf "%s\n%!" s
+      | `Bytes b -> printf "%s\n%!" (Bytes.to_string b)
+      | `Time t -> printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
+            (t.Mariadb.Field.year)
+            (t.Mariadb.Field.month)
+            (t.Mariadb.Field.day)
+            (t.Mariadb.Field.hour)
+            (t.Mariadb.Field.minute)
+            (t.Mariadb.Field.second)
+      | `Null -> printf "NULL\n%!")
     row
 
 let () =

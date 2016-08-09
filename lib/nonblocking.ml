@@ -176,39 +176,30 @@ let prepare mariadb query =
 module Res = struct
   type t = [`Nonblocking] Common.Res.t
 
-  type time = Common.Res.time =
-    { year : int
-    ; month : int
-    ; day : int
-    ; hour : int
-    ; minute : int
-    ; second : int
-    }
-
   let num_rows =
     Common.Res.num_rows
 
   let affected_rows =
     Common.Res.affected_rows
 
-  let handle_fetch res f =
+  let handle_fetch (type t) (module R : Row.S with type t = t) res f =
     let stmt = res.Common.Res.stmt in
     match f stmt with
-    | 0, 0 -> `Ok (Some (Common.Res.build_row res))
+    | 0, 0 -> `Ok (Some (Common.Res.build_row (module R) res))
     | 0, 1 -> `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
     | 0, r when r = T.Return_code.no_data -> `Ok None
     | 0, r when r = T.Return_code.data_truncated ->
         `Error (2032, "truncated data")
     | s, _ -> `Wait (Status.of_int s)
 
-  let fetch_start res () =
-    handle_fetch res B.mysql_stmt_fetch_start
+  let fetch_start (type t) (module R : Row.S with type t = t) res () =
+    handle_fetch (module R) res B.mysql_stmt_fetch_start
 
-  let fetch_cont res status =
-    handle_fetch res ((flip B.mysql_stmt_fetch_cont) status)
+  let fetch_cont (type t) (module R : Row.S with type t = t) res status =
+    handle_fetch (module R) res ((flip B.mysql_stmt_fetch_cont) status)
 
-  let fetch res =
-    (fetch_start res, fetch_cont res)
+  let fetch (type t) (module R : Row.S with type t = t) res =
+    (fetch_start (module R) res, fetch_cont (module R) res)
 
   let handle_free res f =
     let stmt = res.Common.Res.stmt in
@@ -364,29 +355,11 @@ module Make (W : Wait) = struct
   module Res = struct
     type t = Res.t
 
-    type time = Common.Res.time =
-      { year : int
-      ; month : int
-      ; day : int
-      ; hour : int
-      ; minute : int
-      ; second : int
-      }
+    let fetch (type t) (module R : Row.S with type t = t) res =
+      nonblocking res.Common.Res.mariadb (Res.fetch (module R) res)
 
-    type value =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      | `Time of time
-      | `Null
-      ]
-
-    let fetch res =
-      nonblocking res.Common.Res.mariadb (Res.fetch res)
-
-    let stream res =
-      Common.Res.stream res fetch
+    let stream (type t) (module R : Row.S with type t = t) res =
+      Common.Res.stream (module R) res fetch
 
     let num_rows =
       Res.num_rows

@@ -1,6 +1,10 @@
 type mode = [`Blocking | `Nonblocking]
 type error = int * string
 
+module Row = Row
+module Field = Field
+module StringMap = Row.StringMap
+
 module type S = sig
   type error = int * string
   type 'a result = ('a, error) Pervasives.result
@@ -8,26 +12,8 @@ module type S = sig
   module Res : sig
     type t
 
-    type time = Common.Res.time =
-      { year : int
-      ; month : int
-      ; day : int
-      ; hour : int
-      ; minute : int
-      ; second : int
-      }
-
-    type value =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      | `Time of time
-      | `Null
-      ]
-
-    val fetch : t -> value array option result
-    val stream : t -> value array Stream.t result
+    val fetch : (module Row.S with type t = 'r) -> t -> 'r option result
+    val stream : (module Row.S with type t = 'r) -> t -> 'r Stream.t result
     val num_rows : t -> int
   end
 

@@ -1,6 +1,40 @@
 type mode = [`Blocking | `Nonblocking]
 type error = int * string
 
+module Field : sig
+  type time =
+    { year : int
+    ; month : int
+    ; day : int
+    ; hour : int
+    ; minute : int
+    ; second : int
+    }
+
+  type value =
+    [ `Int of int
+    | `Float of float
+    | `String of string
+    | `Bytes of bytes
+    | `Time of time
+    | `Null
+    ]
+
+  type t
+
+  val value : t -> value
+end
+
+module StringMap : Map.S with type key = string
+
+module Row : sig
+  module type S = Row.S
+
+  module Array : (S with type t = Field.t array)
+  module Map : (S with type t = Field.t StringMap.t)
+  module Hashtbl : (S with type t = (string, Field.t) Hashtbl.t)
+end
+
 module type S = sig
   type error = int * string
   type 'a result = ('a, error) Pervasives.result
@@ -8,27 +42,9 @@ module type S = sig
   module Res : sig
     type t
 
-    type time = Common.Res.time =
-      { year : int
-      ; month : int
-      ; day : int
-      ; hour : int
-      ; minute : int
-      ; second : int
-      }
+    val fetch : (module Row.S with type t = 'r) -> t -> 'r option result
 
-    type value =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      | `Time of time
-      | `Null
-      ]
-
-    val fetch : t -> value array option result
-
-    val stream : t -> value array Stream.t result
+    val stream : (module Row.S with type t = 'r) -> t -> 'r Stream.t result
 
     val num_rows : t -> int
   end
@@ -114,16 +130,7 @@ module Nonblocking : sig
   module Res : sig
     type t = [`Nonblocking] Common.Res.t
 
-    type time = Common.Res.time =
-      { year : int
-      ; month : int
-      ; day : int
-      ; hour : int
-      ; minute : int
-      ; second : int
-      }
-
-    val fetch : t -> Common.Res.value array option nonblocking
+    val fetch : (module Row.S with type t = 'r) -> t -> 'r option nonblocking
 
     val num_rows : t -> int
 
