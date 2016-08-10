@@ -23,17 +23,29 @@ module type S = sig
       | `String of string
       | `Bytes of bytes
       | `Time of time
-      | `Null
+      | `NullInt of int option
+      | `NullFloat of float option
+      | `NullString of string option
+      | `NullBytes of bytes option
+      | `NullTime of time option
       ]
 
     val name : t -> string
     val value : t -> value
+    val null_value : t -> bool
+    val can_be_null : t -> bool
 
     val int : t -> int
     val float : t -> float
     val string : t -> string
     val bytes : t -> bytes
     val time : t -> time
+
+    val null_int : t -> int option
+    val null_float : t -> float option
+    val null_string : t -> string option
+    val null_bytes : t -> bytes option
+    val null_time : t -> time option
   end
 
   module Row : sig

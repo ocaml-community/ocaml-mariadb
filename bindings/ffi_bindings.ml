@@ -83,7 +83,8 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let () = seal t
 
     module Flags = struct
-      let unsigned = constant "UNSIGNED_FLAG" int
+      let not_null = constant "NOT_NULL_FLAG" uint
+      let unsigned = constant "UNSIGNED_FLAG" uint
     end
   end
 

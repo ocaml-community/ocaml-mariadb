@@ -120,18 +120,16 @@ module Stmt = struct
   let fetch_field res i =
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res i)
 
+  let test_unsigned flags =
+    Unsigned.UInt.logand flags T.Field.Flags.unsigned <> Unsigned.UInt.zero
+
   let alloc_result res n =
     let r = Bind.alloc n in
     for i = 0 to n - 1 do
       let bp = r.Bind.bind +@ i in
       let fp = fetch_field res i in
       let flags = getf (!@fp) T.Field.flags in
-      let is_unsigned =
-        let logand = Unsigned.UInt.logand in
-        let unsigned_flag = Unsigned.UInt.of_int T.Field.Flags.unsigned in
-        if logand flags unsigned_flag <> Unsigned.UInt.zero
-        then '\001'
-        else '\000' in
+      let is_unsigned = if test_unsigned flags then '\001' else '\000' in
       setf (!@bp) T.Bind.buffer_type (getf (!@fp) T.Field.typ);
       setf (!@bp) T.Bind.length (r.Bind.length +@ i);
       setf (!@bp) T.Bind.is_null (r.Bind.is_null +@ i);

@@ -17,7 +17,11 @@ type value =
   | `String of string
   | `Bytes of bytes
   | `Time of time
-  | `Null
+  | `NullInt of int option
+  | `NullFloat of float option
+  | `NullString of string option
+  | `NullBytes of bytes option
+  | `NullTime of time option
   ]
 
 type t =
@@ -32,8 +36,12 @@ let create result pointer at =
 let name field =
   getf (!@(field.pointer)) T.Field.name
 
-let is_null field =
+let null_value field =
   !@(field.result.Bind.is_null +@ field.at) = '\001'
+
+let can_be_null field =
+  let flags = getf (!@(field.pointer)) T.Field.flags in
+  Unsigned.UInt.logand flags T.Field.Flags.not_null = Unsigned.UInt.zero
 
 let is_unsigned field =
   let bp = field.result.Bind.bind +@ field.at in
@@ -66,66 +74,117 @@ let to_time field =
   ; second = member T.Time.second
   }
 
-let convert field = function
-  | `Null ->
-      `Null
-  | `Tiny | `Year ->
-      `Int (int_of_char @@ cast_to char field)
-  | `Short ->
-      `Int (cast_to int field)
-  | `Int24 | `Long ->
-      `Int (Signed.Int32.to_int @@ cast_to int32_t field)
-  | `Long_long ->
-      `Int (Signed.Int64.to_int @@ cast_to int64_t field)
-  | `Float ->
-      `Float (cast_to float field)
-  | `Double ->
-      `Float (cast_to double field)
-  | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
-      `String (Bytes.to_string @@ to_bytes field)
-  | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
-      `Bytes (to_bytes field)
-  | `Time  | `Date | `Datetime | `Timestamp -> `Time (to_time field)
+let wrap field v =
+  if null_value field then None
+  else Some v
 
-let convert_unsigned field = function
-  | `Null -> `Null
-  | `Tiny | `Year -> `Int (int_of_char @@ cast_to char field)
-  | `Short -> `Int (Unsigned.UInt.to_int @@ cast_to uint field)
-  | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int @@ cast_to uint32_t field)
-  | `Long_long -> `Int (Unsigned.UInt64.to_int @@ cast_to uint64_t field)
-  | `Timestamp -> `Time (to_time field)
-  | _ -> failwith "unexpected unsigned type"
+let convert field = function
+  | `Tiny | `Year ->
+      let i = int_of_char (cast_to char field) in
+      if can_be_null field then `NullInt (wrap field i) else `Int i
+
+  | `Short ->
+      let i = cast_to int field in
+      if can_be_null field then `NullInt (wrap field i) else `Int i
+
+  | `Int24 | `Long ->
+      let i = Signed.Int32.to_int (cast_to int32_t field) in
+      if can_be_null field then `NullInt (wrap field i) else `Int i
+
+  | `Long_long ->
+      let i = Signed.Int64.to_int (cast_to int64_t field) in
+      if can_be_null field then `NullInt (wrap field i) else `Int i
+
+  | `Float ->
+      let x = cast_to float field in
+      if can_be_null field then `NullFloat (wrap field x) else `Float x
+
+  | `Double ->
+      let x = cast_to double field in
+      if can_be_null field then `NullFloat (wrap field x) else `Float x
+
+  | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
+      let s = Bytes.to_string (to_bytes field) in
+      if can_be_null field then `NullString (wrap field s) else `String s
+
+  | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
+      let b = to_bytes field in
+      if can_be_null field then `NullBytes (wrap field b) else `Bytes b
+
+  | `Time  | `Date | `Datetime | `Timestamp ->
+      let t = to_time field in
+      if can_be_null field then `NullTime (wrap field t) else `Time t
+
+  | `Null ->
+      failwith "field shouldn't have null type"
+
+let convert_unsigned field typ =
+  let wrap i =
+    if can_be_null field then `NullInt (wrap field i)
+    else `Int i in
+  wrap @@
+    match typ with
+    | `Tiny | `Year -> int_of_char (cast_to char field)
+    | `Short -> Unsigned.UInt.to_int (cast_to uint field)
+    | `Int24 | `Long -> Unsigned.UInt32.to_int (cast_to uint32_t field)
+    | `Long_long -> Unsigned.UInt64.to_int (cast_to uint64_t field)
+    | _ -> failwith "unexpected unsigned type"
 
 let value field =
-  if is_null field then
-    `Null
-  else
-    let bp = field.result.Bind.bind +@ field.at in
-    let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
-    let conv = if is_unsigned field then convert_unsigned else convert in
-    conv field typ
+  let bp = field.result.Bind.bind +@ field.at in
+  let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
+  let conv = if is_unsigned field then convert_unsigned else convert in
+  conv field typ
+
+let err field ~info =
+  failwith @@ "field '" ^ name field ^ "' is not " ^ info
 
 let int field =
   match value field with
   | `Int i -> i
-  | _ -> failwith @@ "field " ^ name field ^ " is not an integer"
+  | _ -> err field ~info:"an integer"
 
 let float field =
   match value field with
   | `Float x -> x
-  | _ -> failwith @@ "field " ^ name field ^ " is not a float"
+  | _ -> err field ~info:"a float"
 
 let string field =
   match value field with
   | `String s -> s
-  | _ -> failwith @@ "field " ^ name field ^ " is not a string"
+  | _ -> err field ~info:"a string"
 
 let bytes field =
   match value field with
   | `Bytes b -> b
-  | _ -> failwith @@ "field " ^ name field ^ " is not a byte string"
+  | _ -> err field ~info:"a byte string"
 
 let time field =
   match value field with
   | `Time t -> t
-  | _ -> failwith @@ "field " ^ name field ^ " is not a time value"
+  | _ -> err field ~info:"a time value"
+
+let null_int field =
+  match value field with
+  | `NullInt i -> i
+  | _ -> err field ~info:"a nullable integer"
+
+let null_float field =
+  match value field with
+  | `NullFloat x -> x
+  | _ -> err field ~info:"a nullable float"
+
+let null_string field =
+  match value field with
+  | `NullString s -> s
+  | _ -> err field ~info:"a nullable string"
+
+let null_bytes field =
+  match value field with
+  | `NullBytes b -> b
+  | _ -> err field ~info:"a nullable byte string"
+
+let null_time field =
+  match value field with
+  | `NullTime t -> t
+  | _ -> err field ~info:"a nullable time value"

@@ -26,7 +26,19 @@ module Make (M : Mariadb.S) = struct
               (t.M.Field.hour)
               (t.M.Field.minute)
               (t.M.Field.second)
-        | `Null -> printf "NULL\n%!")
+        | `NullInt (Some i) -> printf "%d\n%!" i
+        | `NullFloat (Some x) -> printf "%f\n%!" x
+        | `NullString (Some s) -> printf "%s\n%!" s
+        | `NullBytes (Some b) -> printf "%s\n%!" (Bytes.to_string b)
+        | `NullTime (Some t) -> printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
+              (t.M.Field.year)
+              (t.M.Field.month)
+              (t.M.Field.day)
+              (t.M.Field.hour)
+              (t.M.Field.minute)
+              (t.M.Field.second)
+        | `NullInt None | `NullFloat None | `NullString None
+        | `NullBytes None | `NullTime None -> printf "NULL\n%!")
       row
 
   let connect () =
