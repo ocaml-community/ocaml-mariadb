@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 1fe3a2a2e788b1e7d4980612a159141e)
+# DO NOT EDIT (digest: d3821e9b0e8fc818437e65ef2fcff886)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -58,16 +58,6 @@ true: annot, bin_annot
 <stubgen/*.ml{,i,y}>: pkg_ctypes.foreign
 <stubgen/*.ml{,i,y}>: pkg_ctypes.stubs
 <stubgen/*.ml{,i,y}>: use_mariadb_bindings
-# Executable test_nonblocking
-<lib_test/test_nonblocking.{native,byte}>: oasis_executable_test_nonblocking_byte
-<lib_test/*.ml{,i,y}>: oasis_executable_test_nonblocking_byte
-<lib_test/test_nonblocking.{native,byte}>: oasis_executable_test_nonblocking_native
-<lib_test/*.ml{,i,y}>: oasis_executable_test_nonblocking_native
-<lib_test/test_nonblocking.{native,byte}>: pkg_ctypes.foreign
-<lib_test/test_nonblocking.{native,byte}>: pkg_ctypes.stubs
-<lib_test/test_nonblocking.{native,byte}>: pkg_unix
-<lib_test/test_nonblocking.{native,byte}>: use_mariadb
-<lib_test/test_nonblocking.{native,byte}>: use_mariadb_bindings
 # Executable test_nonblocking_functor
 <lib_test/test_nonblocking_functor.{native,byte}>: oasis_executable_test_nonblocking_functor_byte
 <lib_test/*.ml{,i,y}>: oasis_executable_test_nonblocking_functor_byte

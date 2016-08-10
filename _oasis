@@ -51,16 +51,6 @@ Executable "ffi_types_stubgen"
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings
 
-Executable "test_nonblocking"
-  Install:          false
-  Path:             lib_test
-  MainIs:           test_nonblocking.ml
-  ByteOpt:          -warn-error +1..45
-  NativeOpt:        -warn-error +1..45
-  CompiledObject:   best
-  BuildDepends:     mariadb,
-                    unix
-
 Executable "test_nonblocking_functor"
   Install:          false
   Path:             lib_test
