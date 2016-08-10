@@ -26,7 +26,14 @@ module type S = sig
       | `Null
       ]
 
+    val name : t -> string
     val value : t -> value
+
+    val int : t -> int
+    val float : t -> float
+    val string : t -> string
+    val bytes : t -> bytes
+    val time : t -> time
   end
 
   module Row : sig

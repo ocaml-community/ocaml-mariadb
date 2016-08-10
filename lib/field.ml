@@ -104,3 +104,28 @@ let value field =
     let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
     let conv = if is_unsigned field then convert_unsigned else convert in
     conv field typ
+
+let int field =
+  match value field with
+  | `Int i -> i
+  | _ -> failwith @@ "field " ^ name field ^ " is not an integer"
+
+let float field =
+  match value field with
+  | `Float x -> x
+  | _ -> failwith @@ "field " ^ name field ^ " is not a float"
+
+let string field =
+  match value field with
+  | `String s -> s
+  | _ -> failwith @@ "field " ^ name field ^ " is not a string"
+
+let bytes field =
+  match value field with
+  | `Bytes b -> b
+  | _ -> failwith @@ "field " ^ name field ^ " is not a byte string"
+
+let time field =
+  match value field with
+  | `Time t -> t
+  | _ -> failwith @@ "field " ^ name field ^ " is not a time value"
