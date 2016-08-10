@@ -3,6 +3,8 @@ open Util
 module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
+module Field = Common.Field
+module Row = Common.Row
 module Status = Wait_status
 
 type 's t = ([`Nonblocking], 's) Common.t
@@ -351,6 +353,9 @@ module Make (W : Wait) = struct
     match f () with
     | `Ok -> ()
     | `Wait s -> let s = W.wait m s in nonblocking_noerr m ((fun () -> g s), g)
+
+  module Field = Field
+  module Row = Row
 
   module Res = struct
     type t = Res.t

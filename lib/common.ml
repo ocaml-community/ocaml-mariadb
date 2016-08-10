@@ -1,6 +1,9 @@
 module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
+module Row = Row
+module Field = Field
+
 type mode = [`Blocking | `Nonblocking]
 type state = [`Unconnected | `Connected | `Tx]
 
@@ -23,161 +26,6 @@ let error mariadb =
 let int_of_server_option = function
   | Multi_statements true -> T.Server_options.multi_statements_on
   | Multi_statements false -> T.Server_options.multi_statements_off
-
-module Bind = struct
-  open Ctypes
-
-  type t =
-    { n : int
-    ; bind : T.Bind.t ptr
-    ; length : Unsigned.ulong ptr
-    ; is_null : char ptr
-    ; is_unsigned : char
-    ; error : char ptr
-    }
-
-  type buffer_type =
-    [ `Null
-    | `Tiny
-    | `Year
-    | `Short
-    | `Int24
-    | `Long
-    | `Float
-    | `Long_long
-    | `Double
-    | `Decimal
-    | `New_decimal
-    | `String
-    | `Var_string
-    | `Tiny_blob
-    | `Blob
-    | `Medium_blob
-    | `Long_blob
-    | `Bit
-    | `Time
-    | `Date
-    | `Datetime
-    | `Timestamp
-    ]
-
-  let buffer_type_of_int i =
-    let open T.Type in
-    if i = null              then `Null
-    else if i = tiny         then `Tiny
-    else if i = year         then `Year
-    else if i = short        then `Short
-    else if i = int24        then `Int24
-    else if i = long         then `Long
-    else if i = float        then `Float
-    else if i = long_long    then `Long_long
-    else if i = double       then `Double
-    else if i = decimal      then `Decimal
-    else if i = new_decimal  then `New_decimal
-    else if i = string       then `String
-    else if i = var_string   then `Var_string
-    else if i = tiny_blob    then `Tiny_blob
-    else if i = blob         then `Blob
-    else if i = medium_blob  then `Medium_blob
-    else if i = long_blob    then `Long_blob
-    else if i = bit          then `Bit
-    else if i = time         then `Time
-    else if i = date         then `Date
-    else if i = datetime     then `Datetime
-    else if i = timestamp    then `Timestamp
-    else invalid_arg @@ "unknown buffer type " ^ (string_of_int i)
-
-  let t = '\001'
-  let f = '\000'
-
-  let alloc count =
-    { n = count
-    ; bind = allocate_n T.Bind.t ~count
-    ; length = allocate_n ulong ~count
-    ; is_null = allocate_n char ~count
-    ; is_unsigned = f
-    ; error = allocate_n char ~count
-    }
-
-  let bind b ~buffer ~size ~mysql_type ~unsigned ~at =
-    assert (at >= 0 && at < b.n);
-    let size = Unsigned.ULong.of_int size in
-    let bp = b.bind +@ at in
-    let lp = b.length +@ at in
-    lp <-@ size;
-    setf (!@bp) T.Bind.length lp;
-    setf (!@bp) T.Bind.is_unsigned unsigned;
-    setf (!@bp) T.Bind.buffer_type mysql_type;
-    setf (!@bp) T.Bind.buffer_length size;
-    setf (!@bp) T.Bind.buffer buffer
-
-  let tiny ?(unsigned = false) b param ~at =
-    let p = allocate char (char_of_int param) in
-    bind b
-      ~buffer:(coerce (ptr char) (ptr void) p)
-      ~size:(sizeof int)
-      ~mysql_type:T.Type.tiny
-      ~unsigned:(if unsigned then t else f)
-      ~at
-
-  let short ?(unsigned = false) b param ~at =
-    let p = allocate short param in
-    bind b
-      ~buffer:(coerce (ptr short) (ptr void) p)
-      ~size:(sizeof int)
-      ~mysql_type:T.Type.short
-      ~unsigned:(if unsigned then t else f)
-      ~at
-
-  let int ?(unsigned = false) b param ~at =
-    let p = allocate int param in
-    bind b
-      ~buffer:(coerce (ptr int) (ptr void) p)
-      ~size:(sizeof int)
-      ~mysql_type:T.Type.long_long
-      ~unsigned:(if unsigned then t else f)
-      ~at
-
-  let float b param ~at =
-    let p = allocate float param in
-    bind b
-      ~buffer:(coerce (ptr float) (ptr void) p)
-      ~size:(sizeof float)
-      ~mysql_type:T.Type.float
-      ~unsigned:f
-      ~at
-
-  let double b param ~at =
-    let p = allocate double param in
-    bind b
-      ~buffer:(coerce (ptr double) (ptr void) p)
-      ~size:(sizeof double)
-      ~mysql_type:T.Type.double
-      ~unsigned:f
-      ~at
-
-  let string b param ~at =
-    let len = String.length param in
-    let p = allocate_n char ~count:len in
-    String.iteri (fun i c -> (p +@ i) <-@ c) param;
-    bind b
-      ~buffer:(coerce (ptr char) (ptr void) p)
-      ~size:len
-      ~mysql_type:T.Type.string
-      ~unsigned:f
-      ~at
-
-  let blob b param ~at =
-    let len = Bytes.length param in
-    let p = allocate_n char ~count:len in
-    String.iteri (fun i c -> (p +@ i) <-@ c) param;
-    bind b
-      ~buffer:(coerce (ptr char) (ptr void) p)
-      ~size:len
-      ~mysql_type:T.Type.blob
-      ~unsigned:f
-      ~at
-end
 
 module Res = struct
   open Ctypes
@@ -203,85 +51,12 @@ module Res = struct
   let fetch_field res i =
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res.raw i)
 
-  let cast_to typ res at =
-    !@(coerce (ptr void) (ptr typ) res.buffers.(at))
-
-  let to_bytes res at =
-    let buf = res.buffers.(at) in
-    let r = res.result in
-    let lp = r.Bind.length +@ at in
-    let len = Unsigned.ULong.to_int !@lp in
-    let p = coerce (ptr void) (ptr char) buf in
-    Bytes.init len (fun i -> !@(p +@ i))
-
-  let to_time res at =
-    let buf = res.buffers.(at) in
-    let tp = coerce (ptr void) (ptr T.Time.t) buf in
-    let field f = Unsigned.UInt.to_int @@ getf (!@tp) f in
-    { Field.
-      year   = field T.Time.year
-    ; month  = field T.Time.month
-    ; day    = field T.Time.day
-    ; hour   = field T.Time.hour
-    ; minute = field T.Time.minute
-    ; second = field T.Time.second
-    }
-
-  let convert r at = function
-    | `Null ->
-        `Null
-    | `Tiny | `Year ->
-        `Int (int_of_char @@ cast_to char r at)
-    | `Short ->
-        `Int (cast_to int r at)
-    | `Int24 | `Long ->
-        `Int (Signed.Int32.to_int @@ cast_to int32_t r at)
-    | `Long_long ->
-        `Int (Signed.Int64.to_int @@ cast_to int64_t r at)
-    | `Float ->
-        `Float (cast_to float r at)
-    | `Double ->
-        `Float (cast_to double r at)
-    | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
-        `String (Bytes.to_string @@ to_bytes r at)
-    | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
-        `Bytes (to_bytes r at)
-    | `Time  | `Date | `Datetime | `Timestamp -> `Time (to_time r at)
-
-  let convert_unsigned r at = function
-    | `Null -> `Null
-    | `Tiny | `Year -> `Int (int_of_char @@ cast_to char r at)
-    | `Short -> `Int (Unsigned.UInt.to_int @@ cast_to uint r at)
-    | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int @@ cast_to uint32_t r at)
-    | `Long_long -> `Int (Unsigned.UInt64.to_int @@ cast_to uint64_t r at)
-    | `Timestamp -> `Time (to_time r at)
-    | _ -> failwith "unexpected unsigned type"
-
-  let is_null r at =
-    let np = r.Bind.is_null +@ at in
-    !@np = '\001'
-
-  let is_unsigned bp =
-    getf (!@bp) T.Bind.is_unsigned = '\001'
-
   let build_row (type t) (module R : Row.S with type t = t) res =
     let r = res.result in
     R.build r.Bind.n
       (fun i ->
-        let bp = r.Bind.bind +@ i in
         let fp = fetch_field res i in
-        let value =
-          if is_null r i then
-            `Null
-          else
-            let typ =
-              Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
-            let conv =
-              if is_unsigned bp then convert_unsigned
-              else convert in
-            conv res i typ in
-        Field.create bp fp value)
-
+        Field.create r fp i)
 
   let stream (type t) (module R : Row.S with type t = t) res fetch =
     let module M = struct exception E of error end in

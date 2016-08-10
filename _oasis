@@ -13,6 +13,7 @@ Library "mariadb"
   Path:             lib
   Modules:          Mariadb
   InternalModules:  Common,
+                    Bind,
                     Blocking,
                     Nonblocking,
                     Field,

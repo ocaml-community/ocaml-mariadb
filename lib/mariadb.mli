@@ -1,43 +1,46 @@
 type mode = [`Blocking | `Nonblocking]
 type error = int * string
 
-module Field : sig
-  type time =
-    { year : int
-    ; month : int
-    ; day : int
-    ; hour : int
-    ; minute : int
-    ; second : int
-    }
-
-  type value =
-    [ `Int of int
-    | `Float of float
-    | `String of string
-    | `Bytes of bytes
-    | `Time of time
-    | `Null
-    ]
-
-  type t
-
-  val value : t -> value
-end
-
-module StringMap : Map.S with type key = string
-
-module Row : sig
-  module type S = Row.S
-
-  module Array : (S with type t = Field.t array)
-  module Map : (S with type t = Field.t StringMap.t)
-  module Hashtbl : (S with type t = (string, Field.t) Hashtbl.t)
-end
-
 module type S = sig
   type error = int * string
   type 'a result = ('a, error) Pervasives.result
+
+  module Field : sig
+    type t
+
+    type time =
+      { year : int
+      ; month : int
+      ; day : int
+      ; hour : int
+      ; minute : int
+      ; second : int
+      }
+
+    type value =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      | `Time of time
+      | `Null
+      ]
+
+    val value : t -> value
+  end
+
+  module Row : sig
+    module type S = sig
+      type t
+      val build : int -> (int -> Field.t) -> t
+    end
+
+    module StringMap : Map.S with type key = string
+
+    module Array : (S with type t = Field.t array)
+    module Map : (S with type t = Field.t StringMap.t)
+    module Hashtbl : (S with type t = (string, Field.t) Hashtbl.t)
+  end
 
   module Res : sig
     type t

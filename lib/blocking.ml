@@ -3,6 +3,9 @@ open Util
 module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
+module Field = Common.Field
+module Row = Common.Row
+
 type state = [`Unconnected | `Connected | `Tx]
 type 's t = ([`Blocking], 's) Common.t
 type 's mariadb = 's t

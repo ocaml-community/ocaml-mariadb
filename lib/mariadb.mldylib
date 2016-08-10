@@ -1,7 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: c282c49ccc5a6a9bb6897aff4e9a9909)
+# DO NOT EDIT (digest: b9635ea8d5d3dfe91f0f735ce9fa66d0)
 Mariadb
 Common
+Bind
 Blocking
 Nonblocking
 Field

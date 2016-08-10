@@ -11,21 +11,21 @@ module Make (M : Mariadb.S) = struct
 
   let print_row row =
     printf "---\n%!";
-    Mariadb.StringMap.iter
+    M.Row.StringMap.iter
       (fun name field ->
         printf "%20s " name;
-        match Mariadb.Field.value field with
+        match M.Field.value field with
         | `Int i -> printf "%d\n%!" i
         | `Float x -> printf "%f\n%!" x
         | `String s -> printf "%s\n%!" s
         | `Bytes b -> printf "%s\n%!" (Bytes.to_string b)
         | `Time t -> printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
-              (t.Mariadb.Field.year)
-              (t.Mariadb.Field.month)
-              (t.Mariadb.Field.day)
-              (t.Mariadb.Field.hour)
-              (t.Mariadb.Field.minute)
-              (t.Mariadb.Field.second)
+              (t.M.Field.year)
+              (t.M.Field.month)
+              (t.M.Field.day)
+              (t.M.Field.hour)
+              (t.M.Field.minute)
+              (t.M.Field.second)
         | `Null -> printf "NULL\n%!")
       row
 
@@ -43,7 +43,7 @@ module Make (M : Mariadb.S) = struct
     let stmt = M.prepare mariadb query |> or_die ~info:"prepare" () in
     let res = M.Stmt.execute stmt [| `Int 5 |] |> or_die () in
     printf "#rows: %d\n%!" (M.Res.num_rows res);
-    let stream = M.Res.stream (module Mariadb.Row.Map) res |> or_die () in
+    let stream = M.Res.stream (module M.Row.Map) res |> or_die () in
     Stream.iter print_row stream;
     M.Stmt.close stmt |> or_die ();
     M.close mariadb;
