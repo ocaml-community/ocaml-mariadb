@@ -92,7 +92,21 @@ module type S = sig
   type state = [`Unconnected | `Connected | `Tx]
   type 's t constraint 's = [< state]
 
-  type flag
+  type flag =
+    | Can_handle_expired_passwords
+    | Compress
+    | Found_rows
+    | Ignore_sigpipe
+    | Ignore_space
+    | Interactive
+    | Local_files
+    | Multi_results
+    | Multi_statements
+    | No_schema
+    | ODBC
+    | SSL
+    | Remember_options
+
   type server_option =
     | Multi_statements of bool
 

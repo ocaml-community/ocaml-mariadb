@@ -73,8 +73,8 @@ let connect_cont mariadb status =
     (fun m -> B.mysql_real_connect_cont m (Status.to_int status))
 
 let connect mariadb ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
-  (* TODO flags *)
-  let start = connect_start mariadb host user pass db port socket 0 in
+  let flags = Common.int_of_flags flags in
+  let start = connect_start mariadb host user pass db port socket flags in
   let cont = connect_cont mariadb in
   (start, cont)
 
@@ -339,7 +339,21 @@ module Make (W : Wait) = struct
   type error = int * string
   type 'a result = ('a, error) Pervasives.result
 
-  type flag
+  type flag = Common.flag =
+    | Can_handle_expired_passwords
+    | Compress
+    | Found_rows
+    | Ignore_sigpipe
+    | Ignore_space
+    | Interactive
+    | Local_files
+    | Multi_results
+    | Multi_statements
+    | No_schema
+    | ODBC
+    | SSL
+    | Remember_options
+
   type server_option = Common.server_option =
     | Multi_statements of bool
 

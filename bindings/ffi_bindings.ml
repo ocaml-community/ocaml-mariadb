@@ -6,6 +6,23 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let nonblock = constant "MYSQL_OPT_NONBLOCK" int
   end
 
+  module Flags = struct
+    let can_handle_expired_passwords =
+      constant "CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS" int
+    let compress = constant "CLIENT_COMPRESS" int
+    let found_rows = constant "CLIENT_FOUND_ROWS" int
+    let ignore_sigpipe = constant "CLIENT_IGNORE_SIGPIPE" int
+    let ignore_space = constant "CLIENT_IGNORE_SPACE" int
+    let interactive = constant "CLIENT_INTERACTIVE" int
+    let local_files = constant "CLIENT_LOCAL_FILES" int
+    let multi_results = constant "CLIENT_MULTI_RESULTS" int
+    let multi_statements = constant "CLIENT_MULTI_STATEMENTS" int
+    let no_schema = constant "CLIENT_NO_SCHEMA" int
+    let odbc = constant "CLIENT_ODBC" int
+    let ssl = constant "CLIENT_SSL" int
+    let remember_options = constant "CLIENT_REMEMBER_OPTIONS" int
+  end
+
   module Server_options = struct
     let multi_statements_on = constant "MYSQL_OPTION_MULTI_STATEMENTS_ON" int
     let multi_statements_off = constant "MYSQL_OPTION_MULTI_STATEMENTS_OFF" int

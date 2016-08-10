@@ -13,7 +13,20 @@ type ('m, 's) t = B.Types.mysql
 
 type ('m, 's) mariadb = ('m, 's) t
 
-type flag
+type flag =
+  | Can_handle_expired_passwords
+  | Compress
+  | Found_rows
+  | Ignore_sigpipe
+  | Ignore_space
+  | Interactive
+  | Local_files
+  | Multi_results
+  | Multi_statements
+  | No_schema
+  | ODBC
+  | SSL
+  | Remember_options
 
 type server_option =
   | Multi_statements of bool
@@ -26,6 +39,24 @@ let error mariadb =
 let int_of_server_option = function
   | Multi_statements true -> T.Server_options.multi_statements_on
   | Multi_statements false -> T.Server_options.multi_statements_off
+
+let int_of_flag = function
+  | Can_handle_expired_passwords -> T.Flags.can_handle_expired_passwords
+  | Compress -> T.Flags.compress
+  | Found_rows -> T.Flags.found_rows
+  | Ignore_sigpipe -> T.Flags.ignore_sigpipe
+  | Ignore_space -> T.Flags.ignore_space
+  | Interactive -> T.Flags.interactive
+  | Local_files -> T.Flags.local_files
+  | Multi_results -> T.Flags.multi_results
+  | Multi_statements -> T.Flags.multi_statements
+  | No_schema -> T.Flags.no_schema
+  | ODBC -> T.Flags.odbc
+  | SSL -> T.Flags.ssl
+  | Remember_options -> T.Flags.remember_options
+
+let int_of_flags =
+  List.fold_left (fun acc flag -> acc lor int_of_flag flag) 0
 
 module Res = struct
   open Ctypes

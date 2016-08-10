@@ -13,7 +13,21 @@ type 's mariadb = 's t
 type error = Common.error
 type 'a result = ('a, error) Pervasives.result
 
-type flag
+type flag = Common.flag =
+  | Can_handle_expired_passwords
+  | Compress
+  | Found_rows
+  | Ignore_sigpipe
+  | Ignore_space
+  | Interactive
+  | Local_files
+  | Multi_results
+  | Multi_statements
+  | No_schema
+  | ODBC
+  | SSL
+  | Remember_options
+
 type server_option = Common.server_option =
   | Multi_statements of bool
 
@@ -21,9 +35,9 @@ let close =
   B.mysql_close
 
 let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
-  (* TODO flags *)
+  let flags = Common.int_of_flags flags in
   let connect m =
-    match B.mysql_real_connect m host user pass db port socket 0 with
+    match B.mysql_real_connect m host user pass db port socket flags with
     | Some m -> Ok m
     | None -> Error (2008, "out of memory") in
   match B.mysql_init () with
