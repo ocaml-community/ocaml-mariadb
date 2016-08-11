@@ -1,15 +1,15 @@
-module S = Mariadb_nonblocking.Status
-module M = Mariadb_nonblocking.Make(struct
+module S = Mariadb.Nonblocking.Status
+module M = Mariadb.Nonblocking.Make(struct
   let file_descr_of_int : int -> Unix.file_descr = Obj.magic
 
   let wait mariadb status =
-    let fd = file_descr_of_int @@ Mariadb_nonblocking.fd mariadb in
+    let fd = file_descr_of_int @@ Mariadb.Nonblocking.fd mariadb in
     let rfd = if S.read status then [fd] else [] in
     let wfd = if S.write status then [fd] else [] in
     let efd = if S.except status then [fd] else [] in
     let timeout =
       if S.timeout status
-      then float @@ Mariadb_nonblocking.timeout mariadb
+      then float @@ Mariadb.Nonblocking.timeout mariadb
       else -1.0 in
     try
       let rfd, wfd, efd = Unix.select rfd wfd efd timeout in
