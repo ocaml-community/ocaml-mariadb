@@ -1,6 +1,6 @@
 open Printf
 
-module Make (M : Mariadb.S) = struct
+module Make (M : module type of Mariadb) = struct
   let env var def =
     try Sys.getenv var
     with Not_found -> def

@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: e06052518d28a19c6335083f7c08f4c8) *)
+(* DO NOT EDIT (digest: 78064147eff7f0f7b6af6d221ae15f7c) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -768,8 +768,12 @@ open Ocamlbuild_plugin;;
 let package_default =
   {
      MyOCamlbuildBase.lib_ocaml =
-       [("mariadb_bindings", ["bindings"], []); ("mariadb", ["lib"], [])];
-     lib_c = [("mariadb", "lib", [])];
+       [
+          ("mariadb_bindings", ["bindings"], []);
+          ("mariadb", ["lib"], []);
+          ("mariadb_nonblocking", ["lib"], [])
+       ];
+     lib_c = [("mariadb", "lib", []); ("mariadb_nonblocking", "lib", [])];
      flags =
        [
           (["oasis_library_mariadb_bindings_byte"; "ocaml"; "link"; "byte"],
@@ -821,6 +825,49 @@ let package_default =
           (["oasis_library_mariadb_byte"; "ocaml"; "compile"; "byte"],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           (["oasis_library_mariadb_native"; "ocaml"; "compile"; "native"],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          (["oasis_library_mariadb_nonblocking_ccopt"; "compile"],
+            [
+               (OASISExpr.EBool true,
+                 S [A "-ccopt"; A "-I"; A "-ccopt"; A "${pkg_ctypes_stubs}"])
+            ]);
+          (["oasis_library_mariadb_nonblocking_byte"; "ocaml"; "link"; "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_library_mariadb_nonblocking_native";
+              "ocaml";
+              "link";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_library_mariadb_nonblocking_byte";
+              "ocaml";
+              "ocamldep";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_library_mariadb_nonblocking_native";
+              "ocaml";
+              "ocamldep";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_library_mariadb_nonblocking_byte";
+              "ocaml";
+              "compile";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_library_mariadb_nonblocking_native";
+              "ocaml";
+              "compile";
+              "native"
+           ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           (["oasis_executable_ffi_stubgen_byte"; "ocaml"; "link"; "byte"],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
@@ -984,7 +1031,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 988 "myocamlbuild.ml"
+# 1035 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let dispatch = function

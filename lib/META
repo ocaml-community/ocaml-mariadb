@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: d089116c71211b8cde1d29c3a81f3e4f)
+# DO NOT EDIT (digest: 4f67f38acb282f963128c6d0ecf6322d)
 version = "0.0.1"
 description = "OCaml bindings for MariaDB"
 requires = "mariadb_bindings"
@@ -8,5 +8,15 @@ archive(byte, plugin) = "mariadb.cma"
 archive(native) = "mariadb.cmxa"
 archive(native, plugin) = "mariadb.cmxs"
 exists_if = "mariadb.cma"
+package "nonblocking" (
+ version = "0.0.1"
+ description = "OCaml bindings for MariaDB"
+ requires = "mariadb mariadb_bindings"
+ archive(byte) = "mariadb_nonblocking.cma"
+ archive(byte, plugin) = "mariadb_nonblocking.cma"
+ archive(native) = "mariadb_nonblocking.cmxa"
+ archive(native, plugin) = "mariadb_nonblocking.cmxs"
+ exists_if = "mariadb_nonblocking.cma"
+)
 # OASIS_STOP
 

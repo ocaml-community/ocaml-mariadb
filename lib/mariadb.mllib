@@ -1,10 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: b9635ea8d5d3dfe91f0f735ce9fa66d0)
+# DO NOT EDIT (digest: 645989777aedeca3d4678b38db7a463f)
 Mariadb
 Common
 Bind
-Blocking
-Nonblocking
 Field
 Row
 Wait_status

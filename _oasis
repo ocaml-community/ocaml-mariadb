@@ -14,8 +14,6 @@ Library "mariadb"
   Modules:          Mariadb
   InternalModules:  Common,
                     Bind,
-                    Blocking,
-                    Nonblocking,
                     Field,
                     Row,
                     Wait_status,
@@ -28,13 +26,40 @@ Library "mariadb"
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings
 
+Flag "nonblocking"
+  Description:      Build the nonblocking bindings
+  Default:          true
+
+Library "mariadb_nonblocking"
+  Build$:           flag(nonblocking)
+  Install$:         flag(nonblocking)
+  FindlibName:      nonblocking
+  FindlibParent:    mariadb
+  Path:             lib
+  Modules:          Mariadb_nonblocking
+  InternalModules:  Common,
+                    Bind,
+                    Field,
+                    Row,
+                    Wait_status,
+                    Util,
+                    Ffi_generated,
+                    Ffi_generated_types
+  CSources:         ffi_generated_stubs.c
+  CCOpt:            -I $pkg_ctypes_stubs
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  BuildDepends:     mariadb,
+                    mariadb_bindings
+
 Library "mariadb_bindings"
   Install:          true
   Path:             bindings
   Modules:          Ffi_bindings
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
-  BuildDepends:     ctypes.stubs, ctypes.foreign
+  BuildDepends:     ctypes.foreign,
+                    ctypes.stubs
 
 Executable "ffi_stubgen"
   Install:          false
@@ -52,16 +77,6 @@ Executable "ffi_types_stubgen"
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings
 
-Executable "test_nonblocking_functor"
-  Install:          false
-  Path:             lib_test
-  MainIs:           test_nonblocking_functor.ml
-  ByteOpt:          -warn-error +1..45
-  NativeOpt:        -warn-error +1..45
-  CompiledObject:   best
-  BuildDepends:     mariadb,
-                    unix
-
 Executable "test_blocking_functor"
   Install:          false
   Path:             lib_test
@@ -70,3 +85,14 @@ Executable "test_blocking_functor"
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
   BuildDepends:     mariadb
+
+Executable "test_nonblocking_functor"
+  Build$:           flag(nonblocking)
+  Install:          false
+  Path:             lib_test
+  MainIs:           test_nonblocking_functor.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb_nonblocking,
+                    unix

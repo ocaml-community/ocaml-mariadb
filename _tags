@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: d3821e9b0e8fc818437e65ef2fcff886)
+# DO NOT EDIT (digest: 63fe62913b395c0a9822ae9a8ad6f75a)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -33,11 +33,24 @@ true: annot, bin_annot
 <lib/*.ml{,i,y}>: oasis_library_mariadb_native
 "lib/ffi_generated_stubs.c": oasis_library_mariadb_native
 <lib/mariadb.{cma,cmxa}>: use_libmariadb_stubs
+# Library mariadb_nonblocking
+"lib/mariadb_nonblocking.cmxs": use_mariadb_nonblocking
+<lib/*.ml{,i,y}>: oasis_library_mariadb_nonblocking_ccopt
+"lib/ffi_generated_stubs.c": oasis_library_mariadb_nonblocking_ccopt
+<lib/mariadb_nonblocking.{cma,cmxa}>: oasis_library_mariadb_nonblocking_byte
+<lib/*.ml{,i,y}>: oasis_library_mariadb_nonblocking_byte
+"lib/ffi_generated_stubs.c": oasis_library_mariadb_nonblocking_byte
+<lib/mariadb_nonblocking.{cma,cmxa}>: oasis_library_mariadb_nonblocking_native
+<lib/*.ml{,i,y}>: oasis_library_mariadb_nonblocking_native
+"lib/ffi_generated_stubs.c": oasis_library_mariadb_nonblocking_native
+<lib/mariadb_nonblocking.{cma,cmxa}>: use_libmariadb_nonblocking_stubs
 <lib/*.ml{,i,y}>: pkg_ctypes.foreign
 <lib/*.ml{,i,y}>: pkg_ctypes.stubs
+<lib/*.ml{,i,y}>: use_mariadb
 <lib/*.ml{,i,y}>: use_mariadb_bindings
 "lib/ffi_generated_stubs.c": pkg_ctypes.foreign
 "lib/ffi_generated_stubs.c": pkg_ctypes.stubs
+"lib/ffi_generated_stubs.c": use_mariadb
 "lib/ffi_generated_stubs.c": use_mariadb_bindings
 # Executable ffi_stubgen
 "stubgen/ffi_stubgen.byte": oasis_executable_ffi_stubgen_byte

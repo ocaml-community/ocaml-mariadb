@@ -1,2 +1,2 @@
-module T = Test_common.Make (Mariadb.Blocking)
+module T = Test_common.Make (Mariadb)
 let () = T.main ()
