@@ -31,7 +31,7 @@ module type S = sig
       ; second : int
       }
       (** The type of time-related fields, i.e. [DATE], [DATETIME] and
-          [TIMESTAMP]). *)
+          [TIMESTAMP]. *)
 
     type value =
       [ `Int of int
@@ -45,7 +45,6 @@ module type S = sig
       | `NullBytes of bytes option
       | `NullTime of time option
       ]
-      (** [name field] returns the field name of [field]. *)
 
     val name : t -> string
       (** [name field] returns the field name of [field]. *)
@@ -62,7 +61,7 @@ module type S = sig
           the [NULL] value (i.e. the table definition does not specify
           [NOT NULL] for this field. *)
 
-    (** {1 Value retrieval functions}
+    (** {2 Value retrieval functions}
 
         The functions below simplify the unwrapping of OCaml values from
         fields. They raise [Failure] if the field is not of the expected
@@ -175,7 +174,6 @@ module type S = sig
     | Odbc
     | Ssl
     | Remember_options
-		(** The type of connection flags. *)
 
   type protocol =
     | Default
@@ -183,7 +181,6 @@ module type S = sig
     | Socket
     | Pipe
     | Memory
-		(** The type of connection protocols. *)
 
   type client_option =
     | Connect_timeout of int
@@ -220,11 +217,9 @@ module type S = sig
     | Enable_cleartext_plugin of bool
     | Can_handle_expired_passwords of bool
     | Use_thread_specific_memory of bool
-		(** The type of client options. *)
 
   type server_option =
     | Multi_statements of bool
-		(** The type of server options. *)
 
   val connect : ?host:string
              -> ?user:string
