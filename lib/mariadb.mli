@@ -1,8 +1,8 @@
 (** OCaml-MariaDB is a library with OCaml bindings for MariaDB's
     libmysqlclient, including support for its nonblocking API. While you
-    need this MariaDB's libmysqlclient to build OCaml-MariaDB, it should
-    be possible to use it with the regular libmysqlclient from the MySQL
-    project, as long as you don't try to use the nonblocking API.
+    need MariaDB's libmysqlclient to build OCaml-MariaDB, it should be
+    possible to use it with the regular libmysqlclient from MySQL,
+    as long as you don't try to use the nonblocking API.
 
     These bindings are restricted to MariaDB's prepared statement APIs,
     as they provide support for typed query parameters and results.
