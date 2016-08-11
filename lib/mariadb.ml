@@ -86,7 +86,7 @@ module type S = sig
   type t
 
   type flag =
-    | Can_handle_expired_passwords
+    | Client_can_handle_expired_passwords
     | Compress
     | Found_rows
     | Ignore_sigpipe
@@ -100,6 +100,49 @@ module type S = sig
     | SSL
     | Remember_options
 
+  type protocol =
+    | Default
+    | Tcp
+    | Socket
+    | Pipe
+    | Memory
+
+  type client_option =
+    | Connect_timeout of int
+    | Compress
+    | Named_pipe of string
+    | Init_command of string
+    | Read_default_file of string
+    | Read_default_group of string
+    | Set_charset_dir of string
+    | Set_charset_name of string
+    | Local_infile of bool
+    | Protocol of protocol
+    | Shared_memory_base_name of string
+    | Read_timeout of int
+    | Write_timeout of int
+    | Secure_auth of bool
+    | Report_data_truncation of bool
+    | Reconnect of bool
+    | Ssl_verify_server_cert of bool
+    | Plugin_dir of string
+    | Default_auth of string
+    | Bind of string
+    | Ssl_key of string
+    | Ssl_cert of string
+    | Ssl_ca of string
+    | Ssl_capath of string
+    | Ssl_cipher of string
+    | Ssl_crl of string
+    | Ssl_crlpath of string
+    | Connect_attr_reset
+    | Connect_attr_add of string * string
+    | Connect_attr_delete of string
+    | Server_public_key of string
+    | Enable_cleartext_plugin of bool
+    | Can_handle_expired_passwords of bool
+    | Use_thread_specific_memory of bool
+
   type server_option =
     | Multi_statements of bool
 
@@ -111,11 +154,11 @@ module type S = sig
              -> t result
 
   val close : t -> unit
-
   val set_character_set : t -> string -> unit result
   val select_db : t -> string -> unit result
   val change_user : t -> string -> string -> string option -> unit result
   val dump_debug_info : t -> unit result
+  val set_client_option : t -> client_option -> unit
   val set_server_option : t -> server_option -> unit result
   val ping : t -> unit result
   val autocommit : t -> bool -> unit result

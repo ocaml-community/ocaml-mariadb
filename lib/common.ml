@@ -1,3 +1,5 @@
+open Util
+
 module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
@@ -10,7 +12,7 @@ type 'm t = B.Types.mysql constraint 'm = [< mode]
 type 'm mariadb = 'm t
 
 type flag =
-  | Can_handle_expired_passwords
+  | Client_can_handle_expired_passwords
   | Compress
   | Found_rows
   | Ignore_sigpipe
@@ -24,6 +26,49 @@ type flag =
   | SSL
   | Remember_options
 
+type protocol =
+  | Default
+  | Tcp
+  | Socket
+  | Pipe
+  | Memory
+
+type client_option =
+  | Connect_timeout of int
+  | Compress
+  | Named_pipe of string
+  | Init_command of string
+  | Read_default_file of string
+  | Read_default_group of string
+  | Set_charset_dir of string
+  | Set_charset_name of string
+  | Local_infile of bool
+  | Protocol of protocol
+  | Shared_memory_base_name of string
+  | Read_timeout of int
+  | Write_timeout of int
+  | Secure_auth of bool
+  | Report_data_truncation of bool
+  | Reconnect of bool
+  | Ssl_verify_server_cert of bool
+  | Plugin_dir of string
+  | Default_auth of string
+  | Bind of string
+  | Ssl_key of string
+  | Ssl_cert of string
+  | Ssl_ca of string
+  | Ssl_capath of string
+  | Ssl_cipher of string
+  | Ssl_crl of string
+  | Ssl_crlpath of string
+  | Connect_attr_reset
+  | Connect_attr_add of string * string
+  | Connect_attr_delete of string
+  | Server_public_key of string
+  | Enable_cleartext_plugin of bool
+  | Can_handle_expired_passwords of bool
+  | Use_thread_specific_memory of bool
+
 type server_option =
   | Multi_statements of bool
 
@@ -36,8 +81,105 @@ let int_of_server_option = function
   | Multi_statements true -> T.Server_options.multi_statements_on
   | Multi_statements false -> T.Server_options.multi_statements_off
 
+let voidp_of_string s =
+  let open Ctypes in
+  let b = char_ptr_buffer_of_string s in
+  coerce (ptr char) (ptr void) b
+
+let voidp_of_uint i =
+  let open Ctypes in
+  let b = allocate uint (Unsigned.UInt.of_int i) in
+  coerce (ptr uint) (ptr void) b
+
+let voidp_of_bool b =
+  let open Ctypes in
+  let b = allocate char (if b then '\001' else '\000') in
+  coerce (ptr char) (ptr void) b
+
+let int_of_protocol = function
+  | Default -> T.Protocol.default
+  | Tcp -> T.Protocol.tcp
+  | Socket -> T.Protocol.socket
+  | Pipe -> T.Protocol.pipe
+  | Memory -> T.Protocol.memory
+
+let set_client_option mariadb opt =
+  let opt =
+    match opt with
+    | Connect_timeout t ->
+        `Opt (T.Options.connect_timeout, voidp_of_uint t)
+    | Compress ->
+        `Opt (T.Options.compress, Ctypes.null)
+    | Named_pipe pipe ->
+        `Opt (T.Options.named_pipe, voidp_of_string pipe)
+    | Init_command cmd ->
+        `Opt (T.Options.init_command, voidp_of_string cmd)
+    | Read_default_file file ->
+        `Opt (T.Options.read_default_file, voidp_of_string file)
+    | Read_default_group group ->
+        `Opt (T.Options.read_default_group, voidp_of_string group)
+    | Set_charset_dir dir ->
+        `Opt (T.Options.set_charset_dir, voidp_of_string dir)
+    | Set_charset_name name ->
+        `Opt (T.Options.set_charset_name, voidp_of_string name)
+    | Local_infile b ->
+        `Opt (T.Options.local_infile, voidp_of_uint (if b then 1 else 0))
+    | Protocol proto ->
+        `Opt (T.Options.protocol, voidp_of_uint (int_of_protocol proto))
+    | Shared_memory_base_name name ->
+        `Opt (T.Options.shared_memory_base_name, voidp_of_string name)
+    | Read_timeout t ->
+        `Opt (T.Options.read_timeout, voidp_of_uint t)
+    | Write_timeout t ->
+        `Opt (T.Options.write_timeout, voidp_of_uint t)
+    | Secure_auth b ->
+        `Opt (T.Options.secure_auth, voidp_of_bool b)
+    | Report_data_truncation b ->
+        `Opt (T.Options.report_data_truncation, voidp_of_bool b)
+    | Reconnect b ->
+        `Opt (T.Options.reconnect, voidp_of_bool b)
+    | Ssl_verify_server_cert b ->
+        `Opt (T.Options.ssl_verify_server_cert, voidp_of_bool b)
+    | Plugin_dir dir ->
+        `Opt (T.Options.plugin_dir, voidp_of_string dir)
+    | Default_auth auth ->
+        `Opt (T.Options.default_auth, voidp_of_string auth)
+    | Bind addr ->
+        `Opt (T.Options.bind, voidp_of_string addr)
+    | Ssl_key key ->
+        `Opt (T.Options.ssl_key, voidp_of_string key)
+    | Ssl_cert cert ->
+        `Opt (T.Options.ssl_cert, voidp_of_string cert)
+    | Ssl_ca ca ->
+        `Opt (T.Options.ssl_ca, voidp_of_string ca)
+    | Ssl_capath path ->
+        `Opt (T.Options.ssl_capath, voidp_of_string path)
+    | Ssl_cipher cipher ->
+        `Opt (T.Options.ssl_cipher, voidp_of_string cipher)
+    | Ssl_crl crl ->
+        `Opt (T.Options.ssl_crl, voidp_of_string crl)
+    | Ssl_crlpath path ->
+        `Opt (T.Options.ssl_crlpath, voidp_of_string path)
+    | Connect_attr_reset ->
+        `Opt (T.Options.connect_attr_reset, Ctypes.null)
+    | Connect_attr_add (k, v) ->
+        `Opt4 (T.Options.connect_attr_add, voidp_of_string k, voidp_of_string v)
+    | Connect_attr_delete attr ->
+        `Opt (T.Options.connect_attr_delete, voidp_of_string attr)
+    | Server_public_key key ->
+        `Opt (T.Options.server_public_key, voidp_of_string key)
+    | Enable_cleartext_plugin b ->
+        `Opt (T.Options.enable_cleartext_plugin, voidp_of_bool b)
+    | Can_handle_expired_passwords b ->
+        `Opt (T.Options.can_handle_expired_passwords, voidp_of_bool b)
+    | Use_thread_specific_memory b ->
+        `Opt (T.Options.use_thread_specific_memory, voidp_of_bool b) in
+  match opt with
+  | `Opt (opt, arg) -> B.mysql_options mariadb opt arg
+  | `Opt4 (opt, arg1, arg2) -> B.mysql_options4 mariadb opt arg1 arg2
+
 let int_of_flag = function
-  | Can_handle_expired_passwords -> T.Flags.can_handle_expired_passwords
+  | Client_can_handle_expired_passwords -> T.Flags.can_handle_expired_passwords
   | Compress -> T.Flags.compress
   | Found_rows -> T.Flags.found_rows
   | Ignore_sigpipe -> T.Flags.ignore_sigpipe

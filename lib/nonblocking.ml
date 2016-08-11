@@ -313,7 +313,7 @@ module Make (W : Wait) = struct
   type 'a result = ('a, error) Pervasives.result
 
   type flag = Common.flag =
-    | Can_handle_expired_passwords
+    | Client_can_handle_expired_passwords
     | Compress
     | Found_rows
     | Ignore_sigpipe
@@ -326,6 +326,49 @@ module Make (W : Wait) = struct
     | ODBC
     | SSL
     | Remember_options
+
+  type protocol = Common.protocol =
+    | Default
+    | Tcp
+    | Socket
+    | Pipe
+    | Memory
+
+  type client_option = Common.client_option =
+    | Connect_timeout of int
+    | Compress
+    | Named_pipe of string
+    | Init_command of string
+    | Read_default_file of string
+    | Read_default_group of string
+    | Set_charset_dir of string
+    | Set_charset_name of string
+    | Local_infile of bool
+    | Protocol of protocol
+    | Shared_memory_base_name of string
+    | Read_timeout of int
+    | Write_timeout of int
+    | Secure_auth of bool
+    | Report_data_truncation of bool
+    | Reconnect of bool
+    | Ssl_verify_server_cert of bool
+    | Plugin_dir of string
+    | Default_auth of string
+    | Bind of string
+    | Ssl_key of string
+    | Ssl_cert of string
+    | Ssl_ca of string
+    | Ssl_capath of string
+    | Ssl_cipher of string
+    | Ssl_crl of string
+    | Ssl_crlpath of string
+    | Connect_attr_reset
+    | Connect_attr_add of string * string
+    | Connect_attr_delete of string
+    | Server_public_key of string
+    | Enable_cleartext_plugin of bool
+    | Can_handle_expired_passwords of bool
+    | Use_thread_specific_memory of bool
 
   type server_option = Common.server_option =
     | Multi_statements of bool
@@ -417,6 +460,8 @@ module Make (W : Wait) = struct
   let change_user m user pass db = nonblocking m (change_user m user pass db)
 
   let dump_debug_info m = nonblocking m (dump_debug_info m)
+
+  let set_client_option = Common.set_client_option
 
   let set_server_option m opt = nonblocking m (set_server_option m opt)
 

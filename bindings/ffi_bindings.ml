@@ -2,8 +2,53 @@ open Ctypes
 
 module Types (F: Cstubs.Types.TYPE) = struct
   open F
+
+  module Protocol = struct
+    let default = constant "MYSQL_PROTOCOL_DEFAULT" int
+    let tcp = constant "MYSQL_PROTOCOL_TCP" int
+    let socket = constant "MYSQL_PROTOCOL_SOCKET" int
+    let pipe = constant "MYSQL_PROTOCOL_PIPE" int
+    let memory = constant "MYSQL_PROTOCOL_MEMORY" int
+  end
+
   module Options = struct
+    let connect_timeout = constant "MYSQL_OPT_CONNECT_TIMEOUT" int
+    let compress = constant "MYSQL_OPT_COMPRESS" int
+    let named_pipe = constant "MYSQL_OPT_NAMED_PIPE" int
+    let init_command = constant "MYSQL_INIT_COMMAND" int
+    let read_default_file = constant "MYSQL_READ_DEFAULT_FILE" int
+    let read_default_group = constant "MYSQL_READ_DEFAULT_GROUP" int
+    let set_charset_dir = constant "MYSQL_SET_CHARSET_DIR" int
+    let set_charset_name = constant "MYSQL_SET_CHARSET_NAME" int
+    let local_infile = constant "MYSQL_OPT_LOCAL_INFILE" int
+    let protocol = constant "MYSQL_OPT_PROTOCOL" int
+    let shared_memory_base_name = constant "MYSQL_SHARED_MEMORY_BASE_NAME" int
+    let read_timeout = constant "MYSQL_OPT_READ_TIMEOUT" int
+    let write_timeout = constant "MYSQL_OPT_WRITE_TIMEOUT" int
+    let secure_auth = constant "MYSQL_SECURE_AUTH" int
+    let report_data_truncation = constant "MYSQL_REPORT_DATA_TRUNCATION" int
+    let reconnect = constant "MYSQL_OPT_RECONNECT" int
+    let ssl_verify_server_cert = constant "MYSQL_OPT_SSL_VERIFY_SERVER_CERT" int
+    let plugin_dir = constant "MYSQL_PLUGIN_DIR" int
+    let default_auth = constant "MYSQL_DEFAULT_AUTH" int
+    let bind = constant "MYSQL_OPT_BIND" int
+    let ssl_key = constant "MYSQL_OPT_SSL_KEY" int
+    let ssl_cert = constant "MYSQL_OPT_SSL_CERT" int
+    let ssl_ca = constant "MYSQL_OPT_SSL_CA" int
+    let ssl_capath = constant "MYSQL_OPT_SSL_CAPATH" int
+    let ssl_cipher = constant "MYSQL_OPT_SSL_CIPHER" int
+    let ssl_crl = constant "MYSQL_OPT_SSL_CRL" int
+    let ssl_crlpath = constant "MYSQL_OPT_SSL_CRLPATH" int
+    let connect_attr_reset = constant "MYSQL_OPT_CONNECT_ATTR_RESET" int
+    let connect_attr_add = constant "MYSQL_OPT_CONNECT_ATTR_ADD" int
+    let connect_attr_delete = constant "MYSQL_OPT_CONNECT_ATTR_DELETE" int
+    let server_public_key = constant "MYSQL_SERVER_PUBLIC_KEY" int
+    let enable_cleartext_plugin = constant "MYSQL_ENABLE_CLEARTEXT_PLUGIN" int
+    let can_handle_expired_passwords =
+      constant "MYSQL_OPT_CAN_HANDLE_EXPIRED_PASSWORDS" int
     let nonblock = constant "MYSQL_OPT_NONBLOCK" int
+    let use_thread_specific_memory =
+      constant "MYSQL_OPT_USE_THREAD_SPECIFIC_MEMORY" int
   end
 
   module Flags = struct
@@ -177,6 +222,9 @@ module Foreign_bindings = struct
 
   let mysql_options = foreign "mysql_options"
     (T.mysql @-> int @-> ptr void @-> returning int)
+
+  let mysql_options4 = foreign "mysql_options4"
+    (T.mysql @-> int @-> ptr void @-> ptr void @-> returning int)
 
   let mysql_num_fields = foreign "mysql_num_fields"
     (T.res @-> returning int)
@@ -435,6 +483,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_options mysql opt value =
     mysql_options mysql opt value |> ignore
+
+  let mysql_options4 mysql opt value1 value2 =
+    mysql_options4 mysql opt value1 value2 |> ignore
 
   let mysql_stmt_attr_set_bool stmt attr value =
     let c = if value then '\001' else '\000' in
