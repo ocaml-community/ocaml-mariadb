@@ -52,6 +52,13 @@ Executable "ffi_types_stubgen"
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings
 
+Document "mariadb"
+  Title:                OCaml-MariaDB documentation
+  Type:                 ocamlbuild (0.3)
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      lib
+  XOCamlbuildLibraries: mariadb
+
 Executable "test_nonblocking_functor"
   Install:          false
   Path:             lib_test

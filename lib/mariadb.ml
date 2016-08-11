@@ -61,9 +61,10 @@ module type S = sig
   module Res : sig
     type t
 
+    val num_rows : t -> int
+    val affected_rows : t -> int
     val fetch : (module Row.S with type t = 'r) -> t -> 'r option result
     val stream : (module Row.S with type t = 'r) -> t -> 'r Stream.t result
-    val num_rows : t -> int
   end
 
   module Stmt : sig
@@ -96,8 +97,8 @@ module type S = sig
     | Multi_results
     | Multi_statements
     | No_schema
-    | ODBC
-    | SSL
+    | Odbc
+    | Ssl
     | Remember_options
 
   type protocol =

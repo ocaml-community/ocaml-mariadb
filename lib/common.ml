@@ -22,8 +22,8 @@ type flag =
   | Multi_results
   | Multi_statements
   | No_schema
-  | ODBC
-  | SSL
+  | Odbc
+  | Ssl
   | Remember_options
 
 type protocol =
@@ -189,8 +189,8 @@ let int_of_flag = function
   | Multi_results -> T.Flags.multi_results
   | Multi_statements -> T.Flags.multi_statements
   | No_schema -> T.Flags.no_schema
-  | ODBC -> T.Flags.odbc
-  | SSL -> T.Flags.ssl
+  | Odbc -> T.Flags.odbc
+  | Ssl -> T.Flags.ssl
   | Remember_options -> T.Flags.remember_options
 
 let int_of_flags =

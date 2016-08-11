@@ -323,8 +323,8 @@ module Make (W : Wait) = struct
     | Multi_results
     | Multi_statements
     | No_schema
-    | ODBC
-    | SSL
+    | Odbc
+    | Ssl
     | Remember_options
 
   type protocol = Common.protocol =

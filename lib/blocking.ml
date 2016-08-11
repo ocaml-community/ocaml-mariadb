@@ -23,8 +23,8 @@ type flag = Common.flag =
   | Multi_results
   | Multi_statements
   | No_schema
-  | ODBC
-  | SSL
+  | Odbc
+  | Ssl
   | Remember_options
 
 type protocol = Common.protocol =
