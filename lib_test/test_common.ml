@@ -53,7 +53,7 @@ module Make (M : Mariadb.S) = struct
     let query = env "OCAML_MARIADB_QUERY"
       "SELECT * FROM user WHERE LENGTH(user) > ?" in
     let stmt = M.prepare mariadb query |> or_die ~info:"prepare" () in
-    let res = M.Stmt.execute stmt [| `Int 5 |] |> or_die () in
+    let res = M.Stmt.execute stmt [| `String "Problema%" |] |> or_die () in
     printf "#rows: %d\n%!" (M.Res.num_rows res);
     let stream = M.Res.stream (module M.Row.Map) res |> or_die () in
     Stream.iter print_row stream;

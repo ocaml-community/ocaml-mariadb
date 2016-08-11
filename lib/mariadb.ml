@@ -67,8 +67,7 @@ module type S = sig
   end
 
   module Stmt : sig
-    type state = [`Prepared | `Executed]
-    type 's t constraint 's = [< state]
+    type t
 
     type param =
       [ `Tiny of int
@@ -80,12 +79,11 @@ module type S = sig
       | `Blob of bytes
       ]
 
-    val execute : [`Prepared] t -> param array -> Res.t result
-    val close : [< state] t -> unit result
+    val execute : t -> param array -> Res.t result
+    val close : t -> unit result
   end
 
-  type state = [`Unconnected | `Connected | `Tx]
-  type 's t constraint 's = [< state]
+  type t
 
   type flag =
     | Can_handle_expired_passwords
@@ -110,25 +108,18 @@ module type S = sig
              -> ?pass:string
              -> ?db:string -> ?port:int -> ?socket:string
              -> ?flags:flag list -> unit
-             -> [`Connected] t result
+             -> t result
 
-  val close : [< `Connected | `Tx] t -> unit
+  val close : t -> unit
 
-  val set_character_set : [`Connected] t -> string -> unit result
-  val select_db : [`Connected] t -> string -> unit result
-  val change_user : [`Connected] t -> string -> string -> string option
-                 -> unit result
-  val dump_debug_info : [`Connected] t -> unit result
-  val set_server_option : [`Connected] t -> server_option
-                       -> unit result
-  val ping : [`Connected] t -> unit result
-  val prepare : [`Connected] t -> string -> [`Prepared] Stmt.t result
-
-  module Tx : sig
-    val commit : [`Connected] t -> [`Tx] t result
-    val rollback : [`Tx] t -> [`Connected] t result
-    val autocommit : [`Connected] t -> bool -> [`Connected] t result
-  end
+  val set_character_set : t -> string -> unit result
+  val select_db : t -> string -> unit result
+  val change_user : t -> string -> string -> string option -> unit result
+  val dump_debug_info : t -> unit result
+  val set_server_option : t -> server_option -> unit result
+  val ping : t -> unit result
+  val autocommit : t -> bool -> unit result
+  val prepare : t -> string -> Stmt.t result
 end
 
 module B = Ffi_bindings.Bindings(Ffi_generated)

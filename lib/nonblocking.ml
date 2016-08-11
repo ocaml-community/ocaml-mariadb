@@ -7,8 +7,8 @@ module Field = Common.Field
 module Row = Common.Row
 module Status = Wait_status
 
-type 's t = ([`Nonblocking], 's) Common.t
-type 's mariadb = 's t
+type t = [`Nonblocking] Common.t
+type mariadb = t
 
 type error = Common.error
 type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
@@ -153,6 +153,15 @@ let ping_cont mariadb status =
 let ping mariadb =
   (ping_start mariadb, ping_cont mariadb)
 
+let autocommit_start mariadb auto () =
+  handle_char mariadb ((flip B.mysql_autocommit_start) auto)
+
+let autocommit_cont mariadb status =
+  handle_char mariadb ((flip B.mysql_autocommit_cont) status)
+
+let autocommit mariadb auto =
+  (autocommit_start mariadb auto, autocommit_cont mariadb)
+
 let build_stmt mariadb raw =
   match Common.Stmt.init mariadb raw with
   | Some stmt -> `Ok stmt
@@ -221,7 +230,7 @@ module Res = struct
 end
 
 module Stmt = struct
-  type 's t = ([`Nonblocking], 's) Common.Stmt.t
+  type t = [`Nonblocking] Common.Stmt.t
   type 'a result = [`Ok of 'a | `Wait of Status.t | `Error of error]
 
   let init =
@@ -293,48 +302,12 @@ module Stmt = struct
     handle_next stmt ((flip B.mysql_stmt_next_result_cont) status)
 end
 
-module Tx = struct
-  let handle_tx mariadb f =
-    match f mariadb with
-    | 0, '\000' -> `Ok mariadb
-    | 0, _ -> `Error (Common.error mariadb)
-    | s, _ -> `Wait (Status.of_int s)
-
-  let commit_start mariadb () =
-    handle_tx mariadb B.mysql_commit_start
-
-  let commit_cont mariadb status =
-    handle_tx mariadb ((flip B.mysql_commit_cont) status)
-
-  let commit mariadb =
-    (commit_start mariadb, commit_cont mariadb)
-
-  let rollback_start mariadb () =
-    handle_tx mariadb B.mysql_rollback_start
-
-  let rollback_cont mariadb status =
-    handle_tx mariadb ((flip B.mysql_rollback_cont) status)
-
-  let rollback mariadb =
-    (rollback_start mariadb, rollback_cont mariadb)
-
-  let autocommit_start mariadb auto () =
-    handle_tx mariadb ((flip B.mysql_autocommit_start) auto)
-
-  let autocommit_cont mariadb status =
-    handle_tx mariadb ((flip B.mysql_autocommit_cont) status)
-
-  let autocommit mariadb auto =
-    (autocommit_start mariadb auto, autocommit_cont mariadb)
-end
-
 module type Wait = sig
-  val wait : [< `Connected | `Tx] t -> Status.t -> Status.t
+  val wait : t -> Status.t -> Status.t
 end
 
 module Make (W : Wait) = struct
-  type state = [`Unconnected | `Connected | `Tx]
-  type 's t = 's mariadb
+  type t = mariadb
 
   type error = int * string
   type 'a result = ('a, error) Pervasives.result
@@ -391,8 +364,7 @@ module Make (W : Wait) = struct
   end
 
   module Stmt = struct
-    type state = [`Prepared | `Executed]
-    type 's t = 's Stmt.t
+    type t = Stmt.t
 
     type param =
       [ `Tiny of int
@@ -429,12 +401,6 @@ module Make (W : Wait) = struct
       | Error _ as e -> e
   end
 
-  module Tx = struct
-    let commit m = nonblocking m (Tx.commit m)
-    let rollback m = nonblocking m (Tx.rollback m)
-    let autocommit m b = nonblocking m (Tx.autocommit m b)
-  end
-
   let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
     match init () with
     | Some m ->
@@ -455,6 +421,8 @@ module Make (W : Wait) = struct
   let set_server_option m opt = nonblocking m (set_server_option m opt)
 
   let ping m = nonblocking m (ping m)
+
+  let autocommit m b = nonblocking m (autocommit m b)
 
   let prepare m q =
     match prepare m q with

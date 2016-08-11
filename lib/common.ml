@@ -5,13 +5,9 @@ module Row = Row
 module Field = Field
 
 type mode = [`Blocking | `Nonblocking]
-type state = [`Unconnected | `Connected | `Tx]
+type 'm t = B.Types.mysql constraint 'm = [< mode]
 
-type ('m, 's) t = B.Types.mysql
-  constraint 'm = [< mode]
-  constraint 's = [< state]
-
-type ('m, 's) mariadb = ('m, 's) t
+type 'm mariadb = 'm t
 
 type flag =
   | Can_handle_expired_passwords
@@ -111,8 +107,6 @@ let stmt_init mariadb =
 module Stmt = struct
   open Ctypes
 
-  type state = [`Prepared | `Executed]
-
   type u =
     { raw : B.Types.stmt
     ; mariadb : B.Types.mysql
@@ -122,9 +116,7 @@ module Stmt = struct
     ; result : Bind.t
     ; result_buffers : unit ptr array
     }
-  type ('m, 's) t = u
-    constraint 'm = [< mode]
-    constraint 's = [< state]
+  type 'm t = u constraint 'm = [< mode]
 
   type cursor_type
     = No_cursor

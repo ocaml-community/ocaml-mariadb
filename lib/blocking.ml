@@ -6,9 +6,8 @@ module T = Ffi_bindings.Types(Ffi_generated_types)
 module Field = Common.Field
 module Row = Common.Row
 
-type state = [`Unconnected | `Connected | `Tx]
-type 's t = ([`Blocking], 's) Common.t
-type 's mariadb = 's t
+type t = [`Blocking] Common.t
+type mariadb = t
 
 type error = Common.error
 type 'a result = ('a, error) Pervasives.result
@@ -67,6 +66,9 @@ let set_server_option mariadb opt =
 let ping mariadb =
   wrap_unit mariadb B.mysql_ping
 
+let autocommit mariadb auto =
+  wrap_unit mariadb ((flip B.mysql_autocommit) auto)
+
 let prepare mariadb query =
   let build_stmt raw =
     if B.mysql_stmt_prepare raw query then
@@ -101,8 +103,7 @@ module Res = struct
 end
 
 module Stmt = struct
-  type state = [`Prepared | `Executed]
-  type 's t = ([`Blocking], 's) Common.Stmt.t
+  type t = [`Blocking] Common.Stmt.t
 
   type param =
     [ `Tiny of int
@@ -138,19 +139,4 @@ module Stmt = struct
       Ok ()
     else
       Error (Common.Stmt.error stmt)
-end
-
-module Tx = struct
-  let wrap mariadb f =
-    if f mariadb then Ok mariadb
-    else Error (Common.error mariadb)
-
-  let commit mariadb =
-    wrap mariadb B.mysql_commit
-
-  let rollback mariadb =
-    wrap mariadb B.mysql_rollback
-
-  let autocommit mariadb auto =
-    wrap mariadb ((flip B.mysql_autocommit) auto)
 end
