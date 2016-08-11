@@ -1,6 +1,3 @@
-type mode = [`Blocking | `Nonblocking]
-type error = int * string
-
 module type S = sig
   type error = int * string
   type 'a result = ('a, error) Pervasives.result
