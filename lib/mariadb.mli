@@ -304,7 +304,7 @@ module Nonblocking : sig
   type t = [`Nonblocking] Common.t
     (** The type of nonblocking database handles. *)
 
-  val fd : t -> int
+  val fd : t -> Unix.file_descr
     (** The underlying file descriptor of the database connection. *)
 
   val timeout : t -> int

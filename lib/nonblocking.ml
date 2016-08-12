@@ -93,8 +93,8 @@ let close_cont mariadb status =
 let close mariadb =
   (close_start mariadb, close_cont mariadb)
 
-let fd =
-  B.mysql_get_socket
+let fd mariadb =
+  Obj.magic @@ B.mysql_get_socket mariadb
 
 let timeout =
   B.mysql_get_timeout_value
