@@ -17,8 +17,12 @@ module type S = sig
   type 'a result = ('a, error) Pervasives.result
     (** The result of MariaDB API calls. *)
 
+  (** Module representing MariaDB date- and time-related values. *)
   module Time : sig
     type t
+      (** The type of time values. *)
+
+    (** {2 Retrieval of time components} *)
 
     val year : t -> int
     val month : t -> int
@@ -26,6 +30,8 @@ module type S = sig
     val hour : t -> int
     val minute : t -> int
     val second : t -> int
+
+    (** {2 Creation of time values} *)
 
     val time : hour:int -> minute:int -> second:int -> t
     val local_timestamp : float -> t
