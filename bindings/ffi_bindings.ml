@@ -366,6 +366,9 @@ module Foreign_bindings = struct
   let mysql_get_timeout_value = foreign "mysql_get_timeout_value"
     (T.mysql @-> returning uint)
 
+  let mysql_get_timeout_value_ms = foreign "mysql_get_timeout_value_ms"
+    (T.mysql @-> returning uint)
+
   let mysql_set_character_set_start = foreign "mysql_set_character_set_start"
     (ptr int @-> T.mysql @-> ptr char @-> returning int)
 
@@ -613,6 +616,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_get_timeout_value mysql =
     Unsigned.UInt.to_int @@ mysql_get_timeout_value mysql
+
+  let mysql_get_timeout_value_ms mysql =
+    Unsigned.UInt.to_int @@ mysql_get_timeout_value_ms mysql
 
   let mysql_set_character_set_start mysql charset =
     let charset = char_ptr_buffer_of_string charset in

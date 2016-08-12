@@ -99,6 +99,9 @@ let fd =
 let timeout =
   B.mysql_get_timeout_value
 
+let timeout_ms =
+  B.mysql_get_timeout_value_ms
+
 let set_character_set_start mariadb charset () =
   handle_int mariadb ((flip B.mysql_set_character_set_start) charset)
 

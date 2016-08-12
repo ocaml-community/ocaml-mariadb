@@ -312,6 +312,9 @@ module Nonblocking : sig
         event, this function can be used to obtain the value, in seconds,
         after which the timeout has occured. *)
 
+  val timeout_ms : t -> int
+    (** Same as [timeout] but with millisecond resolution. *)
+
 	(** Input module signature for the functor that generates a nonblocking
 			connection module. *)
   module type Wait = sig
