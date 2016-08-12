@@ -226,16 +226,6 @@ module Res = struct
       (fun i ->
         let fp = fetch_field res i in
         Field.create r fp i)
-
-  let stream (type t) (module R : Row.S with type t = t) res fetch =
-    let module M = struct exception E of error end in
-    let next _ =
-      match fetch (module R : Row.S with type t = t) res with
-      | Ok (Some _ as row) -> row
-      | Ok None -> None
-      | Error e -> raise (M.E e) in
-    try Ok (Stream.from next)
-    with M.E e -> Error e
 end
 
 let stmt_init mariadb =

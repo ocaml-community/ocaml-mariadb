@@ -307,14 +307,192 @@ module Stmt = struct
 end
 
 module type Wait = sig
-  val wait : t -> Status.t -> Status.t
+  type 'a future
+  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+  val return : 'a -> 'a future
+  val wait : t -> Status.t -> Status.t future
 end
 
-module Make (W : Wait) = struct
+module type S = sig
+  type error = int * string
+  type 'a future
+  type 'a result = ('a, Common.error) Pervasives.result
+
+  module Time : sig
+    type t
+
+    val year : t -> int
+    val month : t -> int
+    val day : t -> int
+    val hour : t -> int
+    val minute : t -> int
+    val second : t -> int
+
+    val time : hour:int -> minute:int -> second:int -> t
+    val local_timestamp : float -> t
+    val utc_timestamp : float -> t
+    val date : year:int -> month:int -> day:int -> t
+    val datetime : year:int -> month:int -> day:int
+                -> hour:int -> minute:int -> second:int -> t
+  end
+
+  module Field : sig
+    type t
+
+    type value =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      | `Time of Time.t
+      ]
+
+    val name : t -> string
+    val value : t -> [value | `Null]
+    val null_value : t -> bool
+    val can_be_null : t -> bool
+
+    val int : t -> int
+    val float : t -> float
+    val string : t -> string
+    val bytes : t -> bytes
+    val time : t -> Time.t
+
+    val int_opt : t -> int option
+    val float_opt : t -> float option
+    val string_opt : t -> string option
+    val bytes_opt : t -> bytes option
+    val time_opt : t -> Time.t option
+  end
+
+  module Row : sig
+    module type S = sig
+      type t
+      val build : int -> (int -> Field.t) -> t
+    end
+
+    module StringMap : Map.S with type key = string
+
+    module Array : (S with type t = Field.t array)
+    module Map : (S with type t = Field.t StringMap.t)
+    module Hashtbl : (S with type t = (string, Field.t) Hashtbl.t)
+  end
+
+  module Res : sig
+    type t
+
+    val num_rows : t -> int
+    val affected_rows : t -> int
+    val fetch : (module Row.S with type t = 'r) -> t -> 'r option result future
+  end
+
+  module Stmt : sig
+    type t
+
+    type param =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      ]
+
+    val execute : t -> Field.value array -> Res.t result future
+    val close : t -> unit result future
+  end
+
+  type t
+
+  type flag =
+    | Client_can_handle_expired_passwords
+    | Compress
+    | Found_rows
+    | Ignore_sigpipe
+    | Ignore_space
+    | Interactive
+    | Local_files
+    | Multi_results
+    | Multi_statements
+    | No_schema
+    | Odbc
+    | Ssl
+    | Remember_options
+
+  type protocol =
+    | Default
+    | Tcp
+    | Socket
+    | Pipe
+    | Memory
+
+  type client_option =
+    | Connect_timeout of int
+    | Compress
+    | Named_pipe of string
+    | Init_command of string
+    | Read_default_file of string
+    | Read_default_group of string
+    | Set_charset_dir of string
+    | Set_charset_name of string
+    | Local_infile of bool
+    | Protocol of protocol
+    | Shared_memory_base_name of string
+    | Read_timeout of int
+    | Write_timeout of int
+    | Secure_auth of bool
+    | Report_data_truncation of bool
+    | Reconnect of bool
+    | Ssl_verify_server_cert of bool
+    | Plugin_dir of string
+    | Default_auth of string
+    | Bind of string
+    | Ssl_key of string
+    | Ssl_cert of string
+    | Ssl_ca of string
+    | Ssl_capath of string
+    | Ssl_cipher of string
+    | Ssl_crl of string
+    | Ssl_crlpath of string
+    | Connect_attr_reset
+    | Connect_attr_add of string * string
+    | Connect_attr_delete of string
+    | Server_public_key of string
+    | Enable_cleartext_plugin of bool
+    | Can_handle_expired_passwords of bool
+    | Use_thread_specific_memory of bool
+
+  type server_option =
+    | Multi_statements of bool
+
+  val connect : ?host:string
+             -> ?user:string
+             -> ?pass:string
+             -> ?db:string -> ?port:int -> ?socket:string
+             -> ?flags:flag list -> unit
+             -> t result future
+
+  val close : t -> unit future
+  val set_character_set : t -> string -> unit result future
+  val select_db : t -> string -> unit result future
+  val change_user : t -> string -> string -> string option -> unit result future
+  val dump_debug_info : t -> unit result future
+  val set_client_option : t -> client_option -> unit
+  val set_server_option : t -> server_option -> unit result future
+  val ping : t -> unit result future
+  val autocommit : t -> bool -> unit result future
+  val prepare : t -> string -> Stmt.t result future
+end
+
+module Make (W : Wait) : S with type 'a future = 'a W.future = struct
   type t = mariadb
 
+  type 'a future = 'a W.future
   type error = int * string
   type 'a result = ('a, error) Pervasives.result
+
+  let (>>=) = W.(>>=)
+  let return = W.return
+  let return_unit = return ()
+  let (>>|) fut f = fut >>= fun x -> return (f x)
 
   type flag = Common.flag =
     | Client_can_handle_expired_passwords
@@ -379,14 +557,14 @@ module Make (W : Wait) = struct
 
   let rec nonblocking m (f, g) =
     match f () with
-    | `Ok v -> Ok v
-    | `Wait s -> let s = W.wait m s in nonblocking m ((fun () -> g s), g)
-    | `Error e -> Error e
+    | `Ok v -> W.return (Ok v)
+    | `Wait s -> W.wait m s >>= fun s -> nonblocking m ((fun () -> g s), g)
+    | `Error e -> W.return (Error e)
 
-  let rec nonblocking_noerr m (f, g) =
+  let rec nonblocking' m (f, g) =
     match f () with
-    | `Ok -> ()
-    | `Wait s -> let s = W.wait m s in nonblocking_noerr m ((fun () -> g s), g)
+    | `Ok -> return_unit
+    | `Wait s -> W.wait m s >>= fun s -> nonblocking' m ((fun () -> g s), g)
 
   module Time = Time
   module Field = Field
@@ -398,8 +576,20 @@ module Make (W : Wait) = struct
     let fetch (type t) (module R : Row.S with type t = t) res =
       nonblocking res.Common.Res.mariadb (Res.fetch (module R) res)
 
+    (*let stream (type t) (module R : Row.S with type t = t) res =
+      let module M = struct exception E of error end in
+      let next _ =
+        fetch (module R : Row.S with type t = t) res
+        >>| function
+          | Ok (Some _ as row) -> row
+          | Ok None -> None
+          | Error e -> raise (M.E e) in
+      return
+        (try Ok (Stream.from next)
+         with M.E e -> Error e)
+
     let stream (type t) (module R : Row.S with type t = t) res =
-      Common.Res.stream (module R) res fetch
+      Common.Res.stream (module R) res fetch*)
 
     let num_rows =
       Res.num_rows
@@ -423,12 +613,12 @@ module Make (W : Wait) = struct
 
     let handle_execute = function
       | Ok stmt -> nonblocking stmt.Common.Stmt.mariadb (Stmt.store_result stmt)
-      | Error _ as e -> e
+      | Error _ as e -> return e
 
     let execute stmt ps =
       match Stmt.execute stmt ps with
-      | `Ok nb -> nonblocking stmt.Common.Stmt.mariadb nb |> handle_execute
-      | `Error e -> Error e
+      | `Ok nb -> nonblocking stmt.Common.Stmt.mariadb nb >>= handle_execute
+      | `Error e -> return (Error e)
 
     let free_res stmt =
       let handle_free f =
@@ -441,9 +631,10 @@ module Make (W : Wait) = struct
       nonblocking stmt.Common.Stmt.mariadb (start, cont)
 
     let close stmt =
-      match free_res stmt with
+      free_res stmt
+      >>= function
       | Ok () -> nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)
-      | Error _ as e -> e
+      | Error _ as e -> return e
   end
 
   let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
@@ -451,9 +642,9 @@ module Make (W : Wait) = struct
     | Some m ->
         nonblocking m (connect m ?host ?user ?pass ?db ~port ?socket ~flags ())
     | None ->
-        Error (2008, "out of memory")
+        return (Error (2008, "out of memory"))
 
-  let close m = nonblocking_noerr m (close m)
+  let close m = nonblocking' m (close m)
 
   let set_character_set m c = nonblocking m (set_character_set m c)
 
@@ -474,5 +665,5 @@ module Make (W : Wait) = struct
   let prepare m q =
     match prepare m q with
     | `Ok nb -> nonblocking m nb
-    | `Error e -> Error e
+    | `Error e -> return (Error e)
 end

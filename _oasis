@@ -61,20 +61,30 @@ Document "mariadb"
   XOCamlbuildPath:      lib
   XOCamlbuildLibraries: mariadb
 
-Executable "test_nonblocking_functor"
+#Executable "test_nonblocking_select"
+#  Install:          false
+#  Path:             lib_test
+#  MainIs:           test_nonblocking_select.ml
+#  ByteOpt:          -warn-error +1..45
+#  NativeOpt:        -warn-error +1..45
+#  CompiledObject:   best
+#  BuildDepends:     mariadb,
+#                    unix
+
+Executable "test_nonblocking_lwt"
   Install:          false
   Path:             lib_test
-  MainIs:           test_nonblocking_functor.ml
+  MainIs:           test_nonblocking_lwt.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
   BuildDepends:     mariadb,
-                    unix
+                    lwt, lwt.unix
 
-Executable "test_blocking_functor"
+Executable "test_blocking"
   Install:          false
   Path:             lib_test
-  MainIs:           test_blocking_functor.ml
+  MainIs:           test_blocking.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best

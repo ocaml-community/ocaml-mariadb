@@ -139,9 +139,6 @@ module Res = struct
     | r when r = T.Return_code.data_truncated -> Error (2032, "truncated data")
     | _ -> Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
 
-  let stream (type t) (module R : Row.S with type t = t) res =
-    Common.Res.stream (module R) res fetch
-
   let num_rows =
     Common.Res.num_rows
 

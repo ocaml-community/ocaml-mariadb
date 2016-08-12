@@ -134,9 +134,6 @@ module type S = sig
       (** [fetch (module M : Row.S) res] fetches the next available row
           from [res], returning it in as the data structure specified by
           module [M]. Returns [None] when no more rows are available. *)
-
-    val stream : (module Row.S with type t = 'r) -> t -> 'r Stream.t result
-      (** [stream (module M : Row.S) res] returns a stream of rows. *)
   end
 
   (** The module contains operations on MariaDB prepared statements. *)
@@ -324,13 +321,188 @@ module Nonblocking : sig
 	(** Input module signature for the functor that generates a nonblocking
 			connection module. *)
   module type Wait = sig
-    val wait : t -> Status.t -> Status.t
+    type 'a future
+
+    val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+    val return : 'a -> 'a future
+
+    val wait : t -> Status.t -> Status.t future
 			(** [wait mariadb status] must wait for the events set in [status]
 					to occur in the [mariadb] connection and return a [Status.t]
 					indicating which events have actually occured. *)
   end
 
+(* XXX *)
+module type S = sig
+  type error = int * string
+  type 'a future
+  type 'a result = ('a, Common.error) Pervasives.result
+
+  module Time : sig
+    type t
+
+    val year : t -> int
+    val month : t -> int
+    val day : t -> int
+    val hour : t -> int
+    val minute : t -> int
+    val second : t -> int
+
+    val time : hour:int -> minute:int -> second:int -> t
+    val local_timestamp : float -> t
+    val utc_timestamp : float -> t
+    val date : year:int -> month:int -> day:int -> t
+    val datetime : year:int -> month:int -> day:int
+                -> hour:int -> minute:int -> second:int -> t
+  end
+
+  module Field : sig
+    type t
+
+    type value =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      | `Time of Time.t
+      ]
+
+    val name : t -> string
+    val value : t -> [value | `Null]
+    val null_value : t -> bool
+    val can_be_null : t -> bool
+
+    val int : t -> int
+    val float : t -> float
+    val string : t -> string
+    val bytes : t -> bytes
+    val time : t -> Time.t
+
+    val int_opt : t -> int option
+    val float_opt : t -> float option
+    val string_opt : t -> string option
+    val bytes_opt : t -> bytes option
+    val time_opt : t -> Time.t option
+  end
+
+  module Row : sig
+    module type S = sig
+      type t
+      val build : int -> (int -> Field.t) -> t
+    end
+
+    module StringMap : Map.S with type key = string
+
+    module Array : (S with type t = Field.t array)
+    module Map : (S with type t = Field.t StringMap.t)
+    module Hashtbl : (S with type t = (string, Field.t) Hashtbl.t)
+  end
+
+  module Res : sig
+    type t
+
+    val num_rows : t -> int
+    val affected_rows : t -> int
+    val fetch : (module Row.S with type t = 'r) -> t -> 'r option result future
+  end
+
+  module Stmt : sig
+    type t
+
+    type param =
+      [ `Int of int
+      | `Float of float
+      | `String of string
+      | `Bytes of bytes
+      ]
+
+    val execute : t -> Field.value array -> Res.t result future
+    val close : t -> unit result future
+  end
+
+  type t
+
+  type flag =
+    | Client_can_handle_expired_passwords
+    | Compress
+    | Found_rows
+    | Ignore_sigpipe
+    | Ignore_space
+    | Interactive
+    | Local_files
+    | Multi_results
+    | Multi_statements
+    | No_schema
+    | Odbc
+    | Ssl
+    | Remember_options
+
+  type protocol =
+    | Default
+    | Tcp
+    | Socket
+    | Pipe
+    | Memory
+
+  type client_option =
+    | Connect_timeout of int
+    | Compress
+    | Named_pipe of string
+    | Init_command of string
+    | Read_default_file of string
+    | Read_default_group of string
+    | Set_charset_dir of string
+    | Set_charset_name of string
+    | Local_infile of bool
+    | Protocol of protocol
+    | Shared_memory_base_name of string
+    | Read_timeout of int
+    | Write_timeout of int
+    | Secure_auth of bool
+    | Report_data_truncation of bool
+    | Reconnect of bool
+    | Ssl_verify_server_cert of bool
+    | Plugin_dir of string
+    | Default_auth of string
+    | Bind of string
+    | Ssl_key of string
+    | Ssl_cert of string
+    | Ssl_ca of string
+    | Ssl_capath of string
+    | Ssl_cipher of string
+    | Ssl_crl of string
+    | Ssl_crlpath of string
+    | Connect_attr_reset
+    | Connect_attr_add of string * string
+    | Connect_attr_delete of string
+    | Server_public_key of string
+    | Enable_cleartext_plugin of bool
+    | Can_handle_expired_passwords of bool
+    | Use_thread_specific_memory of bool
+
+  type server_option =
+    | Multi_statements of bool
+
+  val connect : ?host:string
+             -> ?user:string
+             -> ?pass:string
+             -> ?db:string -> ?port:int -> ?socket:string
+             -> ?flags:flag list -> unit
+             -> t result future
+
+  val close : t -> unit future
+  val set_character_set : t -> string -> unit result future
+  val select_db : t -> string -> unit result future
+  val change_user : t -> string -> string -> string option -> unit result future
+  val dump_debug_info : t -> unit result future
+  val set_client_option : t -> client_option -> unit
+  val set_server_option : t -> server_option -> unit result future
+  val ping : t -> unit result future
+  val autocommit : t -> bool -> unit result future
+  val prepare : t -> string -> Stmt.t result future
+end
+
 	(** Functor that generates a nonblocking database interface, given a way
       to wait for connection socket events. *)
-  module Make (W : Wait) : S
+  module Make (W : Wait) : S with type 'a future := 'a W.future
 end

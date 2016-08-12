@@ -37,6 +37,16 @@ module Make (M : Mariadb.S) = struct
       ~pass:(env "OCAML_MARIADB_PASS" "")
       ~db:(env "OCAML_MARIADB_DB" "mysql") ()
 
+  let stream res =
+    let module F = struct exception E of M.error end in
+    let next _ =
+      match M.Res.fetch (module M.Row.Map) res with
+      | Ok (Some _ as row) -> row
+      | Ok None -> None
+      | Error e -> raise (F.E e) in
+    try Ok (Stream.from next)
+    with F.E e -> Error e
+
   let main () =
     let mariadb = connect () |> or_die ~info:"connect" () in
     let query = env "OCAML_MARIADB_QUERY"
@@ -44,8 +54,8 @@ module Make (M : Mariadb.S) = struct
     let stmt = M.prepare mariadb query |> or_die ~info:"prepare" () in
     let res = M.Stmt.execute stmt [| `String "Problema%" |] |> or_die () in
     printf "#rows: %d\n%!" (M.Res.num_rows res);
-    let stream = M.Res.stream (module M.Row.Map) res |> or_die () in
-    Stream.iter print_row stream;
+    let s = stream res |> or_die () in
+    Stream.iter print_row s;
     M.Stmt.close stmt |> or_die ();
     M.close mariadb;
     printf "done\n%!"

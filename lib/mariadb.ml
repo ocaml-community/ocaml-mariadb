@@ -68,7 +68,6 @@ module type S = sig
     val num_rows : t -> int
     val affected_rows : t -> int
     val fetch : (module Row.S with type t = 'r) -> t -> 'r option result
-    val stream : (module Row.S with type t = 'r) -> t -> 'r Stream.t result
   end
 
   module Stmt : sig
