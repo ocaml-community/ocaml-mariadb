@@ -410,11 +410,8 @@ module Make (W : Wait) = struct
     type t = Stmt.t
 
     type param =
-      [ `Tiny of int
-      | `Short of int
-      | `Int of int
+      [ `Int of int
       | `Float of float
-      | `Double of float
       | `String of string
       | `Blob of bytes
       ]
