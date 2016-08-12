@@ -12,21 +12,23 @@ Library "mariadb"
   FindlibName:      mariadb
   Path:             lib
   Modules:          Mariadb
-  InternalModules:  Common,
-                    Bind,
+  InternalModules:  Bind,
                     Blocking,
-                    Nonblocking,
+                    Common,
                     Field,
+                    Nonblocking,
                     Row,
-                    Wait_status,
+                    Time,
                     Util,
+                    Wait_status,
                     Ffi_generated,
                     Ffi_generated_types
   CSources:         ffi_generated_stubs.c
   CCOpt:            -I $pkg_ctypes_stubs
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
-  BuildDepends:     mariadb_bindings
+  BuildDepends:     mariadb_bindings,
+                    unix
 
 Library "mariadb_bindings"
   Install:          true

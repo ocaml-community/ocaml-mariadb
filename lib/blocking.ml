@@ -3,8 +3,9 @@ open Util
 module B = Ffi_bindings.Bindings(Ffi_generated)
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
-module Field = Common.Field
-module Row = Common.Row
+module Time = Time
+module Field = Field
+module Row = Row
 
 type t = [`Blocking] Common.t
 type mariadb = t
@@ -155,7 +156,7 @@ module Stmt = struct
     [ `Int of int
     | `Float of float
     | `String of string
-    | `Blob of bytes
+    | `Bytes of bytes
     ]
 
   let execute stmt params =

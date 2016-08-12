@@ -19,26 +19,15 @@ module Make (M : Mariadb.S) = struct
         | `Float x -> printf "%f\n%!" x
         | `String s -> printf "%s\n%!" s
         | `Bytes b -> printf "%s\n%!" (Bytes.to_string b)
-        | `Time t -> printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
-              (t.M.Field.year)
-              (t.M.Field.month)
-              (t.M.Field.day)
-              (t.M.Field.hour)
-              (t.M.Field.minute)
-              (t.M.Field.second)
-        | `NullInt (Some i) -> printf "%d\n%!" i
-        | `NullFloat (Some x) -> printf "%f\n%!" x
-        | `NullString (Some s) -> printf "%s\n%!" s
-        | `NullBytes (Some b) -> printf "%s\n%!" (Bytes.to_string b)
-        | `NullTime (Some t) -> printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
-              (t.M.Field.year)
-              (t.M.Field.month)
-              (t.M.Field.day)
-              (t.M.Field.hour)
-              (t.M.Field.minute)
-              (t.M.Field.second)
-        | `NullInt None | `NullFloat None | `NullString None
-        | `NullBytes None | `NullTime None -> printf "NULL\n%!")
+        | `Time t ->
+            printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
+              (M.Time.year t)
+              (M.Time.month t)
+              (M.Time.day t)
+              (M.Time.hour t)
+              (M.Time.minute t)
+              (M.Time.second t)
+        | `Null -> printf "NULL\n%!")
       row
 
   let connect () =

@@ -2,26 +2,12 @@ open Ctypes
 
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
-type time =
-  { year : int
-  ; month : int
-  ; day : int
-  ; hour : int
-  ; minute : int
-  ; second : int
-  }
-
 type value =
   [ `Int of int
   | `Float of float
   | `String of string
   | `Bytes of bytes
-  | `Time of time
-  | `NullInt of int option
-  | `NullFloat of float option
-  | `NullString of string option
-  | `NullBytes of bytes option
-  | `NullTime of time option
+  | `Time of Time.t
   ]
 
 type t =
@@ -62,73 +48,48 @@ let to_bytes field =
   let p = coerce (ptr void) (ptr char) buf in
   Bytes.init len (fun i -> !@(p +@ i))
 
-let to_time field =
+let to_time field kind =
   let buf = buffer field in
   let tp = coerce (ptr void) (ptr T.Time.t) buf in
   let member f = Unsigned.UInt.to_int @@ getf (!@tp) f in
-  { year   = member T.Time.year
+  { Time.
+    year   = member T.Time.year
   ; month  = member T.Time.month
   ; day    = member T.Time.day
   ; hour   = member T.Time.hour
   ; minute = member T.Time.minute
   ; second = member T.Time.second
+  ; kind
   }
-
-let wrap field v =
-  if null_value field then None
-  else Some v
 
 let convert field = function
   | `Tiny | `Year ->
-      let i = int_of_char (cast_to char field) in
-      if can_be_null field then `NullInt (wrap field i) else `Int i
-
+      `Int (int_of_char (cast_to char field))
   | `Short ->
-      let i = cast_to int field in
-      if can_be_null field then `NullInt (wrap field i) else `Int i
-
+      `Int (cast_to int field)
   | `Int24 | `Long ->
-      let i = Signed.Int32.to_int (cast_to int32_t field) in
-      if can_be_null field then `NullInt (wrap field i) else `Int i
-
+      `Int (Signed.Int32.to_int (cast_to int32_t field))
   | `Long_long ->
-      let i = Signed.Int64.to_int (cast_to int64_t field) in
-      if can_be_null field then `NullInt (wrap field i) else `Int i
-
+      `Int (Signed.Int64.to_int (cast_to int64_t field))
   | `Float ->
-      let x = cast_to float field in
-      if can_be_null field then `NullFloat (wrap field x) else `Float x
-
+      `Float (cast_to float field)
   | `Double ->
-      let x = cast_to double field in
-      if can_be_null field then `NullFloat (wrap field x) else `Float x
-
+      `Float (cast_to double field)
   | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
-      let s = Bytes.to_string (to_bytes field) in
-      if can_be_null field then `NullString (wrap field s) else `String s
-
+      `String (Bytes.to_string (to_bytes field))
   | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
-      let b = to_bytes field in
-      if can_be_null field then `NullBytes (wrap field b) else `Bytes b
-
-  | `Time  | `Date | `Datetime | `Timestamp ->
-      let t = to_time field in
-      if can_be_null field then `NullTime (wrap field t) else `Time t
-
+      `Bytes (to_bytes field)
+  | `Time  | `Date | `Datetime | `Timestamp as kind ->
+      `Time (to_time field kind)
   | `Null ->
-      failwith "field shouldn't have null type"
+      `Null
 
-let convert_unsigned field typ =
-  let wrap i =
-    if can_be_null field then `NullInt (wrap field i)
-    else `Int i in
-  wrap @@
-    match typ with
-    | `Tiny | `Year -> int_of_char (cast_to char field)
-    | `Short -> Unsigned.UInt.to_int (cast_to uint field)
-    | `Int24 | `Long -> Unsigned.UInt32.to_int (cast_to uint32_t field)
-    | `Long_long -> Unsigned.UInt64.to_int (cast_to uint64_t field)
-    | _ -> failwith "unexpected unsigned type"
+let convert_unsigned field = function
+  | `Tiny | `Year -> `Int (int_of_char (cast_to char field))
+  | `Short -> `Int (Unsigned.UInt.to_int (cast_to uint field))
+  | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int (cast_to uint32_t field))
+  | `Long_long -> `Int (Unsigned.UInt64.to_int (cast_to uint64_t field))
+  | _ -> failwith "unexpected unsigned type"
 
 let value field =
   let bp = field.result.Bind.bind +@ field.at in
@@ -164,27 +125,32 @@ let time field =
   | `Time t -> t
   | _ -> err field ~info:"a time value"
 
-let null_int field =
+let int_opt field =
   match value field with
-  | `NullInt i -> i
+  | `Int i -> Some i
+  | `Null -> None
   | _ -> err field ~info:"a nullable integer"
 
-let null_float field =
+let float_opt field =
   match value field with
-  | `NullFloat x -> x
+  | `Float x -> Some x
+  | `Null -> None
   | _ -> err field ~info:"a nullable float"
 
-let null_string field =
+let string_opt field =
   match value field with
-  | `NullString s -> s
+  | `String s -> Some s
+  | `Null -> None
   | _ -> err field ~info:"a nullable string"
 
-let null_bytes field =
+let bytes_opt field =
   match value field with
-  | `NullBytes b -> b
+  | `Bytes b -> Some b
+  | `Null -> None
   | _ -> err field ~info:"a nullable byte string"
 
-let null_time field =
+let time_opt field =
   match value field with
-  | `NullTime t -> t
+  | `Time t -> Some t
+  | `Null -> None
   | _ -> err field ~info:"a nullable time value"

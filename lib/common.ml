@@ -273,7 +273,7 @@ module Stmt = struct
     [ `Int of int
     | `Float of float
     | `String of string
-    | `Blob of bytes
+    | `Bytes of bytes
     ]
 
   let error stmt =
@@ -325,13 +325,11 @@ module Stmt = struct
         Array.iteri
           (fun at arg ->
             match arg with
-            | `Tiny i -> Bind.tiny b i ~at
-            | `Short i -> Bind.short b i ~at
             | `Int i -> Bind.int b i ~at
             | `Float x -> Bind.float b x ~at
-            | `Double x -> Bind.double b x ~at
             | `String s -> Bind.string b s ~at
-            | `Blob s -> Bind.blob b s ~at)
+            | `Bytes s -> Bind.blob b s ~at
+            | `Time t -> Bind.time b t ~at)
           params;
         if B.mysql_stmt_bind_param stmt.raw b.Bind.bind then
           `Ok stmt

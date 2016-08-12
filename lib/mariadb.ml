@@ -2,33 +2,37 @@ module type S = sig
   type error = int * string
   type 'a result = ('a, Common.error) Pervasives.result
 
-  module Field : sig
+  module Time : sig
     type t
 
-    type time =
-      { year : int
-      ; month : int
-      ; day : int
-      ; hour : int
-      ; minute : int
-      ; second : int
-      }
+    val year : t -> int
+    val month : t -> int
+    val day : t -> int
+    val hour : t -> int
+    val minute : t -> int
+    val second : t -> int
+
+    val time : hour:int -> minute:int -> second:int -> t
+    val local_timestamp : float -> t
+    val utc_timestamp : float -> t
+    val date : year:int -> month:int -> day:int -> t
+    val datetime : year:int -> month:int -> day:int
+                -> hour:int -> minute:int -> second:int -> t
+  end
+
+  module Field : sig
+    type t
 
     type value =
       [ `Int of int
       | `Float of float
       | `String of string
       | `Bytes of bytes
-      | `Time of time
-      | `NullInt of int option
-      | `NullFloat of float option
-      | `NullString of string option
-      | `NullBytes of bytes option
-      | `NullTime of time option
+      | `Time of Time.t
       ]
 
     val name : t -> string
-    val value : t -> value
+    val value : t -> [value | `Null]
     val null_value : t -> bool
     val can_be_null : t -> bool
 
@@ -36,13 +40,13 @@ module type S = sig
     val float : t -> float
     val string : t -> string
     val bytes : t -> bytes
-    val time : t -> time
+    val time : t -> Time.t
 
-    val null_int : t -> int option
-    val null_float : t -> float option
-    val null_string : t -> string option
-    val null_bytes : t -> bytes option
-    val null_time : t -> time option
+    val int_opt : t -> int option
+    val float_opt : t -> float option
+    val string_opt : t -> string option
+    val bytes_opt : t -> bytes option
+    val time_opt : t -> Time.t option
   end
 
   module Row : sig
@@ -74,10 +78,10 @@ module type S = sig
       [ `Int of int
       | `Float of float
       | `String of string
-      | `Blob of bytes
+      | `Bytes of bytes
       ]
 
-    val execute : t -> param array -> Res.t result
+    val execute : t -> Field.value array -> Res.t result
     val close : t -> unit result
   end
 

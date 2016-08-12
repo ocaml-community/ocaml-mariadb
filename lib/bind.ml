@@ -62,15 +62,15 @@ let buffer_type_of_int i =
   else if i = timestamp    then `Timestamp
   else invalid_arg @@ "unknown buffer type " ^ (string_of_int i)
 
-let t = '\001'
-let f = '\000'
+let yes = '\001'
+let no  = '\000'
 
 let alloc count =
   { n = count
   ; bind = allocate_n T.Bind.t ~count
   ; length = allocate_n ulong ~count
   ; is_null = allocate_n char ~count
-  ; is_unsigned = f
+  ; is_unsigned = no
   ; error = allocate_n char ~count
   }
 
@@ -92,7 +92,7 @@ let tiny ?(unsigned = false) b param ~at =
     ~buffer:(coerce (ptr char) (ptr void) p)
     ~size:(sizeof int)
     ~mysql_type:T.Type.tiny
-    ~unsigned:(if unsigned then t else f)
+    ~unsigned:(if unsigned then yes else no)
     ~at
 
 let short ?(unsigned = false) b param ~at =
@@ -101,7 +101,7 @@ let short ?(unsigned = false) b param ~at =
     ~buffer:(coerce (ptr short) (ptr void) p)
     ~size:(sizeof int)
     ~mysql_type:T.Type.short
-    ~unsigned:(if unsigned then t else f)
+    ~unsigned:(if unsigned then yes else no)
     ~at
 
 let int ?(unsigned = false) b param ~at =
@@ -110,7 +110,7 @@ let int ?(unsigned = false) b param ~at =
     ~buffer:(coerce (ptr int) (ptr void) p)
     ~size:(sizeof int)
     ~mysql_type:T.Type.long_long
-    ~unsigned:(if unsigned then t else f)
+    ~unsigned:(if unsigned then yes else no)
     ~at
 
 let float b param ~at =
@@ -119,7 +119,7 @@ let float b param ~at =
     ~buffer:(coerce (ptr float) (ptr void) p)
     ~size:(sizeof float)
     ~mysql_type:T.Type.float
-    ~unsigned:f
+    ~unsigned:no
     ~at
 
 let double b param ~at =
@@ -128,7 +128,7 @@ let double b param ~at =
     ~buffer:(coerce (ptr double) (ptr void) p)
     ~size:(sizeof double)
     ~mysql_type:T.Type.double
-    ~unsigned:f
+    ~unsigned:no
     ~at
 
 let string b param ~at =
@@ -139,7 +139,7 @@ let string b param ~at =
     ~buffer:(coerce (ptr char) (ptr void) p)
     ~size:len
     ~mysql_type:T.Type.string
-    ~unsigned:f
+    ~unsigned:no
     ~at
 
 let blob b param ~at =
@@ -150,5 +150,27 @@ let blob b param ~at =
     ~buffer:(coerce (ptr char) (ptr void) p)
     ~size:len
     ~mysql_type:T.Type.blob
-    ~unsigned:f
+    ~unsigned:no
+    ~at
+
+let type_of_time_kind = function
+  | `Time -> T.Type.time
+  | `Timestamp -> T.Type.timestamp
+  | `Date -> T.Type.date
+  | `Datetime -> T.Type.datetime
+
+let time b param ~at =
+  let tp = allocate_n T.Time.t ~count:1 in
+  let to_uint = Unsigned.UInt.of_int in
+  setf (!@tp) T.Time.year (to_uint param.Time.year);
+  setf (!@tp) T.Time.month (to_uint param.Time.month);
+  setf (!@tp) T.Time.day (to_uint param.Time.day);
+  setf (!@tp) T.Time.hour (to_uint param.Time.hour);
+  setf (!@tp) T.Time.minute (to_uint param.Time.minute);
+  setf (!@tp) T.Time.second (to_uint param.Time.second);
+  bind b
+    ~buffer:(coerce (ptr T.Time.t) (ptr void) tp)
+    ~size:(sizeof T.Time.t)
+    ~mysql_type:(type_of_time_kind param.Time.kind)
+    ~unsigned:no
     ~at
