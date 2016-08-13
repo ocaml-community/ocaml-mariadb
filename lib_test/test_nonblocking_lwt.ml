@@ -9,20 +9,21 @@ module M = Mariadb.Nonblocking.Make(struct
 
   let wait mariadb status =
     let fd = Lwt_unix.of_unix_file_descr @@ Mariadb.Nonblocking.fd mariadb in
+    assert (S.read status || S.write status || S.timeout status);
+    let idle, _ = Lwt.task () in
     let rt =
       if S.read status then Lwt_unix.wait_read fd
-      else Lwt.return_unit in
+      else idle in
     let wt =
       if S.write status then Lwt_unix.wait_write fd
-      else Lwt.return_unit in
-    (*let tt =
+      else idle in
+    let tt =
       let tmout = float (Mariadb.Nonblocking.timeout mariadb) in
       if S.timeout status then Lwt_unix.timeout tmout
-      else Lwt.return_unit in*)
+      else idle in
     Lwt.catch
       (fun () ->
-        (* XXX shouldn't it be Lwt.nchoose here? *)
-        Lwt.join [rt; wt] >>= fun _ ->
+        Lwt.nchoose [rt; wt; tt] >>= fun _ ->
         return @@
           S.create
             ~read:(Lwt_unix.readable fd)
