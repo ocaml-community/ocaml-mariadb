@@ -88,7 +88,7 @@ let main () =
     "SELECT * FROM user WHERE LENGTH(user) > ?" in
   M.prepare mariadb query >>= or_die ~info:"prepare" () >>= fun stmt ->
   M.Stmt.execute stmt [| `String "Problema%" |] >>= or_die () >>= fun res ->
-  printf "#rows: %d\n%!" (M.Res.num_rows res);
+  Lwt_io.printf "#rows: %d\n%!" (M.Res.num_rows res) >>= fun () ->
   stream res >>= fun s ->
   Lwt_stream.iter_s print_row s >>= fun () ->
   M.Stmt.close stmt >>= or_die () >>= fun () ->
