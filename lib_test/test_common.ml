@@ -5,9 +5,9 @@ module Make (M : Mariadb.S) = struct
     try Sys.getenv var
     with Not_found -> def
 
-  let or_die ?(info = "error") () = function
+  let or_die where = function
     | Ok r -> r
-    | Error (i, e) -> failwith @@ sprintf "%s: (%d) %s" info i e
+    | Error (i, e) -> failwith @@ sprintf "%s: (%d) %s" where i e
 
   let print_row row =
     printf "---\n%!";
@@ -48,15 +48,15 @@ module Make (M : Mariadb.S) = struct
     with F.E e -> Error e
 
   let main () =
-    let mariadb = connect () |> or_die ~info:"connect" () in
+    let mariadb = connect () |> or_die "connect" in
     let query = env "OCAML_MARIADB_QUERY"
       "SELECT * FROM user WHERE LENGTH(user) > ?" in
-    let stmt = M.prepare mariadb query |> or_die ~info:"prepare" () in
-    let res = M.Stmt.execute stmt [| `String "Problema%" |] |> or_die () in
+    let stmt = M.prepare mariadb query |> or_die "prepare" in
+    let res = M.Stmt.execute stmt [| `String "Problema%" |] |> or_die "exec" in
     printf "#rows: %d\n%!" (M.Res.num_rows res);
-    let s = stream res |> or_die () in
+    let s = stream res |> or_die "stream" in
     Stream.iter print_row s;
-    M.Stmt.close stmt |> or_die ();
+    M.Stmt.close stmt |> or_die "stmt close";
     M.close mariadb;
     printf "done\n%!"
 end

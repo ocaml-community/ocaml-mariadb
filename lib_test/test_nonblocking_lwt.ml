@@ -40,9 +40,9 @@ let env var def =
   try Sys.getenv var
   with Not_found -> def
 
-let or_die ?(info = "error") () = function
+let or_die where = function
   | Ok r -> Lwt.return r
-  | Error (i, e) -> Lwt.fail_with @@ sprintf "%s: (%d) %s" info i e
+  | Error (i, e) -> Lwt.fail_with @@ sprintf "%s: (%d) %s" where i e
 
 let print_row row =
   Lwt_io.printf "---\n%!" >>= fun () ->
@@ -83,15 +83,15 @@ let stream res =
   Lwt.return (Lwt_stream.from next)
 
 let main () =
-  connect () >>= or_die ~info:"connect" () >>= fun mariadb ->
+  connect () >>= or_die "connect" >>= fun mariadb ->
   let query = env "OCAML_MARIADB_QUERY"
     "SELECT * FROM user WHERE LENGTH(user) > ?" in
-  M.prepare mariadb query >>= or_die ~info:"prepare" () >>= fun stmt ->
-  M.Stmt.execute stmt [| `String "Problema%" |] >>= or_die () >>= fun res ->
+  M.prepare mariadb query >>= or_die "prepare" >>= fun stmt ->
+  M.Stmt.execute stmt [| `String "Problema%" |] >>= or_die "exec" >>= fun res ->
   Lwt_io.printf "#rows: %d\n%!" (M.Res.num_rows res) >>= fun () ->
   stream res >>= fun s ->
   Lwt_stream.iter_s print_row s >>= fun () ->
-  M.Stmt.close stmt >>= or_die () >>= fun () ->
+  M.Stmt.close stmt >>= or_die "stmt close" >>= fun () ->
   M.close mariadb
 
 let () =

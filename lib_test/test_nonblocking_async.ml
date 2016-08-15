@@ -1,7 +1,6 @@
 module Caml_bytes = Bytes
 open Core.Std
 open Async.Std
-open Print
 
 module S = Mariadb.Nonblocking.Status
 module M = Mariadb.Nonblocking.Make(struct
@@ -55,9 +54,9 @@ let env var def =
   | Some v -> v
   | None -> def
 
-let or_die ?(info = "error") = function
+let or_die where = function
   | Pervasives.Ok r -> return r
-  | Pervasives.Error (i, e) -> failwith @@ sprintf "%s: (%d) %s" info i e
+  | Pervasives.Error (i, e) -> failwith @@ sprintf "%s: (%d) %s" where i e
 
 let print_row row =
   printf "---\n%!";
@@ -105,15 +104,15 @@ let print_rows = function
   | None -> return ()
 
 let main =
-  connect () >>= or_die ~info:"connect" >>= fun mariadb ->
+  connect () >>= or_die "connect" >>= fun mariadb ->
   let query = env "OCAML_MARIADB_QUERY"
     "SELECT * FROM user WHERE LENGTH(user) > ?" in
-  M.prepare mariadb query >>= or_die ~info:"prepare" >>= fun stmt ->
-  M.Stmt.execute stmt [| `String "Problema%" |] >>= or_die >>= fun res ->
+  M.prepare mariadb query >>= or_die "prepare" >>= fun stmt ->
+  M.Stmt.execute stmt [| `String "Problema%" |] >>= or_die "exec" >>= fun res ->
   printf "#rows: %d\n%!" (M.Res.num_rows res);
   stream res >>= fun p ->
   print_rows p >>= function () ->
-  M.Stmt.close stmt >>= or_die >>= fun () ->
+  M.Stmt.close stmt >>= or_die "stmt close" >>= fun () ->
   M.close mariadb >>= fun () ->
   Shutdown.exit 0
 
