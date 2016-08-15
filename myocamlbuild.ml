@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: db9105594b26bcbd330061350ae2d2ee) *)
+(* DO NOT EDIT (digest: 7b3c35b6f8614dc70a5a03c4d9609e57) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -887,170 +887,145 @@ let package_default =
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_select_byte";
+              "oasis_executable_nonblocking_select_byte";
               "ocaml";
               "link";
               "byte"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_select_native";
+              "oasis_executable_nonblocking_select_native";
               "ocaml";
               "link";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_select_byte";
+              "oasis_executable_nonblocking_select_byte";
               "ocaml";
               "ocamldep";
               "byte"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_select_native";
+              "oasis_executable_nonblocking_select_native";
               "ocaml";
               "ocamldep";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_select_byte";
+              "oasis_executable_nonblocking_select_byte";
               "ocaml";
               "compile";
               "byte"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_select_native";
+              "oasis_executable_nonblocking_select_native";
               "ocaml";
               "compile";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
-          ([
-              "oasis_executable_test_nonblocking_lwt_byte";
-              "ocaml";
-              "link";
-              "byte"
-           ],
+          (["oasis_executable_nonblocking_lwt_byte"; "ocaml"; "link"; "byte"],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_lwt_native";
+              "oasis_executable_nonblocking_lwt_native";
               "ocaml";
               "link";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_lwt_byte";
+              "oasis_executable_nonblocking_lwt_byte";
               "ocaml";
               "ocamldep";
               "byte"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_lwt_native";
+              "oasis_executable_nonblocking_lwt_native";
               "ocaml";
               "ocamldep";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_lwt_byte";
+              "oasis_executable_nonblocking_lwt_byte";
               "ocaml";
               "compile";
               "byte"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_lwt_native";
+              "oasis_executable_nonblocking_lwt_native";
               "ocaml";
               "compile";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_async_byte";
+              "oasis_executable_nonblocking_async_byte";
               "ocaml";
               "link";
               "byte"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_async_native";
+              "oasis_executable_nonblocking_async_native";
               "ocaml";
               "link";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_async_byte";
+              "oasis_executable_nonblocking_async_byte";
               "ocaml";
               "ocamldep";
               "byte"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_async_native";
+              "oasis_executable_nonblocking_async_native";
               "ocaml";
               "ocamldep";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_async_byte";
+              "oasis_executable_nonblocking_async_byte";
               "ocaml";
               "compile";
               "byte"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
-              "oasis_executable_test_nonblocking_async_native";
+              "oasis_executable_nonblocking_async_native";
               "ocaml";
               "compile";
               "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
-          (["oasis_executable_test_blocking_byte"; "ocaml"; "link"; "byte"],
+          (["oasis_executable_blocking_byte"; "ocaml"; "link"; "byte"],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
-          ([
-              "oasis_executable_test_blocking_native";
-              "ocaml";
-              "link";
-              "native"
+          (["oasis_executable_blocking_native"; "ocaml"; "link"; "native"],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          (["oasis_executable_blocking_byte"; "ocaml"; "ocamldep"; "byte"],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          (["oasis_executable_blocking_native"; "ocaml"; "ocamldep"; "native"
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
-          ([
-              "oasis_executable_test_blocking_byte";
-              "ocaml";
-              "ocamldep";
-              "byte"
-           ],
+          (["oasis_executable_blocking_byte"; "ocaml"; "compile"; "byte"],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
-          ([
-              "oasis_executable_test_blocking_native";
-              "ocaml";
-              "ocamldep";
-              "native"
-           ],
-            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
-          (["oasis_executable_test_blocking_byte"; "ocaml"; "compile"; "byte"
-           ],
-            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
-          ([
-              "oasis_executable_test_blocking_native";
-              "ocaml";
-              "compile";
-              "native"
-           ],
+          (["oasis_executable_blocking_native"; "ocaml"; "compile"; "native"],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])])
        ];
      includes =
        [
           ("stubgen", ["bindings"]);
-          ("lib_test", ["lib"]);
-          ("lib", ["bindings"])
+          ("lib", ["bindings"]);
+          ("examples", ["lib"])
        ]
   }
   ;;
@@ -1059,7 +1034,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 1063 "myocamlbuild.ml"
+# 1038 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let dispatch = function

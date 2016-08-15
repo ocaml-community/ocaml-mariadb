@@ -61,10 +61,10 @@ Document "mariadb"
   XOCamlbuildPath:      lib
   XOCamlbuildLibraries: mariadb
 
-Executable "test_nonblocking_select"
+Executable "nonblocking_select"
   Install:          false
-  Path:             lib_test
-  MainIs:           test_nonblocking_select.ml
+  Path:             examples
+  MainIs:           nonblocking_select_example.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
@@ -75,11 +75,11 @@ Flag "lwt"
   Description:      Build the Lwt example
   Default:          false
 
-Executable "test_nonblocking_lwt"
+Executable "nonblocking_lwt"
   Build$:           flag(lwt)
   Install:          false
-  Path:             lib_test
-  MainIs:           test_nonblocking_lwt.ml
+  Path:             examples
+  MainIs:           nonblocking_lwt_example.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
@@ -91,11 +91,11 @@ Flag "async"
   Description:      Build the Async example
   Default:          false
 
-Executable "test_nonblocking_async"
+Executable "nonblocking_async"
   Build$:           flag(async)
   Install:          false
-  Path:             lib_test
-  MainIs:           test_nonblocking_async.ml
+  Path:             examples
+  MainIs:           nonblocking_async_example.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
@@ -103,10 +103,10 @@ Executable "test_nonblocking_async"
                     async,
                     threads
 
-Executable "test_blocking"
+Executable "blocking"
   Install:          false
-  Path:             lib_test
-  MainIs:           test_blocking.ml
+  Path:             examples
+  MainIs:           blocking_example.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
