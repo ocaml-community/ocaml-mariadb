@@ -71,7 +71,12 @@ Executable "test_nonblocking_select"
   BuildDepends:     mariadb,
                     unix
 
+Flag "lwt"
+  Description:      Build the Lwt example
+  Default:          false
+
 Executable "test_nonblocking_lwt"
+  Build$:           flag(lwt)
   Install:          false
   Path:             lib_test
   MainIs:           test_nonblocking_lwt.ml
@@ -82,7 +87,12 @@ Executable "test_nonblocking_lwt"
                     lwt,
                     lwt.unix
 
+Flag "async"
+  Description:      Build the Async example
+  Default:          false
+
 Executable "test_nonblocking_async"
+  Build$:           flag(async)
   Install:          false
   Path:             lib_test
   MainIs:           test_nonblocking_async.ml

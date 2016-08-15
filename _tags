@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 1191d6f59a8fc6bbadc36d16f2c642a3)
+# DO NOT EDIT (digest: 93ce5be128785ffb357735b3674accbc)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -90,7 +90,6 @@ true: annot, bin_annot
 <lib_test/test_nonblocking_async.{native,byte}>: oasis_executable_test_nonblocking_async_native
 <lib_test/*.ml{,i,y}>: oasis_executable_test_nonblocking_async_native
 <lib_test/test_nonblocking_async.{native,byte}>: pkg_async
-<lib_test/test_nonblocking_async.{native,byte}>: pkg_async_extended
 <lib_test/test_nonblocking_async.{native,byte}>: pkg_ctypes.foreign
 <lib_test/test_nonblocking_async.{native,byte}>: pkg_ctypes.stubs
 <lib_test/test_nonblocking_async.{native,byte}>: pkg_threads
@@ -98,7 +97,6 @@ true: annot, bin_annot
 <lib_test/test_nonblocking_async.{native,byte}>: use_mariadb
 <lib_test/test_nonblocking_async.{native,byte}>: use_mariadb_bindings
 <lib_test/*.ml{,i,y}>: pkg_async
-<lib_test/*.ml{,i,y}>: pkg_async_extended
 <lib_test/*.ml{,i,y}>: pkg_threads
 # Executable test_blocking
 <lib_test/test_blocking.{native,byte}>: oasis_executable_test_blocking_byte
