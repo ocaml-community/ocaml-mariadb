@@ -91,6 +91,7 @@ let close_cont mariadb status =
   handle_ok_wait mariadb (fun raw -> B.mysql_close_cont raw status)
 
 let close mariadb =
+  B.mysql_library_end ();
   (close_start mariadb, close_cont mariadb)
 
 let fd mariadb =

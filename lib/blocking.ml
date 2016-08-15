@@ -75,6 +75,7 @@ type server_option = Common.server_option =
   | Multi_statements of bool
 
 let close =
+  B.mysql_library_end ();
   B.mysql_close
 
 let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =

@@ -172,7 +172,4 @@ module Common = Common
 module Blocking = Blocking
 module Nonblocking = Nonblocking
 
-let () =
-  match B.mysql_library_init 0 None None with
-  | 0 -> at_exit B.mysql_library_end
-  | _ -> failwith "cannot initialize MariaDB library"
+let () = B.mysql_library_init 0 None None |> ignore
