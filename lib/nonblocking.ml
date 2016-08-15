@@ -320,7 +320,7 @@ end
 module type S = sig
   type error = int * string
   type 'a future
-  type 'a result = ('a, Common.error) Pervasives.result
+  type 'a result = ('a, error) Pervasives.result
 
   module Time : sig
     type t

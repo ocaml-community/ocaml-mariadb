@@ -304,7 +304,7 @@ module Nonblocking : sig
       (** Indicates if a timeout has occurred. *)
   end
 
-  type t = [`Nonblocking] Common.t
+  type t
     (** The type of nonblocking database handles. *)
 
   val fd : t -> Unix.file_descr
@@ -338,7 +338,7 @@ module Nonblocking : sig
 module type S = sig
   type error = int * string
   type 'a future
-  type 'a result = ('a, Common.error) Pervasives.result
+  type 'a result = ('a, error) Pervasives.result
 
   module Time : sig
     type t
