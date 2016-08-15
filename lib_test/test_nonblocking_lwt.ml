@@ -3,9 +3,11 @@ open Printf
 
 module S = Mariadb.Nonblocking.Status
 module M = Mariadb.Nonblocking.Make(struct
-  type 'a future = 'a Lwt.t
-  let (>>=) = (>>=)
-  let return = Lwt.return
+  module IO = struct
+    type 'a future = 'a Lwt.t
+    let (>>=) = (>>=)
+    let return = Lwt.return
+  end
 
   let wait mariadb status =
     let fd = Lwt_unix.of_unix_file_descr @@ Mariadb.Nonblocking.fd mariadb in
@@ -24,13 +26,13 @@ module M = Mariadb.Nonblocking.Make(struct
     Lwt.catch
       (fun () ->
         Lwt.nchoose [rt; wt; tt] >>= fun _ ->
-        return @@
+        Lwt.return @@
           S.create
             ~read:(Lwt_unix.readable fd)
             ~write:(Lwt_unix.writable fd)
             ())
       (function
-      | Lwt_unix.Timeout -> return @@ S.create ~timeout:true ()
+      | Lwt_unix.Timeout -> Lwt.return @@ S.create ~timeout:true ()
       | e -> Lwt.fail e)
 end)
 
@@ -43,25 +45,26 @@ let or_die ?(info = "error") () = function
   | Error (i, e) -> Lwt.fail_with @@ sprintf "%s: (%d) %s" info i e
 
 let print_row row =
-  printf "---\n%!";
-  M.Row.StringMap.iter
-    (fun name field ->
-      printf "%20s " name;
+  Lwt_io.printf "---\n%!" >>= fun () ->
+  M.Row.StringMap.fold
+    (fun name field _ ->
+      Lwt_io.printf "%20s " name >>= fun () ->
       match M.Field.value field with
-      | `Int i -> printf "%d\n%!" i
-      | `Float x -> printf "%f\n%!" x
-      | `String s -> printf "%s\n%!" s
-      | `Bytes b -> printf "%s\n%!" (Bytes.to_string b)
+      | `Int i -> Lwt_io.printf "%d\n%!" i
+      | `Float x -> Lwt_io.printf "%f\n%!" x
+      | `String s -> Lwt_io.printf "%s\n%!" s
+      | `Bytes b -> Lwt_io.printf "%s\n%!" (Bytes.to_string b)
       | `Time t ->
-          printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
+          Lwt_io.printf "%04d-%02d-%02d %02d:%02d:%02d\n%!"
             (M.Time.year t)
             (M.Time.month t)
             (M.Time.day t)
             (M.Time.hour t)
             (M.Time.minute t)
             (M.Time.second t)
-      | `Null -> printf "NULL\n%!")
+      | `Null -> Lwt_io.printf "NULL\n%!")
     row
+    Lwt.return_unit
 
 let connect () =
   M.connect
@@ -71,16 +74,13 @@ let connect () =
     ~db:(env "OCAML_MARIADB_DB" "mysql") ()
 
 let stream res =
-  let module F = struct exception E of M.error end in
   let next _ =
     M.Res.fetch (module M.Row.Map) res
     >>= function
     | Ok (Some _ as row) -> Lwt.return row
     | Ok None -> Lwt.return_none
-    | Error e -> Lwt.fail (F.E e) in
-  Lwt.catch
-    (fun () -> Lwt.return (Ok (Lwt_stream.from next)))
-    (function F.E e -> Lwt.return (Error e))
+    | Error _ -> Lwt.return_none in
+  Lwt.return (Lwt_stream.from next)
 
 let main () =
   connect () >>= or_die ~info:"connect" () >>= fun mariadb ->
@@ -89,8 +89,8 @@ let main () =
   M.prepare mariadb query >>= or_die ~info:"prepare" () >>= fun stmt ->
   M.Stmt.execute stmt [| `String "Problema%" |] >>= or_die () >>= fun res ->
   printf "#rows: %d\n%!" (M.Res.num_rows res);
-  stream res >>= or_die () >>= fun s ->
-  Lwt_stream.iter print_row s >>= fun () ->
+  stream res >>= fun s ->
+  Lwt_stream.iter_s print_row s >>= fun () ->
   M.Stmt.close stmt >>= or_die () >>= fun () ->
   M.close mariadb
 

@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: e73e52e5035566a98faeacc0155c933e) *)
+(* DO NOT EDIT (digest: 58b72eec46cd5bac0a59e02f4c01ee50) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -887,6 +887,48 @@ let package_default =
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
+              "oasis_executable_test_nonblocking_select_byte";
+              "ocaml";
+              "link";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_nonblocking_select_native";
+              "ocaml";
+              "link";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_nonblocking_select_byte";
+              "ocaml";
+              "ocamldep";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_nonblocking_select_native";
+              "ocaml";
+              "ocamldep";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_nonblocking_select_byte";
+              "ocaml";
+              "compile";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_test_nonblocking_select_native";
+              "ocaml";
+              "compile";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
               "oasis_executable_test_nonblocking_lwt_byte";
               "ocaml";
               "link";
@@ -975,7 +1017,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 979 "myocamlbuild.ml"
+# 1021 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let dispatch = function

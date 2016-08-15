@@ -321,12 +321,14 @@ module Nonblocking : sig
 	(** Input module signature for the functor that generates a nonblocking
 			connection module. *)
   module type Wait = sig
-    type 'a future
+    module IO : sig
+      type 'a future
 
-    val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-    val return : 'a -> 'a future
+      val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+      val return : 'a -> 'a future
+    end
 
-    val wait : t -> Status.t -> Status.t future
+    val wait : t -> Status.t -> Status.t IO.future
 			(** [wait mariadb status] must wait for the events set in [status]
 					to occur in the [mariadb] connection and return a [Status.t]
 					indicating which events have actually occured. *)
@@ -504,5 +506,5 @@ end
 
 	(** Functor that generates a nonblocking database interface, given a way
       to wait for connection socket events. *)
-  module Make (W : Wait) : S with type 'a future := 'a W.future
+  module Make (W : Wait) : S with type 'a future := 'a W.IO.future
 end

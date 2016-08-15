@@ -307,10 +307,13 @@ module Stmt = struct
 end
 
 module type Wait = sig
-  type 'a future
-  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
-  val return : 'a -> 'a future
-  val wait : t -> Status.t -> Status.t future
+  module IO : sig
+    type 'a future
+    val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+    val return : 'a -> 'a future
+  end
+
+  val wait : t -> Status.t -> Status.t IO.future
 end
 
 module type S = sig
@@ -482,15 +485,15 @@ module type S = sig
   val prepare : t -> string -> Stmt.t result future
 end
 
-module Make (W : Wait) : S with type 'a future = 'a W.future = struct
+module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
   type t = mariadb
 
-  type 'a future = 'a W.future
+  type 'a future = 'a W.IO.future
   type error = int * string
   type 'a result = ('a, error) Pervasives.result
 
-  let (>>=) = W.(>>=)
-  let return = W.return
+  let (>>=) = W.IO.(>>=)
+  let return = W.IO.return
   let return_unit = return ()
   let (>>|) fut f = fut >>= fun x -> return (f x)
 
@@ -557,9 +560,9 @@ module Make (W : Wait) : S with type 'a future = 'a W.future = struct
 
   let rec nonblocking m (f, g) =
     match f () with
-    | `Ok v -> W.return (Ok v)
+    | `Ok v -> return (Ok v)
     | `Wait s -> W.wait m s >>= fun s -> nonblocking m ((fun () -> g s), g)
-    | `Error e -> W.return (Error e)
+    | `Error e -> return (Error e)
 
   let rec nonblocking' m (f, g) =
     match f () with
@@ -575,21 +578,6 @@ module Make (W : Wait) : S with type 'a future = 'a W.future = struct
 
     let fetch (type t) (module R : Row.S with type t = t) res =
       nonblocking res.Common.Res.mariadb (Res.fetch (module R) res)
-
-    (*let stream (type t) (module R : Row.S with type t = t) res =
-      let module M = struct exception E of error end in
-      let next _ =
-        fetch (module R : Row.S with type t = t) res
-        >>| function
-          | Ok (Some _ as row) -> row
-          | Ok None -> None
-          | Error e -> raise (M.E e) in
-      return
-        (try Ok (Stream.from next)
-         with M.E e -> Error e)
-
-    let stream (type t) (module R : Row.S with type t = t) res =
-      Common.Res.stream (module R) res fetch*)
 
     let num_rows =
       Res.num_rows
