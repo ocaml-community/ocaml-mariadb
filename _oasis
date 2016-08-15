@@ -79,7 +79,19 @@ Executable "test_nonblocking_lwt"
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
   BuildDepends:     mariadb,
-                    lwt, lwt.unix
+                    lwt,
+                    lwt.unix
+
+Executable "test_nonblocking_async"
+  Install:          false
+  Path:             lib_test
+  MainIs:           test_nonblocking_async.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb,
+                    async,
+                    threads
 
 Executable "test_blocking"
   Install:          false
