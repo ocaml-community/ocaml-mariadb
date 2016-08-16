@@ -85,9 +85,9 @@ let stream res =
 let main () =
   connect () >>= or_die "connect" >>= fun mariadb ->
   let query = env "OCAML_MARIADB_QUERY"
-    "SELECT * FROM user WHERE LENGTH(user) > ?" in
+    "SELECT * FROM mysql.user WHERE User LIKE ?" in
   M.prepare mariadb query >>= or_die "prepare" >>= fun stmt ->
-  M.Stmt.execute stmt [| `String "Problema%" |] >>= or_die "exec" >>= fun res ->
+  M.Stmt.execute stmt [| `String "r%" |] >>= or_die "exec" >>= fun res ->
   Lwt_io.printf "#rows: %d\n%!" (M.Res.num_rows res) >>= fun () ->
   stream res >>= fun s ->
   Lwt_stream.iter_s print_row s >>= fun () ->

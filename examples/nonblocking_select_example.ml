@@ -79,9 +79,9 @@ let rec each_row res f =
 let main () =
   let mariadb = connect () |> or_die ~info:"connect" () in
   let query = env "OCAML_MARIADB_QUERY"
-    "SELECT * FROM user WHERE LENGTH(user) > ?" in
+    "SELECT * FROM mysql.user WHERE User LIKE ?" in
   let stmt = M.prepare mariadb query |> or_die ~info:"prepare" () in
-  let res = M.Stmt.execute stmt [| `String "Problema%" |] |> or_die () in
+  let res = M.Stmt.execute stmt [| `String "r%" |] |> or_die () in
   printf "#rows: %d\n%!" (M.Res.num_rows res);
   each_row res print_row;
   M.Stmt.close stmt |> or_die ();

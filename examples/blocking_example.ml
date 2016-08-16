@@ -51,9 +51,9 @@ let stream res =
 let main () =
   let mariadb = connect () |> or_die "connect" in
   let query = env "OCAML_MARIADB_QUERY"
-    "SELECT * FROM user WHERE LENGTH(user) > ?" in
+    "SELECT * FROM mysql.user WHERE User LIKE ?" in
   let stmt = M.prepare mariadb query |> or_die "prepare" in
-  let res = M.Stmt.execute stmt [| `String "Problema%" |] |> or_die "exec" in
+  let res = M.Stmt.execute stmt [| `String "r%" |] |> or_die "exec" in
   printf "#rows: %d\n%!" (M.Res.num_rows res);
   let s = stream res |> or_die "stream" in
   Stream.iter print_row s;

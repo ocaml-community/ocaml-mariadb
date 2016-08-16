@@ -106,9 +106,9 @@ let print_rows = function
 let main =
   connect () >>= or_die "connect" >>= fun mariadb ->
   let query = env "OCAML_MARIADB_QUERY"
-    "SELECT * FROM user WHERE LENGTH(user) > ?" in
+    "SELECT * FROM mysql.user WHERE User LIKE ?" in
   M.prepare mariadb query >>= or_die "prepare" >>= fun stmt ->
-  M.Stmt.execute stmt [| `String "Problema%" |] >>= or_die "exec" >>= fun res ->
+  M.Stmt.execute stmt [| `String "r%" |] >>= or_die "exec" >>= fun res ->
   printf "#rows: %d\n%!" (M.Res.num_rows res);
   stream res >>= fun p ->
   print_rows p >>= function () ->
