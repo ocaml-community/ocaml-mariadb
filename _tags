@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: ef72d61563d8eceecf06fd6b2b1faf9b)
+# DO NOT EDIT (digest: a37e57ef2314cffea439f461fd7306fe)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -20,8 +20,8 @@ true: annot, bin_annot
 <bindings/*.ml{,i,y}>: oasis_library_mariadb_bindings_byte
 <bindings/mariadb_bindings.{cma,cmxa}>: oasis_library_mariadb_bindings_native
 <bindings/*.ml{,i,y}>: oasis_library_mariadb_bindings_native
-<bindings/*.ml{,i,y}>: pkg_ctypes.foreign
-<bindings/*.ml{,i,y}>: pkg_ctypes.stubs
+<bindings/*.ml{,i,y}>: package(ctypes.foreign)
+<bindings/*.ml{,i,y}>: package(ctypes.stubs)
 # Library mariadb
 "lib/mariadb.cmxs": use_mariadb
 <lib/*.ml{,i,y}>: oasis_library_mariadb_ccopt
@@ -38,41 +38,41 @@ true: annot, bin_annot
 <lib/*.ml{,i,y}>: oasis_library_mariadb_native
 "lib/ffi_generated_stubs.c": oasis_library_mariadb_native
 <lib/mariadb.{cma,cmxa}>: use_libmariadb_stubs
-<lib/*.ml{,i,y}>: pkg_ctypes.foreign
-<lib/*.ml{,i,y}>: pkg_ctypes.stubs
-<lib/*.ml{,i,y}>: pkg_unix
+<lib/*.ml{,i,y}>: package(ctypes.foreign)
+<lib/*.ml{,i,y}>: package(ctypes.stubs)
+<lib/*.ml{,i,y}>: package(unix)
 <lib/*.ml{,i,y}>: use_mariadb_bindings
-"lib/ffi_generated_stubs.c": pkg_ctypes.foreign
-"lib/ffi_generated_stubs.c": pkg_ctypes.stubs
-"lib/ffi_generated_stubs.c": pkg_unix
+"lib/ffi_generated_stubs.c": package(ctypes.foreign)
+"lib/ffi_generated_stubs.c": package(ctypes.stubs)
+"lib/ffi_generated_stubs.c": package(unix)
 "lib/ffi_generated_stubs.c": use_mariadb_bindings
 # Executable ffi_stubgen
 "stubgen/ffi_stubgen.byte": oasis_executable_ffi_stubgen_byte
 <stubgen/*.ml{,i,y}>: oasis_executable_ffi_stubgen_byte
 "stubgen/ffi_stubgen.byte": oasis_executable_ffi_stubgen_native
 <stubgen/*.ml{,i,y}>: oasis_executable_ffi_stubgen_native
-"stubgen/ffi_stubgen.byte": pkg_ctypes.foreign
-"stubgen/ffi_stubgen.byte": pkg_ctypes.stubs
+"stubgen/ffi_stubgen.byte": package(ctypes.foreign)
+"stubgen/ffi_stubgen.byte": package(ctypes.stubs)
 "stubgen/ffi_stubgen.byte": use_mariadb_bindings
 # Executable ffi_types_stubgen
 "stubgen/ffi_types_stubgen.byte": oasis_executable_ffi_types_stubgen_byte
 <stubgen/*.ml{,i,y}>: oasis_executable_ffi_types_stubgen_byte
 "stubgen/ffi_types_stubgen.byte": oasis_executable_ffi_types_stubgen_native
 <stubgen/*.ml{,i,y}>: oasis_executable_ffi_types_stubgen_native
-"stubgen/ffi_types_stubgen.byte": pkg_ctypes.foreign
-"stubgen/ffi_types_stubgen.byte": pkg_ctypes.stubs
+"stubgen/ffi_types_stubgen.byte": package(ctypes.foreign)
+"stubgen/ffi_types_stubgen.byte": package(ctypes.stubs)
 "stubgen/ffi_types_stubgen.byte": use_mariadb_bindings
-<stubgen/*.ml{,i,y}>: pkg_ctypes.foreign
-<stubgen/*.ml{,i,y}>: pkg_ctypes.stubs
+<stubgen/*.ml{,i,y}>: package(ctypes.foreign)
+<stubgen/*.ml{,i,y}>: package(ctypes.stubs)
 <stubgen/*.ml{,i,y}>: use_mariadb_bindings
 # Executable nonblocking_select
 <examples/nonblocking_select_example.{native,byte}>: oasis_executable_nonblocking_select_byte
 <examples/*.ml{,i,y}>: oasis_executable_nonblocking_select_byte
 <examples/nonblocking_select_example.{native,byte}>: oasis_executable_nonblocking_select_native
 <examples/*.ml{,i,y}>: oasis_executable_nonblocking_select_native
-<examples/nonblocking_select_example.{native,byte}>: pkg_ctypes.foreign
-<examples/nonblocking_select_example.{native,byte}>: pkg_ctypes.stubs
-<examples/nonblocking_select_example.{native,byte}>: pkg_unix
+<examples/nonblocking_select_example.{native,byte}>: package(ctypes.foreign)
+<examples/nonblocking_select_example.{native,byte}>: package(ctypes.stubs)
+<examples/nonblocking_select_example.{native,byte}>: package(unix)
 <examples/nonblocking_select_example.{native,byte}>: use_mariadb
 <examples/nonblocking_select_example.{native,byte}>: use_mariadb_bindings
 # Executable nonblocking_lwt
@@ -80,42 +80,42 @@ true: annot, bin_annot
 <examples/*.ml{,i,y}>: oasis_executable_nonblocking_lwt_byte
 <examples/nonblocking_lwt_example.{native,byte}>: oasis_executable_nonblocking_lwt_native
 <examples/*.ml{,i,y}>: oasis_executable_nonblocking_lwt_native
-<examples/nonblocking_lwt_example.{native,byte}>: pkg_ctypes.foreign
-<examples/nonblocking_lwt_example.{native,byte}>: pkg_ctypes.stubs
-<examples/nonblocking_lwt_example.{native,byte}>: pkg_lwt
-<examples/nonblocking_lwt_example.{native,byte}>: pkg_lwt.unix
-<examples/nonblocking_lwt_example.{native,byte}>: pkg_unix
+<examples/nonblocking_lwt_example.{native,byte}>: package(ctypes.foreign)
+<examples/nonblocking_lwt_example.{native,byte}>: package(ctypes.stubs)
+<examples/nonblocking_lwt_example.{native,byte}>: package(lwt)
+<examples/nonblocking_lwt_example.{native,byte}>: package(lwt.unix)
+<examples/nonblocking_lwt_example.{native,byte}>: package(unix)
 <examples/nonblocking_lwt_example.{native,byte}>: use_mariadb
 <examples/nonblocking_lwt_example.{native,byte}>: use_mariadb_bindings
-<examples/*.ml{,i,y}>: pkg_lwt
-<examples/*.ml{,i,y}>: pkg_lwt.unix
+<examples/*.ml{,i,y}>: package(lwt)
+<examples/*.ml{,i,y}>: package(lwt.unix)
 # Executable nonblocking_async
 <examples/nonblocking_async_example.{native,byte}>: oasis_executable_nonblocking_async_byte
 <examples/*.ml{,i,y}>: oasis_executable_nonblocking_async_byte
 <examples/nonblocking_async_example.{native,byte}>: oasis_executable_nonblocking_async_native
 <examples/*.ml{,i,y}>: oasis_executable_nonblocking_async_native
-<examples/nonblocking_async_example.{native,byte}>: pkg_async
-<examples/nonblocking_async_example.{native,byte}>: pkg_ctypes.foreign
-<examples/nonblocking_async_example.{native,byte}>: pkg_ctypes.stubs
-<examples/nonblocking_async_example.{native,byte}>: pkg_threads
-<examples/nonblocking_async_example.{native,byte}>: pkg_unix
+<examples/nonblocking_async_example.{native,byte}>: package(async)
+<examples/nonblocking_async_example.{native,byte}>: package(ctypes.foreign)
+<examples/nonblocking_async_example.{native,byte}>: package(ctypes.stubs)
+<examples/nonblocking_async_example.{native,byte}>: package(threads)
+<examples/nonblocking_async_example.{native,byte}>: package(unix)
 <examples/nonblocking_async_example.{native,byte}>: use_mariadb
 <examples/nonblocking_async_example.{native,byte}>: use_mariadb_bindings
-<examples/*.ml{,i,y}>: pkg_async
-<examples/*.ml{,i,y}>: pkg_threads
+<examples/*.ml{,i,y}>: package(async)
+<examples/*.ml{,i,y}>: package(threads)
 # Executable blocking
 <examples/blocking_example.{native,byte}>: oasis_executable_blocking_byte
 <examples/*.ml{,i,y}>: oasis_executable_blocking_byte
 <examples/blocking_example.{native,byte}>: oasis_executable_blocking_native
 <examples/*.ml{,i,y}>: oasis_executable_blocking_native
-<examples/blocking_example.{native,byte}>: pkg_ctypes.foreign
-<examples/blocking_example.{native,byte}>: pkg_ctypes.stubs
-<examples/blocking_example.{native,byte}>: pkg_unix
+<examples/blocking_example.{native,byte}>: package(ctypes.foreign)
+<examples/blocking_example.{native,byte}>: package(ctypes.stubs)
+<examples/blocking_example.{native,byte}>: package(unix)
 <examples/blocking_example.{native,byte}>: use_mariadb
 <examples/blocking_example.{native,byte}>: use_mariadb_bindings
-<examples/*.ml{,i,y}>: pkg_ctypes.foreign
-<examples/*.ml{,i,y}>: pkg_ctypes.stubs
-<examples/*.ml{,i,y}>: pkg_unix
+<examples/*.ml{,i,y}>: package(ctypes.foreign)
+<examples/*.ml{,i,y}>: package(ctypes.stubs)
+<examples/*.ml{,i,y}>: package(unix)
 <examples/*.ml{,i,y}>: use_mariadb
 <examples/*.ml{,i,y}>: use_mariadb_bindings
 # OASIS_STOP
