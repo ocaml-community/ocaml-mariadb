@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: b81a1a130617d12ad075d7446757febb)
+# DO NOT EDIT (digest: ef72d61563d8eceecf06fd6b2b1faf9b)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -26,6 +26,11 @@ true: annot, bin_annot
 "lib/mariadb.cmxs": use_mariadb
 <lib/*.ml{,i,y}>: oasis_library_mariadb_ccopt
 "lib/ffi_generated_stubs.c": oasis_library_mariadb_ccopt
+<lib/mariadb.{cma,cmxa}>: oasis_library_mariadb_cclib
+"lib/libmariadb_stubs.lib": oasis_library_mariadb_cclib
+"lib/dllmariadb_stubs.dll": oasis_library_mariadb_cclib
+"lib/libmariadb_stubs.a": oasis_library_mariadb_cclib
+"lib/dllmariadb_stubs.so": oasis_library_mariadb_cclib
 <lib/mariadb.{cma,cmxa}>: oasis_library_mariadb_byte
 <lib/*.ml{,i,y}>: oasis_library_mariadb_byte
 "lib/ffi_generated_stubs.c": oasis_library_mariadb_byte

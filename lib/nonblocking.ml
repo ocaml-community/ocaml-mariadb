@@ -1,6 +1,6 @@
 open Util
 
-module B = Ffi_bindings.Bindings(Ffi_generated)
+module B = Binding_wrappers
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
 module Time = Time

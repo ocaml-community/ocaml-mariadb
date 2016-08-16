@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 7b3c35b6f8614dc70a5a03c4d9609e57) *)
+(* DO NOT EDIT (digest: b7b6cf1a4c5fc4de695f8e19397bafeb) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -810,6 +810,10 @@ let package_default =
                (OASISExpr.EBool true,
                  S [A "-ccopt"; A "-I"; A "-ccopt"; A "${pkg_ctypes_stubs}"])
             ]);
+          (["oasis_library_mariadb_cclib"; "link"],
+            [(OASISExpr.EBool true, S [A "-cclib"; A "-lmysqlclient"])]);
+          (["oasis_library_mariadb_cclib"; "ocamlmklib"; "c"],
+            [(OASISExpr.EBool true, S [A "-lmysqlclient"])]);
           (["oasis_library_mariadb_byte"; "ocaml"; "link"; "byte"],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           (["oasis_library_mariadb_native"; "ocaml"; "link"; "native"],
@@ -1034,7 +1038,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 1038 "myocamlbuild.ml"
+# 1042 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let dispatch = function

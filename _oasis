@@ -13,6 +13,7 @@ Library "mariadb"
   Path:             lib
   Modules:          Mariadb
   InternalModules:  Bind,
+                    Binding_wrappers,
                     Blocking,
                     Common,
                     Field,
@@ -25,6 +26,7 @@ Library "mariadb"
                     Ffi_generated_types
   CSources:         ffi_generated_stubs.c
   CCOpt:            -I $pkg_ctypes_stubs
+  CCLib:            -lmysqlclient
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings,

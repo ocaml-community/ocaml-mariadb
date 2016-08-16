@@ -166,7 +166,7 @@ module type S = sig
   val prepare : t -> string -> Stmt.t result
 end
 
-module B = Ffi_bindings.Bindings(Ffi_generated)
+module B = Binding_wrappers
 
 module Common = Common
 module Blocking = Blocking

@@ -1,13 +1,13 @@
 open Util
 
-module B = Ffi_bindings.Bindings(Ffi_generated)
+module B = Binding_wrappers
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
 module Row = Row
 module Field = Field
 
 type mode = [`Blocking | `Nonblocking]
-type 'm t = B.Types.mysql constraint 'm = [< mode]
+type 'm t = B.mysql constraint 'm = [< mode]
 
 type 'm mariadb = 'm t
 
@@ -200,10 +200,10 @@ module Res = struct
   open Ctypes
 
   type u =
-    { mariadb : B.Types.mysql
-    ; stmt    : B.Types.stmt
+    { mariadb : B.mysql
+    ; stmt    : B.stmt
     ; result  : Bind.t
-    ; raw     : B.Types.res
+    ; raw     : B.res
     ; buffers : unit ptr array
     }
   type 'm t = u constraint 'm = [< mode]
@@ -240,9 +240,9 @@ module Stmt = struct
   open Ctypes
 
   type u =
-    { raw : B.Types.stmt
-    ; mariadb : B.Types.mysql
-    ; res : B.Types.res
+    { raw : B.stmt
+    ; mariadb : B.mysql
+    ; res : B.res
     ; num_params : int
     ; params : Bind.t
     ; result : Bind.t
