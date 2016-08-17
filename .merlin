@@ -1,0 +1,10 @@
+S lib
+S bindings
+S stubgen
+B _build/lib
+B _build/bindings
+B _build/stubgen
+B +threads
+PKG ctypes
+PKG ctypes.foreign
+PKG unix
