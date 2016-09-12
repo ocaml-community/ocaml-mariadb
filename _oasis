@@ -66,7 +66,7 @@ Document "mariadb"
 
 Executable "nonblocking_select"
   Install:          false
-  Path:             examples
+  Path:             examples/select
   MainIs:           nonblocking_select_example.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
@@ -81,7 +81,7 @@ Flag "lwt"
 Executable "nonblocking_lwt"
   Build$:           flag(lwt)
   Install:          false
-  Path:             examples
+  Path:             examples/lwt
   MainIs:           nonblocking_lwt_example.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
@@ -97,7 +97,7 @@ Flag "async"
 Executable "nonblocking_async"
   Build$:           flag(async)
   Install:          false
-  Path:             examples
+  Path:             examples/async
   MainIs:           nonblocking_async_example.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
@@ -108,7 +108,7 @@ Executable "nonblocking_async"
 
 Executable "blocking"
   Install:          false
-  Path:             examples
+  Path:             examples/blocking
   MainIs:           blocking_example.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
