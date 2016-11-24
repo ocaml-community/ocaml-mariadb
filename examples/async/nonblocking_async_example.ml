@@ -89,19 +89,15 @@ let connect () =
     ~db:(env "OCAML_MARIADB_DB" "mysql") ()
 
 let stream res =
-  let build _ =
+  let build () =
     M.Res.fetch (module M.Row.Map) res
     >>| function
-      | Ok (Some row) -> Some (row, row)
+      | Ok (Some row) -> Some (row, ())
       | Ok None | Error _ -> None in
-  M.Res.fetch (module M.Row.Map) res
-  >>| function
-    | Ok (Some init) -> Some (Pipe.unfold ~init ~f:build)
-    | Ok None | Error _ -> None
+  return (Pipe.unfold ~init:() ~f:build)
 
-let print_rows = function
-  | Some p -> Pipe.iter p ~f:print_row
-  | None -> return ()
+let print_rows p =
+  Pipe.iter p ~f:print_row
 
 let main =
   connect () >>= or_die "connect" >>= fun mariadb ->
