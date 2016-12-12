@@ -166,7 +166,7 @@ module Stmt = struct
         let raw = stmt.Common.Stmt.raw in
         if B.mysql_stmt_execute raw && B.mysql_stmt_store_result raw then
           match Common.Stmt.bind_result stmt with
-          | `Ok res -> Ok res
+          | `Ok res_or_none -> Ok res_or_none
           | `Error e -> Error e
         else
           Error (Common.Stmt.error stmt) in

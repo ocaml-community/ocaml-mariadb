@@ -80,7 +80,7 @@ module type S = sig
       | `Bytes of bytes
       ]
 
-    val execute : t -> Field.value array -> Res.t result
+    val execute : t -> Field.value array -> Res.t option result
     val close : t -> unit result
   end
 

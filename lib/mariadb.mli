@@ -148,7 +148,7 @@ module type S = sig
       ]
       (** The type of query parameters. *)
 
-    val execute : t -> Field.value array -> Res.t result
+    val execute : t -> Field.value array -> Res.t option result
       (** [execute stmt params] executes the prepared statement [stmt]
           binding to it the query parameters [params] and returns a [Res.t],
           the query result. *)
@@ -421,7 +421,7 @@ module Nonblocking : sig
         | `Bytes of bytes
         ]
 
-      val execute : t -> Field.value array -> Res.t result future
+      val execute : t -> Field.value array -> Res.t option result future
       val close : t -> unit result future
     end
 

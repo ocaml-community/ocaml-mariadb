@@ -239,14 +239,18 @@ let stmt_init mariadb =
 module Stmt = struct
   open Ctypes
 
+  type meta =
+    { res : B.res
+    ; result : Bind.t
+    ; result_buffers : unit ptr array
+    }
+
   type u =
     { raw : B.stmt
     ; mariadb : B.mysql
-    ; res : B.res
     ; num_params : int
     ; params : Bind.t
-    ; result : Bind.t
-    ; result_buffers : unit ptr array
+    ; meta : meta option
     }
   type 'm t = u constraint 'm = [< mode]
 
@@ -295,17 +299,29 @@ module Stmt = struct
     match B.mysql_stmt_result_metadata raw with
     | Some res ->
         let nf = B.mysql_num_fields res in
+        let meta =
+          { res
+          ; result = alloc_result res nf
+          ; result_buffers = Array.make nf null
+          } in
         Some
           { raw
           ; mariadb
-          ; res
           ; num_params = np
           ; params = Bind.alloc np
-          ; result = alloc_result res nf
-          ; result_buffers = Array.make nf null
+          ; meta = Some meta
           }
     | None ->
-        None
+        if B.mysql_errno mariadb = 0 then
+          Some
+            { raw
+            ; mariadb
+            ; num_params = np
+            ; params = Bind.alloc np
+            ; meta = None
+            }
+        else
+          None
 
   let bind_params stmt params =
     match Array.length params with
@@ -342,36 +358,40 @@ module Stmt = struct
     let p = allocate_n char ~count in
     coerce (ptr char) (ptr void) p
 
-  let alloc_buffer stmt bp fp i =
+  let alloc_buffer meta bp fp i =
     let typ = getf (!@bp) T.Bind.buffer_type in
     match buffer_size typ with
     | -1 ->
         let n = getf (!@fp) T.Field.max_length in
         setf (!@bp) T.Bind.buffer_length n;
-        stmt.result_buffers.(i) <- malloc (Unsigned.ULong.to_int n);
-        setf (!@bp) T.Bind.buffer stmt.result_buffers.(i)
+        meta.result_buffers.(i) <- malloc (Unsigned.ULong.to_int n);
+        setf (!@bp) T.Bind.buffer meta.result_buffers.(i)
     | n ->
         setf (!@bp) T.Bind.buffer_length (Unsigned.ULong.of_int n);
-        stmt.result_buffers.(i) <- malloc n;
-        setf (!@bp) T.Bind.buffer stmt.result_buffers.(i)
+        meta.result_buffers.(i) <- malloc n;
+        setf (!@bp) T.Bind.buffer meta.result_buffers.(i)
 
   let bind_result stmt =
-    let b = stmt.result in
-    let n = b.Bind.n in
-    for i = 0 to n - 1 do
-      let bp = b.Bind.bind +@ i in
-      let fp = fetch_field stmt.res i in
-      alloc_buffer stmt bp fp i
-    done;
-    if B.mysql_stmt_bind_result stmt.raw stmt.result.Bind.bind then
-      let res =
-        Res.create
-          ~mariadb:stmt.mariadb
-          ~stmt:stmt.raw
-          ~result:stmt.result
-          ~raw:stmt.res
-          ~buffers:stmt.result_buffers in
-      `Ok res
-    else
-      `Error (error stmt)
+    match stmt.meta with
+    | Some meta ->
+        let b = meta.result in
+        let n = b.Bind.n in
+        for i = 0 to n - 1 do
+          let bp = b.Bind.bind +@ i in
+          let fp = fetch_field meta.res i in
+          alloc_buffer meta bp fp i
+        done;
+        if B.mysql_stmt_bind_result stmt.raw meta.result.Bind.bind then
+          let res =
+            Res.create
+              ~mariadb:stmt.mariadb
+              ~stmt:stmt.raw
+              ~result:meta.result
+              ~raw:meta.res
+              ~buffers:meta.result_buffers in
+          `Ok (Some res)
+        else
+          `Error (error stmt)
+    | None ->
+        `Ok None
 end

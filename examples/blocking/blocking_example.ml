@@ -54,9 +54,13 @@ let main () =
     "SELECT * FROM mysql.user WHERE User LIKE ?" in
   let stmt = M.prepare mariadb query |> or_die "prepare" in
   let res = M.Stmt.execute stmt [| `String "r%" |] |> or_die "exec" in
-  printf "#rows: %d\n%!" (M.Res.num_rows res);
-  let s = stream res |> or_die "stream" in
-  Stream.iter print_row s;
+  begin match res with
+  | Some res ->
+    printf "#rows: %d\n%!" (M.Res.num_rows res);
+    let s = stream res |> or_die "stream" in
+    Stream.iter print_row s
+  | None -> ()
+  end;
   M.Stmt.close stmt |> or_die "stmt close";
   M.close mariadb;
   printf "done\n%!"

@@ -400,7 +400,7 @@ module type S = sig
       | `Bytes of bytes
       ]
 
-    val execute : t -> Field.value array -> Res.t result future
+    val execute : t -> Field.value array -> Res.t option result future
     val close : t -> unit result future
   end
 
