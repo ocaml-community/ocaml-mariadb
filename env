@@ -1,5 +1,0 @@
-export OCAML_MARIADB_HOST='mysql10.digirati.com.br'
-export OCAML_MARIADB_USER='helpgroup'
-export OCAML_MARIADB_PASS='com#*m2-hel5pdb'
-export OCAML_MARIADB_DB='helpgroup'
-export OCAML_MARIADB_QUERY='SELECT * FROM Topico WHERE StAssunto LIKE ?'
