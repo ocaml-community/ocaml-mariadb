@@ -331,6 +331,7 @@ module Stmt = struct
         Array.iteri
           (fun at arg ->
             match arg with
+            | `Null -> Bind.null b ~at
             | `Int i -> Bind.int b i ~at
             | `Float x -> Bind.float b x ~at
             | `String s -> Bind.string b s ~at

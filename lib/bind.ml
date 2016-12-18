@@ -86,6 +86,14 @@ let bind b ~buffer ~size ~mysql_type ~unsigned ~at =
   setf (!@bp) T.Bind.buffer_length size;
   setf (!@bp) T.Bind.buffer buffer
 
+let null b ~at =
+  bind b
+    ~buffer:Ctypes.null
+    ~size:0
+    ~mysql_type:T.Type.null
+    ~unsigned:yes
+    ~at
+
 let tiny ?(unsigned = false) b param ~at =
   let p = allocate char (char_of_int param) in
   bind b
