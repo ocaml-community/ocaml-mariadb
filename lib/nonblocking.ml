@@ -344,7 +344,8 @@ module type S = sig
     type t
 
     type value =
-      [ `Int of int
+      [ `Null
+      | `Int of int
       | `Float of float
       | `String of string
       | `Bytes of bytes
@@ -352,7 +353,7 @@ module type S = sig
       ]
 
     val name : t -> string
-    val value : t -> [value | `Null]
+    val value : t -> value
     val null_value : t -> bool
     val can_be_null : t -> bool
 

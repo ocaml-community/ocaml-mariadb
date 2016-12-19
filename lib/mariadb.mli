@@ -46,7 +46,8 @@ module type S = sig
       (** The type of fields. *)
 
     type value =
-      [ `Int of int
+      [ `Null
+      | `Int of int
       | `Float of float
       | `String of string
       | `Bytes of bytes
@@ -56,7 +57,7 @@ module type S = sig
     val name : t -> string
       (** [name field] returns the field name of [field]. *)
 
-    val value : t -> [value | `Null]
+    val value : t -> value
       (** [value field] returns the value associated with [field]. *)
 
     val null_value : t -> bool
@@ -364,7 +365,8 @@ module Nonblocking : sig
       type t
 
       type value =
-        [ `Int of int
+        [ `Null
+        | `Int of int
         | `Float of float
         | `String of string
         | `Bytes of bytes
@@ -372,7 +374,7 @@ module Nonblocking : sig
         ]
 
       val name : t -> string
-      val value : t -> [value | `Null]
+      val value : t -> value
       val null_value : t -> bool
       val can_be_null : t -> bool
 

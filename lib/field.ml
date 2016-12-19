@@ -3,7 +3,8 @@ open Ctypes
 module T = Ffi_bindings.Types(Ffi_generated_types)
 
 type value =
-  [ `Int of int
+  [ `Null
+  | `Int of int
   | `Float of float
   | `String of string
   | `Bytes of bytes
