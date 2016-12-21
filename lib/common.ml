@@ -325,7 +325,7 @@ module Stmt = struct
     match Array.length params with
     | 0 -> `Ok stmt
     | n ->
-        let b = Bind.alloc n in
+        let b = stmt.params in
         Array.iteri
           (fun at arg ->
             match arg with
