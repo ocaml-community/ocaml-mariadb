@@ -242,7 +242,6 @@ module Stmt = struct
   type meta =
     { res : B.res
     ; result : Bind.t
-    ; result_buffers : unit ptr array
     }
 
   type u =
@@ -302,7 +301,6 @@ module Stmt = struct
         let meta =
           { res
           ; result = alloc_result res nf
-          ; result_buffers = Array.make nf null
           } in
         Some
           { raw
@@ -359,18 +357,19 @@ module Stmt = struct
     let p = allocate_n char ~count in
     coerce (ptr char) (ptr void) p
 
-  let alloc_buffer meta bp fp i =
+  let alloc_buffer b fp i =
+    let bp = b.Bind.bind +@ i in
     let typ = getf (!@bp) T.Bind.buffer_type in
     match buffer_size typ with
     | -1 ->
         let n = getf (!@fp) T.Field.max_length in
         setf (!@bp) T.Bind.buffer_length n;
-        meta.result_buffers.(i) <- malloc (Unsigned.ULong.to_int n);
-        setf (!@bp) T.Bind.buffer meta.result_buffers.(i)
+        b.Bind.buffers.(i) <- malloc (Unsigned.ULong.to_int n);
+        setf (!@bp) T.Bind.buffer b.Bind.buffers.(i)
     | n ->
         setf (!@bp) T.Bind.buffer_length (Unsigned.ULong.of_int n);
-        meta.result_buffers.(i) <- malloc n;
-        setf (!@bp) T.Bind.buffer meta.result_buffers.(i)
+        b.Bind.buffers.(i) <- malloc n;
+        setf (!@bp) T.Bind.buffer b.Bind.buffers.(i)
 
   let bind_result stmt =
     match stmt.meta with
@@ -378,9 +377,8 @@ module Stmt = struct
         let b = meta.result in
         let n = b.Bind.n in
         for i = 0 to n - 1 do
-          let bp = b.Bind.bind +@ i in
           let fp = fetch_field meta.res i in
-          alloc_buffer meta bp fp i
+          alloc_buffer b fp i
         done;
         if B.mysql_stmt_bind_result stmt.raw meta.result.Bind.bind then
           let res =
@@ -389,7 +387,7 @@ module Stmt = struct
               ~stmt:stmt.raw
               ~result:meta.result
               ~raw:meta.res
-              ~buffers:meta.result_buffers in
+              ~buffers:b.Bind.buffers in
           `Ok (Some res)
         else
           `Error (error stmt)

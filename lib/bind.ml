@@ -9,6 +9,7 @@ type t =
   ; is_null : char ptr
   ; is_unsigned : char
   ; error : char ptr
+  ; buffers : unit ptr array
   }
 
 type buffer_type =
@@ -72,6 +73,7 @@ let alloc count =
   ; is_null = allocate_n char ~count
   ; is_unsigned = no
   ; error = allocate_n char ~count
+  ; buffers = Array.make count null
   }
 
 let bind b ~buffer ~size ~mysql_type ~unsigned ~at =
@@ -80,6 +82,7 @@ let bind b ~buffer ~size ~mysql_type ~unsigned ~at =
   let bp = b.bind +@ at in
   let lp = b.length +@ at in
   lp <-@ size;
+  b.buffers.(at) <- buffer;
   setf (!@bp) T.Bind.length lp;
   setf (!@bp) T.Bind.is_unsigned unsigned;
   setf (!@bp) T.Bind.buffer_type mysql_type;
