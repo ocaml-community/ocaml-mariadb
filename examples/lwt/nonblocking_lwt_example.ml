@@ -20,9 +20,10 @@ module M = Mariadb.Nonblocking.Make(struct
       if S.write status then Lwt_unix.wait_write fd
       else idle in
     let tt =
-      let tmout = float (Mariadb.Nonblocking.timeout mariadb) in
-      if S.timeout status then Lwt_unix.timeout tmout
-      else idle in
+      match S.timeout status, Mariadb.Nonblocking.timeout mariadb with
+      | true, 0 -> Lwt.return ()
+      | true, tmout -> Lwt_unix.timeout (float tmout)
+      | false, _ -> idle in
     Lwt.catch
       (fun () ->
         Lwt.nchoose [rt; wt; tt] >>= fun _ ->
