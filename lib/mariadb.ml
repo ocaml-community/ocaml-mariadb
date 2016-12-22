@@ -74,13 +74,6 @@ module type S = sig
   module Stmt : sig
     type t
 
-    type param =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      ]
-
     val execute : t -> Field.value array -> Res.t option result
     val close : t -> unit result
   end

@@ -141,14 +141,6 @@ module type S = sig
     type t
       (** The type of prepared statement. *)
 
-    type param =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      ]
-      (** The type of query parameters. *)
-
     val execute : t -> Field.value array -> Res.t option result
       (** [execute stmt params] executes the prepared statement [stmt]
           binding to it the query parameters [params] and returns a [Res.t],
@@ -409,13 +401,6 @@ module Nonblocking : sig
 
     module Stmt : sig
       type t
-
-      type param =
-        [ `Int of int
-        | `Float of float
-        | `String of string
-        | `Bytes of bytes
-        ]
 
       val execute : t -> Field.value array -> Res.t option result future
       val close : t -> unit result future

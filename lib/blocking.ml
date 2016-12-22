@@ -144,13 +144,6 @@ end
 module Stmt = struct
   type t = [`Blocking] Common.Stmt.t
 
-  type param =
-    [ `Int of int
-    | `Float of float
-    | `String of string
-    | `Bytes of bytes
-    ]
-
   let execute stmt params =
     let n = B.mysql_stmt_param_count stmt.Common.Stmt.raw in
     if n <> Array.length params then

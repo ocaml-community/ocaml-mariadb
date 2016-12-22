@@ -385,13 +385,6 @@ module type S = sig
   module Stmt : sig
     type t
 
-    type param =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      ]
-
     val execute : t -> Field.value array -> Res.t option result future
     val close : t -> unit result future
   end
@@ -577,13 +570,6 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
 
   module Stmt = struct
     type t = Stmt.t
-
-    type param =
-      [ `Int of int
-      | `Float of float
-      | `String of string
-      | `Bytes of bytes
-      ]
 
     let handle_execute = function
       | Ok stmt -> nonblocking stmt.Common.Stmt.mariadb (Stmt.store_result stmt)

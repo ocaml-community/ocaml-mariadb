@@ -254,13 +254,6 @@ module Stmt = struct
     | Cursor_type of cursor_type
     | Prefetch_rows of int
 
-  type param =
-    [ `Int of int
-    | `Float of float
-    | `String of string
-    | `Bytes of bytes
-    ]
-
   let error stmt =
     (B.mysql_stmt_errno stmt.raw, B.mysql_error stmt.raw)
 
