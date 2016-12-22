@@ -123,3 +123,12 @@ Executable "blocking"
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
   BuildDepends:     mariadb
+
+Executable "blocking_stress_test"
+  Install:          false
+  Path:             examples/blocking
+  MainIs:           blocking_stress_test.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb
