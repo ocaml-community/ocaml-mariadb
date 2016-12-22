@@ -5,9 +5,15 @@ Synopsis:     OCaml bindings for MariaDB
 Authors:      Andre Nathan
 License:      MIT
 OCamlVersion: >= 4.03.0
+FilesAB:      stubgen/ffi_stubgen.ml.ab,
+              stubgen/ffi_types_stubgen.ml.ab
 
 BuildTools:  ocamlbuild
 Plugins:     META (0.4), DevFiles (0.4)
+
+Flag "mariadb_connector"
+  Description:      Link to the MariaDB C/Connector library
+  Default:          false
 
 Library "mariadb"
   FindlibName:      mariadb
@@ -27,7 +33,10 @@ Library "mariadb"
                     Ffi_generated_types
   CSources:         ffi_generated_stubs.c
   CCOpt:            -I $pkg_ctypes_stubs
-  CCLib:            -lmysqlclient
+  if flag(mariadb_connector)
+    CCLib:          -lmariadb
+  else
+    CCLib:          -lmysqlclient
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings,

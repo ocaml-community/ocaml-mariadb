@@ -1,5 +1,34 @@
 #!/bin/sh
 
+detect () {
+  gcc -o /dev/null detect/detect.c $@ > /dev/null 2>&1
+  return $?
+}
+
+include_base=""
+mariadb_connector="false"
+
+if detect -lmariadb; then
+  include_base="mariadb"
+  mariadb_connector="true"
+elif detect -lmysqlclient -DMARIADB_CLIENT; then
+  include_base="mysql"
+fi
+
+if [ -z "$include_base" ]; then
+  echo "Could not detect a MariaDB client library" 1>&2
+  exit 1
+fi
+
+
+echo "mariadb_connector: ................................... $mariadb_connector"
+echo "mariadb_include_base: ................................ $include_base"
+
+cat << EOF > setup.data
+mariadb_include_base="$include_base"
+mariadb_connector="$mariadb_connector"
+EOF
+
 # OASIS_START
 # DO NOT EDIT (digest: dc86c2ad450f91ca10c931b6045d0499)
 set -e
