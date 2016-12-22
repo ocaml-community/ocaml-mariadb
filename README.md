@@ -3,10 +3,10 @@
 ## Introduction
 
 OCaml-MariaDB is a library containing
-[Ctypes](https://github.com/ocamllabs/ocaml-ctypes)-based bindings for MariaDB's
-`libmysqlclient`. The library provides access to the traditional MySQL blocking
-API via the `Mariadb.Blocking` module, as well as the MariaDB nonblocking API,
-via `Mariadb.Nonblocking`, which is designed mainly for use with OCaml's monadic
+[Ctypes](https://github.com/ocamllabs/ocaml-ctypes)-based bindings for MariaDB.
+The library provides access to the traditional MySQL blocking API via the
+`Mariadb.Blocking` module, as well as the MariaDB nonblocking API, via
+`Mariadb.Nonblocking`, which is designed mainly for use with OCaml's monadic
 concurrent programming libraries such as [Lwt](https://ocsigen.org/lwt) and
 [Async](https://github.com/janestreet/async).
 
