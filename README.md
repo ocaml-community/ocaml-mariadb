@@ -15,16 +15,31 @@ functions provide typed query parameters and database field access.
 
 ## Installation
 
-OCaml-MariaDB requires MariaDB's client library version 5.5.21 or greater and
-the C connector library version 2.1.0 or greater. If your distribution doesn't
-yet package those versions, the easiest way to get them is to configure the
-appropriate [repository](https://downloads.mariadb.org/mariadb/repositories/)
-and install the development packages from it. For example, on Debian or Ubuntu,
-run
+OCaml-MariaDB requires MariaDB's client library version 5.5.21 or greater or
+the C connector library version 2.1.0 or greater. If your distribution has
+these already packaged those versions, simply install either package. For
+example, on Debian or Ubuntu, run
 
 ```sh
 # apt-get install libmariadbclient-dev
 ```
+
+to use the client library, or
+
+```sh
+# apt-get install libmariadb-dev
+```
+
+to use the C connector.
+
+In case both are installed, OCaml-MariaDB will link against C connector.
+
+If your distribution doesn't yet package those versions, you can either install
+them manually, set up a third-party package archive (for example, there's an
+[Ubuntu PPA](https://launchpad.net/~jonathonf/+archive/ubuntu/mysql) that
+provides version 2.3.1 of the C connector), or configure MariaDB's own
+[repositories](https://downloads.mariadb.org/mariadb/repositories/), from which
+the client library will be available.
 
 To install OCaml-MariaDB via [OPAM](https://opam.ocaml.org/) simply type
 
