@@ -14,7 +14,6 @@ type error = Common.error
 type 'a result = ('a, error) Pervasives.result
 
 type flag = Common.flag =
-  | Client_can_handle_expired_passwords
   | Compress
   | Found_rows
   | Ignore_sigpipe
@@ -68,8 +67,6 @@ type client_option = Common.client_option =
   | Connect_attr_delete of string
   | Server_public_key of string
   | Enable_cleartext_plugin of bool
-  | Can_handle_expired_passwords of bool
-  | Use_thread_specific_memory of bool
 
 type server_option = Common.server_option =
   | Multi_statements of bool
@@ -100,9 +97,6 @@ let select_db mariadb db =
 
 let change_user mariadb user pass db =
   wrap_unit mariadb (fun m -> B.mysql_change_user m user pass db)
-
-let dump_debug_info mariadb =
-  wrap_unit mariadb B.mysql_dump_debug_info
 
 let set_client_option =
   Common.set_client_option

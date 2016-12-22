@@ -12,7 +12,6 @@ type 'm t = B.mysql constraint 'm = [< mode]
 type 'm mariadb = 'm t
 
 type flag =
-  | Client_can_handle_expired_passwords
   | Compress
   | Found_rows
   | Ignore_sigpipe
@@ -66,8 +65,6 @@ type client_option =
   | Connect_attr_delete of string
   | Server_public_key of string
   | Enable_cleartext_plugin of bool
-  | Can_handle_expired_passwords of bool
-  | Use_thread_specific_memory of bool
 
 type server_option =
   | Multi_statements of bool
@@ -169,19 +166,14 @@ let set_client_option mariadb opt =
     | Server_public_key key ->
         `Opt (T.Options.server_public_key, voidp_of_string key)
     | Enable_cleartext_plugin b ->
-        `Opt (T.Options.enable_cleartext_plugin, voidp_of_bool b)
-    | Can_handle_expired_passwords b ->
-        `Opt (T.Options.can_handle_expired_passwords, voidp_of_bool b)
-    | Use_thread_specific_memory b ->
-        `Opt (T.Options.use_thread_specific_memory, voidp_of_bool b) in
+        `Opt (T.Options.enable_cleartext_plugin, voidp_of_bool b) in
   match opt with
   | `Opt (opt, arg) -> B.mysql_options mariadb opt arg
   | `Opt4 (opt, arg1, arg2) -> B.mysql_options4 mariadb opt arg1 arg2
 
 let int_of_flag = function
-  | Client_can_handle_expired_passwords -> T.Flags.can_handle_expired_passwords
-  | Compress -> T.Flags.compress
   | Found_rows -> T.Flags.found_rows
+  | Compress -> T.Flags.compress
   | Ignore_sigpipe -> T.Flags.ignore_sigpipe
   | Ignore_space -> T.Flags.ignore_space
   | Interactive -> T.Flags.interactive

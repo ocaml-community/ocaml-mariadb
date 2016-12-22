@@ -97,9 +97,6 @@ let mysql_change_user mysql user pass db =
   let db = char_ptr_opt_buffer_of_string db in
   B.mysql_change_user mysql user pass db = '\000'
 
-let mysql_dump_debug_info mysql =
-  B.mysql_dump_debug_info mysql = 0
-
 let mysql_set_server_option mysql opt =
   B.mysql_set_server_option mysql opt = 0
 
@@ -176,12 +173,6 @@ let mysql_change_user_start mysql user pass db =
 
 let mysql_change_user_cont mysql status =
   handle_char (fun ret -> B.mysql_change_user_cont ret mysql status)
-
-let mysql_dump_debug_info_start mysql =
-  handle_int (fun ret -> B.mysql_dump_debug_info_start ret mysql)
-
-let mysql_dump_debug_info_cont mysql status =
-  handle_int (fun ret -> B.mysql_dump_debug_info_cont ret mysql status)
 
 let mysql_set_server_option_start mysql opt =
   handle_int (fun ret -> B.mysql_set_server_option_start ret mysql opt)

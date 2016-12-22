@@ -130,15 +130,6 @@ let change_user_cont mariadb status =
 let change_user mariadb user pass db =
   (change_user_start mariadb user pass db, change_user_cont mariadb)
 
-let dump_debug_info_start mariadb () =
-  handle_int mariadb B.mysql_dump_debug_info_start
-
-let dump_debug_info_cont mariadb status =
-  handle_int mariadb ((flip B.mysql_dump_debug_info_cont) status)
-
-let dump_debug_info mariadb =
-  (dump_debug_info_start mariadb, dump_debug_info_cont mariadb)
-
 let set_server_option_start mariadb opt () =
   let opt = Common.int_of_server_option opt in
   handle_int mariadb ((flip B.mysql_set_server_option_start) opt)
@@ -408,7 +399,6 @@ module type S = sig
   type t
 
   type flag =
-    | Client_can_handle_expired_passwords
     | Compress
     | Found_rows
     | Ignore_sigpipe
@@ -462,8 +452,6 @@ module type S = sig
     | Connect_attr_delete of string
     | Server_public_key of string
     | Enable_cleartext_plugin of bool
-    | Can_handle_expired_passwords of bool
-    | Use_thread_specific_memory of bool
 
   type server_option =
     | Multi_statements of bool
@@ -479,7 +467,6 @@ module type S = sig
   val set_character_set : t -> string -> unit result future
   val select_db : t -> string -> unit result future
   val change_user : t -> string -> string -> string option -> unit result future
-  val dump_debug_info : t -> unit result future
   val set_client_option : t -> client_option -> unit
   val set_server_option : t -> server_option -> unit result future
   val ping : t -> unit result future
@@ -500,7 +487,6 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
   let (>>|) fut f = fut >>= fun x -> return (f x)
 
   type flag = Common.flag =
-    | Client_can_handle_expired_passwords
     | Compress
     | Found_rows
     | Ignore_sigpipe
@@ -554,8 +540,6 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
     | Connect_attr_delete of string
     | Server_public_key of string
     | Enable_cleartext_plugin of bool
-    | Can_handle_expired_passwords of bool
-    | Use_thread_specific_memory of bool
 
   type server_option = Common.server_option =
     | Multi_statements of bool
@@ -641,8 +625,6 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
   let select_db m db = nonblocking m (select_db m db)
 
   let change_user m user pass db = nonblocking m (change_user m user pass db)
-
-  let dump_debug_info m = nonblocking m (dump_debug_info m)
 
   let set_client_option = Common.set_client_option
 

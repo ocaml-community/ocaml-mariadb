@@ -44,16 +44,10 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let connect_attr_delete = constant "MYSQL_OPT_CONNECT_ATTR_DELETE" int
     let server_public_key = constant "MYSQL_SERVER_PUBLIC_KEY" int
     let enable_cleartext_plugin = constant "MYSQL_ENABLE_CLEARTEXT_PLUGIN" int
-    let can_handle_expired_passwords =
-      constant "MYSQL_OPT_CAN_HANDLE_EXPIRED_PASSWORDS" int
     let nonblock = constant "MYSQL_OPT_NONBLOCK" int
-    let use_thread_specific_memory =
-      constant "MYSQL_OPT_USE_THREAD_SPECIFIC_MEMORY" int
   end
 
   module Flags = struct
-    let can_handle_expired_passwords =
-      constant "CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS" int
     let compress = constant "CLIENT_COMPRESS" int
     let found_rows = constant "CLIENT_FOUND_ROWS" int
     let ignore_sigpipe = constant "CLIENT_IGNORE_SIGPIPE" int
@@ -289,9 +283,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let mysql_change_user = foreign "mysql_change_user"
     (mysql @-> ptr char @-> ptr char @-> ptr_opt char @-> returning my_bool)
 
-  let mysql_dump_debug_info = foreign "mysql_dump_debug_info"
-    (mysql @-> returning int)
-
   let mysql_set_server_option = foreign "mysql_set_server_option"
     (mysql @-> int @-> returning int)
 
@@ -377,12 +368,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_change_user_cont = foreign "mysql_change_user_cont"
     (ptr my_bool @-> mysql @-> int @-> returning int)
-
-  let mysql_dump_debug_info_start = foreign "mysql_dump_debug_info_start"
-    (ptr int @-> mysql @-> returning int)
-
-  let mysql_dump_debug_info_cont = foreign "mysql_dump_debug_info_cont"
-    (ptr int @-> mysql @-> int @-> returning int)
 
   let mysql_set_server_option_start = foreign "mysql_set_server_option_start"
     (ptr int @-> mysql @-> int @-> returning int)

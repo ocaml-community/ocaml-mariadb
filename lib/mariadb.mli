@@ -163,7 +163,6 @@ module type S = sig
     (** The type of database handles. *)
 
   type flag =
-    | Client_can_handle_expired_passwords
     | Compress
     | Found_rows
     | Ignore_sigpipe
@@ -217,8 +216,6 @@ module type S = sig
     | Connect_attr_delete of string
     | Server_public_key of string
     | Enable_cleartext_plugin of bool
-    | Can_handle_expired_passwords of bool
-    | Use_thread_specific_memory of bool
 
   type server_option =
     | Multi_statements of bool
@@ -245,9 +242,6 @@ module type S = sig
     (** [change_user mariadb user pass db] changes the connection user to
         [user] with password [password] and optionally change to database
         [db]. *)
-
-  val dump_debug_info : t -> unit result
-    (** Tells the MariaDB server to dump debug information to its logs. *)
 
   val set_client_option : t -> client_option -> unit
     (** Sets the given client option on the connection. *)
@@ -430,7 +424,6 @@ module Nonblocking : sig
     type t
 
     type flag =
-      | Client_can_handle_expired_passwords
       | Compress
       | Found_rows
       | Ignore_sigpipe
@@ -484,8 +477,6 @@ module Nonblocking : sig
       | Connect_attr_delete of string
       | Server_public_key of string
       | Enable_cleartext_plugin of bool
-      | Can_handle_expired_passwords of bool
-      | Use_thread_specific_memory of bool
 
     type server_option =
       | Multi_statements of bool
@@ -502,7 +493,6 @@ module Nonblocking : sig
     val select_db : t -> string -> unit result future
     val change_user : t -> string -> string -> string option
                    -> unit result future
-    val dump_debug_info : t -> unit result future
     val set_client_option : t -> client_option -> unit
     val set_server_option : t -> server_option -> unit result future
     val ping : t -> unit result future

@@ -88,7 +88,6 @@ module type S = sig
   type t
 
   type flag =
-    | Client_can_handle_expired_passwords
     | Compress
     | Found_rows
     | Ignore_sigpipe
@@ -142,8 +141,6 @@ module type S = sig
     | Connect_attr_delete of string
     | Server_public_key of string
     | Enable_cleartext_plugin of bool
-    | Can_handle_expired_passwords of bool
-    | Use_thread_specific_memory of bool
 
   type server_option =
     | Multi_statements of bool
@@ -159,7 +156,6 @@ module type S = sig
   val set_character_set : t -> string -> unit result
   val select_db : t -> string -> unit result
   val change_user : t -> string -> string -> string option -> unit result
-  val dump_debug_info : t -> unit result
   val set_client_option : t -> client_option -> unit
   val set_server_option : t -> server_option -> unit result
   val ping : t -> unit result
