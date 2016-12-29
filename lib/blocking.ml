@@ -111,6 +111,12 @@ let ping mariadb =
 let autocommit mariadb auto =
   wrap_unit mariadb ((flip B.mysql_autocommit) auto)
 
+let commit mariadb =
+  wrap_unit mariadb B.mysql_commit
+
+let rollback mariadb =
+  wrap_unit mariadb B.mysql_rollback
+
 let prepare mariadb query =
   let build_stmt raw =
     if B.mysql_stmt_prepare raw query then
