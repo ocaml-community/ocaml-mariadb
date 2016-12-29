@@ -108,6 +108,9 @@ let mysql_stmt_prepare stmt query =
   let query = char_ptr_buffer_of_string query in
   B.mysql_stmt_prepare stmt query len = 0
 
+let mysql_stmt_reset stmt =
+  B.mysql_stmt_reset stmt = '\000'
+
 let mysql_stmt_execute stmt =
   B.mysql_stmt_execute stmt = 0
 
@@ -193,6 +196,12 @@ let mysql_stmt_prepare_start stmt query =
 
 let mysql_stmt_prepare_cont stmt status =
   handle_int (fun err -> B.mysql_stmt_prepare_cont err stmt status)
+
+let mysql_stmt_reset_start stmt =
+  handle_char (fun err -> B.mysql_stmt_reset_start err stmt)
+
+let mysql_stmt_reset_cont stmt status =
+  handle_char (fun err -> B.mysql_stmt_reset_cont err stmt status)
 
 let mysql_stmt_execute_start stmt =
   handle_int (fun err -> B.mysql_stmt_execute_start err stmt)

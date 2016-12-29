@@ -162,6 +162,13 @@ module Stmt = struct
       | `Error e -> Error e
     end
 
+  let reset stmt =
+    let raw = stmt.Common.Stmt.raw in
+    if B.mysql_stmt_free_result raw && B.mysql_stmt_reset raw then
+      Ok ()
+    else
+      Error (Common.Stmt.error stmt)
+
   let close stmt =
     let raw = stmt.Common.Stmt.raw in
     if B.mysql_stmt_free_result raw && B.mysql_stmt_close raw then

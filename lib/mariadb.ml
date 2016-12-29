@@ -75,6 +75,7 @@ module type S = sig
     type t
 
     val execute : t -> Field.value array -> Res.t option result
+    val reset : t -> unit result
     val close : t -> unit result
   end
 

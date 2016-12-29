@@ -146,6 +146,11 @@ module type S = sig
           binding to it the query parameters [params] and returns a [Res.t],
           the query result. *)
 
+    val reset : t -> unit result
+      (** [reset stmt] reset the client and server state of [stmt] to what they
+          were after [stmt] was prepared, and frees up any {!Res.t} produced by
+          [stmt]. *)
+
     val close : t -> unit result
 			(** [close stmt] closes the prepapred statement [stmt] and frees
 					any allocated memory associated with it and its result. *)
@@ -403,6 +408,7 @@ module Nonblocking : sig
       type t
 
       val execute : t -> Field.value array -> Res.t option result future
+      val reset : t -> unit result future
       val close : t -> unit result future
     end
 
