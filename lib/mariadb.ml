@@ -153,6 +153,8 @@ module type S = sig
   val set_server_option : t -> server_option -> unit result
   val ping : t -> unit result
   val autocommit : t -> bool -> unit result
+  val commit : t -> unit result
+  val rollback : t -> unit result
   val prepare : t -> string -> Stmt.t result
 end
 

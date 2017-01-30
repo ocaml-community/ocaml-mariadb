@@ -249,6 +249,13 @@ module type S = sig
   val autocommit : t -> bool -> unit result
     (** Sets autocommit mode on or off. *)
 
+  val commit : t -> unit result
+    (** Commits the current transaction. *)
+
+  val rollback : t -> unit result
+    (** Rolls back the current transaction. Does not work if autocommit is
+        enabled. *)
+
   val prepare : t -> string -> Stmt.t result
 		(** [prepare mariadb query] creates a prepared statement for [query].
 				The query may contain [?] as placeholders for parameters that
@@ -482,6 +489,8 @@ module Nonblocking : sig
     val set_server_option : t -> server_option -> unit result future
     val ping : t -> unit result future
     val autocommit : t -> bool -> unit result future
+    val commit : t -> unit result future
+    val rollback : t -> unit result future
     val prepare : t -> string -> Stmt.t result future
   end
 

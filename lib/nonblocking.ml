@@ -158,6 +158,24 @@ let autocommit_cont mariadb status =
 let autocommit mariadb auto =
   (autocommit_start mariadb auto, autocommit_cont mariadb)
 
+let commit_start mariadb () =
+  handle_char mariadb B.mysql_commit_start
+
+let commit_cont mariadb status =
+  handle_char mariadb ((flip B.mysql_commit_cont) status)
+
+let commit mariadb =
+  (commit_start mariadb, commit_cont mariadb)
+
+let rollback_start mariadb () =
+  handle_char mariadb B.mysql_rollback_start
+
+let rollback_cont mariadb status =
+  handle_char mariadb ((flip B.mysql_rollback_cont) status)
+
+let rollback mariadb =
+  (rollback_start mariadb, rollback_cont mariadb)
+
 let build_stmt mariadb raw =
   match Common.Stmt.init mariadb raw with
   | Some stmt -> `Ok stmt
@@ -464,6 +482,8 @@ module type S = sig
   val set_server_option : t -> server_option -> unit result future
   val ping : t -> unit result future
   val autocommit : t -> bool -> unit result future
+  val commit : t -> unit result future
+  val rollback : t -> unit result future
   val prepare : t -> string -> Stmt.t result future
 end
 
@@ -619,6 +639,10 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
   let ping m = nonblocking m (ping m)
 
   let autocommit m b = nonblocking m (autocommit m b)
+
+  let commit m = nonblocking m (commit m)
+
+  let rollback m = nonblocking m (rollback m)
 
   let prepare m q =
     match prepare m q with
