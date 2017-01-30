@@ -29,8 +29,8 @@ let time ~hour ~minute ~second =
 
 let timestamp f t =
   let tm = f t in
-  { year = tm.Unix.tm_year
-  ; month = tm.Unix.tm_mon
+  { year = tm.Unix.tm_year + 1900
+  ; month = tm.Unix.tm_mon + 1
   ; day = tm.Unix.tm_mday
   ; hour = tm.Unix.tm_hour
   ; minute = tm.Unix.tm_min
