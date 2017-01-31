@@ -64,39 +64,40 @@ let to_time field kind =
   }
 
 let convert field = function
-  | `Tiny | `Year ->
+  | (`Tiny | `Year), _ ->
       `Int (int_of_char (cast_to char field))
-  | `Short ->
-      `Int (cast_to int field)
-  | `Int24 | `Long ->
-      `Int (Signed.Int32.to_int (cast_to int32_t field))
-  | `Long_long ->
-      `Int (Signed.Int64.to_int (cast_to int64_t field))
-  | `Float ->
+  | `Short, unsigned ->
+      let i =
+        if unsigned then cast_to int field
+        else Unsigned.UInt.to_int (cast_to uint field) in
+      `Int i
+  | (`Int24 | `Long), unsigned ->
+      let i =
+        if unsigned then Unsigned.UInt32.to_int (cast_to uint32_t field)
+        else Signed.Int32.to_int (cast_to int32_t field) in
+      `Int i
+  | `Long_long, unsigned ->
+      let i =
+        if unsigned then Unsigned.UInt64.to_int (cast_to uint64_t field)
+        else Signed.Int64.to_int (cast_to int64_t field) in
+      `Int i
+  | `Float, _ ->
       `Float (cast_to float field)
-  | `Double ->
+  | `Double, _ ->
       `Float (cast_to double field)
-  | `Decimal | `New_decimal | `String | `Var_string | `Bit ->
+  | (`Decimal | `New_decimal | `String | `Var_string | `Bit), _ ->
       `String (Bytes.to_string (to_bytes field))
-  | `Tiny_blob | `Blob | `Medium_blob | `Long_blob ->
+  | (`Tiny_blob | `Blob | `Medium_blob | `Long_blob), _ ->
       `Bytes (to_bytes field)
-  | `Time  | `Date | `Datetime | `Timestamp as kind ->
+  | (`Time  | `Date | `Datetime | `Timestamp as kind), _ ->
       `Time (to_time field kind)
-  | `Null ->
+  | `Null, _ ->
       `Null
-
-let convert_unsigned field = function
-  | `Tiny | `Year -> `Int (int_of_char (cast_to char field))
-  | `Short -> `Int (Unsigned.UInt.to_int (cast_to uint field))
-  | `Int24 | `Long -> `Int (Unsigned.UInt32.to_int (cast_to uint32_t field))
-  | `Long_long -> `Int (Unsigned.UInt64.to_int (cast_to uint64_t field))
-  | _ -> failwith "unexpected unsigned type"
 
 let value field =
   let bp = field.result.Bind.bind +@ field.at in
   let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
-  let conv = if is_unsigned field then convert_unsigned else convert in
-  conv field typ
+  convert field (typ, is_unsigned field)
 
 let err field ~info =
   failwith @@ "field '" ^ name field ^ "' is not " ^ info
