@@ -63,41 +63,32 @@ let to_time field kind =
   ; kind
   }
 
-let convert field = function
-  | (`Tiny | `Year), _ ->
-      `Int (int_of_char (cast_to char field))
-  | `Short, unsigned ->
-      let i =
-        if unsigned then cast_to int field
-        else Unsigned.UInt.to_int (cast_to uint field) in
-      `Int i
-  | (`Int24 | `Long), unsigned ->
-      let i =
-        if unsigned then Unsigned.UInt32.to_int (cast_to uint32_t field)
-        else Signed.Int32.to_int (cast_to int32_t field) in
-      `Int i
-  | `Long_long, unsigned ->
-      let i =
-        if unsigned then Unsigned.UInt64.to_int (cast_to uint64_t field)
-        else Signed.Int64.to_int (cast_to int64_t field) in
-      `Int i
-  | `Float, _ ->
-      `Float (cast_to float field)
-  | `Double, _ ->
-      `Float (cast_to double field)
-  | (`Decimal | `New_decimal | `String | `Var_string | `Bit), _ ->
-      `String (Bytes.to_string (to_bytes field))
-  | (`Tiny_blob | `Blob | `Medium_blob | `Long_blob), _ ->
-      `Bytes (to_bytes field)
-  | (`Time  | `Date | `Datetime | `Timestamp as kind), _ ->
-      `Time (to_time field kind)
-  | `Null, _ ->
-      `Null
+type to_string = [`Decimal | `New_decimal | `String | `Var_string | `Bit]
+type to_blob   = [`Tiny_blob | `Blob | `Medium_blob | `Long_blob]
+type to_time   = [`Time | `Date | `Datetime | `Timestamp]
+
+let convert field typ unsigned =
+  let open Signed in
+  let open Unsigned in
+  match typ, unsigned with
+  | `Null,                _ -> `Null
+  | (`Tiny | `Year),      _ -> `Int (int_of_char (cast_to char field))
+  | `Short,            true -> `Int (cast_to int field)
+  | `Short,           false -> `Int (UInt.to_int (cast_to uint field))
+  | (`Int24 | `Long),  true -> `Int (UInt32.to_int (cast_to uint32_t field))
+  | (`Int24 | `Long), false -> `Int (Int32.to_int (cast_to int32_t field))
+  | `Long_long,        true -> `Int (UInt64.to_int (cast_to uint64_t field))
+  | `Long_long,       false -> `Int (Int64.to_int (cast_to int64_t field))
+  | `Float,               _ -> `Float (cast_to float field)
+  | `Double,              _ -> `Float (cast_to double field)
+  | #to_string,           _ -> `String (Bytes.to_string (to_bytes field))
+  | #to_blob,             _ -> `Bytes (to_bytes field)
+  | #to_time as t,        _ -> `Time (to_time field t)
 
 let value field =
   let bp = field.result.Bind.bind +@ field.at in
   let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
-  convert field (typ, is_unsigned field)
+  convert field typ (is_unsigned field)
 
 let err field ~info =
   failwith @@ "field '" ^ name field ^ "' is not " ^ info
