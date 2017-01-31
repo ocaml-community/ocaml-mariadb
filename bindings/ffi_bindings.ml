@@ -292,6 +292,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let mysql_stmt_prepare = foreign "mysql_stmt_prepare"
     (stmt @-> ptr char @-> ulong @-> returning int)
 
+  let mysql_stmt_reset = foreign "mysql_stmt_reset"
+    (stmt @-> returning my_bool)
+
   let mysql_stmt_execute = foreign "mysql_stmt_execute"
     (stmt @-> returning int)
 
@@ -386,6 +389,12 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_stmt_prepare_cont = foreign "mysql_stmt_prepare_cont"
     (ptr int @-> stmt @-> int @-> returning int)
+
+  let mysql_stmt_reset_start = foreign "mysql_stmt_reset_start"
+    (ptr my_bool @-> stmt @-> returning int)
+
+  let mysql_stmt_reset_cont = foreign "mysql_stmt_reset_cont"
+    (ptr my_bool @-> stmt @-> int @-> returning int)
 
   let mysql_stmt_execute_start = foreign "mysql_stmt_execute_start"
     (ptr int @-> stmt @-> returning int)

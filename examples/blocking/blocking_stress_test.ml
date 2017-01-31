@@ -18,11 +18,12 @@ let connect () =
     ~db:(env "OCAML_MARIADB_DB" "mysql") ()
 
 let test dbh =
+  let mk_stmt () =  M.prepare dbh "SELECT ?" |> or_die "prepare" in
+  let stmt = ref (mk_stmt ()) in
   for i = 0 to 500000 do
     let n = Random.int (1 lsl Random.int 8) in
     let s = String.init n (fun i -> "ACGT".[Random.int 4]) in
-    let stmt = M.prepare dbh "SELECT ?" |> or_die "prepare" in
-    (match M.Stmt.execute stmt [|`String s|] |> or_die "execute" with
+    (match M.Stmt.execute !stmt [|`String s|] |> or_die "execute" with
      | Some res ->
         assert (M.Res.num_rows res = 1);
         (match M.Res.fetch (module M.Row.Array) res |> or_die "fetch" with
@@ -32,7 +33,11 @@ let test dbh =
              if s <> s' then printf "@@@ <%s> <%s>\n%!" s s';
              assert (s = s'))
      | None -> assert false);
-    M.Stmt.close stmt |> or_die "close"
+    if Random.bool () then begin
+      M.Stmt.close !stmt |> or_die "close";
+      stmt := mk_stmt ()
+    end else
+      M.Stmt.reset !stmt |> or_die "reset"
   done
 
 let () = test (connect () |> or_die "connect")

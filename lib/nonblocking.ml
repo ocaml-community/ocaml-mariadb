@@ -302,6 +302,21 @@ module Stmt = struct
   let close stmt =
     (close_start stmt, close_cont stmt)
 
+  let handle_reset stmt f =
+    match f stmt.Common.Stmt.raw with
+    | 0, '\000' -> `Ok ()
+    | 0, _ -> `Error (Common.Stmt.error stmt)
+    | s, _ -> `Wait (Status.of_int s)
+
+  let reset_start stmt () =
+    handle_reset stmt B.mysql_stmt_reset_start
+
+  let reset_cont stmt status =
+    handle_reset stmt ((flip B.mysql_stmt_reset_cont) status)
+
+  let reset mariadb =
+    (reset_start mariadb, reset_cont mariadb)
+
   let handle_next stmt f =
     match f stmt.Common.Stmt.raw with
     | 0, 0 -> `Ok true
@@ -404,6 +419,7 @@ module type S = sig
     type t
 
     val execute : t -> Field.value array -> Res.t option result future
+    val reset : t -> unit result future
     val close : t -> unit result future
   end
 
@@ -609,6 +625,12 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
       let start () = handle_free B.mysql_stmt_free_result_start in
       let cont s = handle_free ((flip B.mysql_stmt_free_result_cont) s) in
       nonblocking stmt.Common.Stmt.mariadb (start, cont)
+
+    let reset stmt =
+      free_res stmt
+      >>= function
+      | Ok () -> nonblocking stmt.Common.Stmt.mariadb (Stmt.reset stmt)
+      | Error _ as e -> return e
 
     let close stmt =
       free_res stmt
