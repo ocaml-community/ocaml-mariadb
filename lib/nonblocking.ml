@@ -79,19 +79,18 @@ let connect mariadb ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
   let cont = connect_cont mariadb in
   (start, cont)
 
-let handle_ok_wait mariadb f =
-  match f mariadb with
-  | 0 -> `Ok
+let with_library_end f =
+  match f () with
+  | 0 -> B.mysql_library_end (); `Ok
   | s -> `Wait (Status.of_int s)
 
 let close_start mariadb () =
-  handle_ok_wait mariadb (fun raw -> B.mysql_close_start raw)
+  with_library_end (fun () -> B.mysql_close_start mariadb)
 
 let close_cont mariadb status =
-  handle_ok_wait mariadb (fun raw -> B.mysql_close_cont raw status)
+  with_library_end (fun () -> B.mysql_close_cont mariadb status)
 
 let close mariadb =
-  B.mysql_library_end ();
   (close_start mariadb, close_cont mariadb)
 
 let fd mariadb =
