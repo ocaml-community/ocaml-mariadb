@@ -87,8 +87,10 @@ let convert field typ unsigned =
 
 let value field =
   let bp = field.result.Bind.bind +@ field.at in
-  let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
-  convert field typ (is_unsigned field)
+  if null_value field then `Null
+  else
+    let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
+    convert field typ (is_unsigned field)
 
 let err field ~info =
   failwith @@ "field '" ^ name field ^ "' is not " ^ info
