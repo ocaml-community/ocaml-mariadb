@@ -1,6 +1,6 @@
 module Caml_bytes = Bytes
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 module S = Mariadb.Nonblocking.Status
 module M = Mariadb.Nonblocking.Make(struct
@@ -45,7 +45,8 @@ module M = Mariadb.Nonblocking.Make(struct
       if S.timeout status then Clock.after (Time.Span.of_sec tmout)
       else idle in
     ready (rt, wt, tt) >>= fun (read, write, timeout) ->
-    Fd.close ~should_close_file_descriptor:false fd >>= fun () ->
+    Fd.close ~file_descriptor_handling:Fd.Do_not_close_file_descriptor fd
+    >>= fun () ->
     Deferred.return @@ S.create ~read ~write ~timeout ()
 end)
 
