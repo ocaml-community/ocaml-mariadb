@@ -105,7 +105,7 @@ using `Unix.select`).
 To use the nonblocking API, a module of type `Mariadb.Nonblocking.Wait` must be
 provided to the functor `Mariadb.Nonblocking.Make`. This module must contain
 an asynchronous I/O type definition along with the usual *bind* and *return*
-monadic operations, as well as a `wait` function the specifies how to wait for
+monadic operations, as well as a `wait` function that specifies how to wait for
 the MariaDB socket to become readable and/or writable.
 
 The signature is as follows.
@@ -205,7 +205,7 @@ type value =
   ]
 ```
 
-The `Field.value` function can also return ```Null`` in case the field is an
+The `Field.value` function can also return `` `Null`` in case the field is an
 SQL `NULL`.
 
 Since the type of a field is in most cases known beforehand, as the user must
