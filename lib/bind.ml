@@ -156,7 +156,7 @@ let string b param ~at =
 let blob b param ~at =
   let len = Bytes.length param in
   let p = allocate_n char ~count:len in
-  String.iteri (fun i c -> (p +@ i) <-@ c) param;
+  Bytes.iteri (fun i c -> (p +@ i) <-@ c) param;
   bind b
     ~buffer:(coerce (ptr char) (ptr void) p)
     ~size:len
