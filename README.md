@@ -90,7 +90,8 @@ let main () =
   printf "number of rows: %d\n%!" (M.Res.num_rows res);
   print_rows res; (* see below *)
   M.Stmt.close stmt |> or_die;
-  M.close mariadb
+  M.close mariadb;
+  M.library_end ()
 
 let () = main ()
 ```
@@ -159,7 +160,8 @@ let main () =
   >>= fun res ->
   print_rows res >>= fun () -> (* see below *)
   M.Stmt.close stmt >>= or_die >>= fun () ->
-  M.close mariadb
+  M.close mariadb >>= fun () ->
+  M.library_end ()
 ```
 
 ## Fetching rows
