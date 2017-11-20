@@ -147,6 +147,7 @@ module type S = sig
              -> t result
 
   val close : t -> unit
+  val library_end : unit -> unit
   val set_character_set : t -> string -> unit result
   val select_db : t -> string -> unit result
   val change_user : t -> string -> string -> string option -> unit result

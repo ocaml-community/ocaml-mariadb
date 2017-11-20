@@ -40,6 +40,11 @@ let init () =
   | None ->
       None
 
+let handle_void f =
+  match f () with
+  | 0 -> `Ok
+  | s -> `Wait (Status.of_int s)
+
 let handle_opt mariadb f =
   match f mariadb with
   | 0, Some r -> `Ok r
@@ -79,16 +84,11 @@ let connect mariadb ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
   let cont = connect_cont mariadb in
   (start, cont)
 
-let with_library_end f =
-  match f () with
-  | 0 -> B.mysql_library_end (); `Ok
-  | s -> `Wait (Status.of_int s)
-
 let close_start mariadb () =
-  with_library_end (fun () -> B.mysql_close_start mariadb)
+  handle_void (fun () -> B.mysql_close_start mariadb)
 
 let close_cont mariadb status =
-  with_library_end (fun () -> B.mysql_close_cont mariadb status)
+  handle_void (fun () -> B.mysql_close_cont mariadb status)
 
 let close mariadb =
   (close_start mariadb, close_cont mariadb)
@@ -490,6 +490,7 @@ module type S = sig
              -> t result future
 
   val close : t -> unit future
+  val library_end : unit -> unit
   val set_character_set : t -> string -> unit result future
   val select_db : t -> string -> unit result future
   val change_user : t -> string -> string -> string option -> unit result future
@@ -646,6 +647,8 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
         return (Error (2008, "out of memory"))
 
   let close m = nonblocking' m (close m)
+
+  let library_end = Common.library_end
 
   let set_character_set m c = nonblocking m (set_character_set m c)
 

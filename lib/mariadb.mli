@@ -229,6 +229,12 @@ module type S = sig
   val close : t -> unit
     (** Close a database handle. *)
 
+  val library_end : unit -> unit
+		(** [library_end ()] should be called when you're done using the
+        library. When using MariaDB's libmysqlclient, it's OK to call it
+        after every call to [close], but when using the Connector/C library,
+        it should be called only once. *)
+
   val set_character_set : t -> string -> unit result
     (** Sets the connection character set to the given parameter. *)
 
@@ -487,6 +493,7 @@ module Nonblocking : sig
                -> t result future
 
     val close : t -> unit future
+    val library_end : unit -> unit
     val set_character_set : t -> string -> unit result future
     val select_db : t -> string -> unit result future
     val change_user : t -> string -> string -> string option

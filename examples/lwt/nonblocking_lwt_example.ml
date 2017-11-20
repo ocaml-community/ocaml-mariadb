@@ -97,7 +97,8 @@ let main () =
   | None -> Lwt.return_unit
   end >>= fun () ->
   M.Stmt.close stmt >>= or_die "stmt close" >>= fun () ->
-  M.close mariadb
+  M.close mariadb >>= fun () ->
+  M.library_end ()
 
 let () =
   Lwt_main.run @@ main ()

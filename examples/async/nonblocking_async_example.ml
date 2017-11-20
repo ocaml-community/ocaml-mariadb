@@ -116,6 +116,7 @@ let main =
   end >>= fun () ->
   M.Stmt.close stmt >>= or_die "stmt close" >>= fun () ->
   M.close mariadb >>= fun () ->
+  M.library_end ();
   Shutdown.exit 0
 
 let () = never_returns (Scheduler.go ())

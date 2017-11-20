@@ -63,6 +63,7 @@ let main () =
   end;
   M.Stmt.close stmt |> or_die "stmt close";
   M.close mariadb;
+  M.library_end ();
   printf "done\n%!"
 
 let () = main ()

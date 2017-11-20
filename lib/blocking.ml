@@ -72,8 +72,9 @@ type server_option = Common.server_option =
   | Multi_statements of bool
 
 let close mariadb =
-  B.mysql_close mariadb;
-  B.mysql_library_end ()
+  B.mysql_close mariadb
+
+let library_end = Common.library_end
 
 let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
   let flags = Common.int_of_flags flags in

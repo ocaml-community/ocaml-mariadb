@@ -228,6 +228,9 @@ let stmt_init mariadb =
   | None ->
       None
 
+let library_end () =
+  B.mysql_library_end ()
+
 module Stmt = struct
   open Ctypes
 

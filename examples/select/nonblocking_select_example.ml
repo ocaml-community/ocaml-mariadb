@@ -89,6 +89,7 @@ let main () =
   | None -> ()
   end;
   M.Stmt.close stmt |> or_die ();
-  M.close mariadb
+  M.close mariadb;
+  M.library_end ()
 
 let () = main ()
