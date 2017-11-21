@@ -91,6 +91,8 @@ let main () =
   print_rows res; (* see below *)
   M.Stmt.close stmt |> or_die;
   M.close mariadb;
+  (* Call this only once, before you're done using all
+     your database handles. *)
   M.library_end ()
 
 let () = main ()

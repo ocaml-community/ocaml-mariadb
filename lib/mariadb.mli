@@ -231,9 +231,9 @@ module type S = sig
 
   val library_end : unit -> unit
 		(** [library_end ()] should be called when you're done using the
-        library. When using MariaDB's libmysqlclient, it's OK to call it
-        after every call to [close], but when using the Connector/C library,
-        it should be called only once. *)
+        library. For maximum portability across MariaDB C client libraries,
+        call this function only once, after you've [close]d all database
+        handles. *)
 
   val set_character_set : t -> string -> unit result
     (** Sets the connection character set to the given parameter. *)
