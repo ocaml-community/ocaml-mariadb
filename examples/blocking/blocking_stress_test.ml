@@ -23,16 +23,14 @@ let test dbh =
   for i = 0 to 500000 do
     let n = Random.int (1 lsl Random.int 8) in
     let s = String.init n (fun i -> "ACGT".[Random.int 4]) in
-    (match M.Stmt.execute !stmt [|`String s|] |> or_die "execute" with
-     | Some res ->
-        assert (M.Res.num_rows res = 1);
-        (match M.Res.fetch (module M.Row.Array) res |> or_die "fetch" with
-         | None -> assert false
-         | Some row ->
-             let s' = M.Field.string row.(0) in
-             if s <> s' then printf "@@@ <%s> <%s>\n%!" s s';
-             assert (s = s'))
-     | None -> assert false);
+    let res = M.Stmt.execute !stmt [|`String s|] |> or_die "execute" in
+    assert (M.Res.num_rows res = 1);
+    (match M.Res.fetch (module M.Row.Array) res |> or_die "fetch" with
+     | None -> assert false
+     | Some row ->
+         let s' = M.Field.string row.(0) in
+         if s <> s' then printf "@@@ <%s> <%s>\n%!" s s';
+         assert (s = s'));
     if Random.bool () then begin
       M.Stmt.close !stmt |> or_die "close";
       stmt := mk_stmt ()

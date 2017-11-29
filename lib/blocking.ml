@@ -136,7 +136,7 @@ module Res = struct
   let fetch (type t) (module R : Row.S with type t = t) res =
     let stmt = res.Common.Res.stmt in
     match B.mysql_stmt_fetch stmt with
-    | 0 -> Ok (Some (Common.Res.build_row (module R) res))
+    | 0 -> Ok (Common.Res.build_row (module R) res)
     | r when r = T.Return_code.no_data -> Ok None
     | r when r = T.Return_code.data_truncated -> Error (2032, "truncated data")
     | _ -> Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)

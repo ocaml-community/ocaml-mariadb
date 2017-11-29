@@ -106,14 +106,10 @@ let main =
     "SELECT * FROM mysql.user WHERE User LIKE ?" in
   M.prepare mariadb query >>= or_die "prepare" >>= fun stmt ->
   M.Stmt.execute stmt [| `String "r%" |] >>= or_die "exec" >>= fun res ->
-  begin match res with
-  | Some res ->
-      printf "#rows: %d\n%!" (M.Res.num_rows res);
-      stream res >>= fun p ->
-      print_rows p
-  | None ->
-      return ()
-  end >>= fun () ->
+  assert (M.Res.affected_rows res = M.Res.num_rows res);
+  printf "#rows: %d\n%!" (M.Res.num_rows res);
+  stream res >>= fun p ->
+  print_rows p >>= fun () ->
   M.Stmt.close stmt >>= or_die "stmt close" >>= fun () ->
   M.close mariadb >>= fun () ->
   M.library_end ();

@@ -89,16 +89,15 @@ let main () =
     "SELECT * FROM mysql.user WHERE User LIKE ?" in
   M.prepare mariadb query >>= or_die "prepare" >>= fun stmt ->
   M.Stmt.execute stmt [| `String "r%" |] >>= or_die "exec" >>= fun res ->
-  begin match res with
-  | Some res ->
-      Lwt_io.printf "#rows: %d\n%!" (M.Res.num_rows res) >>= fun () ->
-      stream res >>= fun s ->
-      Lwt_stream.iter_s print_row s
-  | None -> Lwt.return_unit
-  end >>= fun () ->
+  Lwt_io.printf ">>> %d\n%!" (M.Res.num_rows res) >>= fun () ->
+  assert (M.Res.affected_rows res = M.Res.num_rows res);
+  Lwt_io.printf "#rows: %d\n%!" (M.Res.num_rows res) >>= fun () ->
+  stream res >>= fun s ->
+  Lwt_stream.iter_s print_row s >>= fun () ->
   M.Stmt.close stmt >>= or_die "stmt close" >>= fun () ->
   M.close mariadb >>= fun () ->
-  M.library_end ()
+  M.library_end ();
+  Lwt.return_unit
 
 let () =
   Lwt_main.run @@ main ()

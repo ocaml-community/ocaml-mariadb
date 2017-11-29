@@ -209,7 +209,7 @@ module Res = struct
   let handle_fetch (type t) (module R : Row.S with type t = t) res f =
     let stmt = res.Common.Res.stmt in
     match f stmt with
-    | 0, 0 -> `Ok (Some (Common.Res.build_row (module R) res))
+    | 0, 0 -> `Ok (Common.Res.build_row (module R) res)
     | 0, 1 -> `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
     | 0, r when r = T.Return_code.no_data -> `Ok None
     | 0, r when r = T.Return_code.data_truncated ->
@@ -417,7 +417,7 @@ module type S = sig
   module Stmt : sig
     type t
 
-    val execute : t -> Field.value array -> Res.t option result future
+    val execute : t -> Field.value array -> Res.t result future
     val reset : t -> unit result future
     val close : t -> unit result future
   end

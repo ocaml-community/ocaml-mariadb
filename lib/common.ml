@@ -191,17 +191,24 @@ let int_of_flags =
 module Res = struct
   open Ctypes
 
-  type u =
-    { mariadb : B.mysql
-    ; stmt    : B.stmt
-    ; result  : Bind.t
+  type meta =
+    { result  : Bind.t
     ; raw     : B.res
     ; buffers : unit ptr array
     }
+
+  type u =
+    { mariadb : B.mysql
+    ; stmt    : B.stmt
+    ; meta    : meta option
+    }
   type 'm t = u constraint 'm = [< mode]
 
-  let create ~mariadb ~stmt ~result ~raw ~buffers =
-    { mariadb; stmt; result; raw; buffers }
+  let meta result raw buffers =
+    { result; raw; buffers }
+
+  let create ~mariadb ~stmt ?meta () =
+    { mariadb; stmt; meta }
 
   let num_rows res =
     B.mysql_stmt_num_rows res.stmt
@@ -209,15 +216,17 @@ module Res = struct
   let affected_rows res =
     B.mysql_stmt_affected_rows res.stmt
 
-  let fetch_field res i =
-    coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res.raw i)
+  let fetch_field raw i =
+    coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct raw i)
 
   let build_row (type t) (module R : Row.S with type t = t) res =
-    let r = res.result in
-    R.build r.Bind.n
-      (fun i ->
-        let fp = fetch_field res i in
-        Field.create r fp i)
+    Option.map
+      (fun {result; raw; _} ->
+        R.build result.Bind.n
+          (fun i ->
+            let fp = fetch_field raw i in
+            Field.create result fp i))
+      res.meta
 end
 
 let stmt_init mariadb =
@@ -369,16 +378,15 @@ module Stmt = struct
           alloc_buffer b fp i
         done;
         if B.mysql_stmt_bind_result stmt.raw meta.result.Bind.bind then
+          let meta = Res.meta meta.result meta.res b.Bind.buffers in
           let res =
             Res.create
               ~mariadb:stmt.mariadb
               ~stmt:stmt.raw
-              ~result:meta.result
-              ~raw:meta.res
-              ~buffers:b.Bind.buffers in
-          `Ok (Some res)
+              ~meta () in
+          `Ok res
         else
           `Error (error stmt)
     | None ->
-        `Ok None
+        `Ok (Res.create ~mariadb:stmt.mariadb ~stmt:stmt.raw ())
 end

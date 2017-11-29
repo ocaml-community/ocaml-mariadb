@@ -74,7 +74,7 @@ module type S = sig
   module Stmt : sig
     type t
 
-    val execute : t -> Field.value array -> Res.t option result
+    val execute : t -> Field.value array -> Res.t result
     val reset : t -> unit result
     val close : t -> unit result
   end
