@@ -11,10 +11,6 @@ FilesAB:      stubgen/ffi_stubgen.ml.ab,
 BuildTools:  ocamlbuild
 Plugins:     META (0.4), DevFiles (0.4)
 
-Flag "mariadb_connector"
-  Description:      Link to the MariaDB C/Connector library
-  Default:          false
-
 Library "mariadb"
   FindlibName:      mariadb
   Path:             lib

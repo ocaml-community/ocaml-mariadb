@@ -11,15 +11,7 @@ if [ -z "$config_binary" ]; then
   exit 1
 fi
 
-include_base=""
-mariadb_connector="false"
-
-if true; then
-  include_base="mariadb"
-  mariadb_connector="true"
-elif detect -lmysqlclient -DMARIADB_CLIENT; then
-  include_base="mysql"
-fi
+include_base="mariadb"
 
 if [ -z "$include_base" ]; then
   echo "Could not detect a MariaDB client library" 1>&2
@@ -29,15 +21,12 @@ fi
 mariadb_config_cflags=`$config_binary --cflags`
 mariadb_config_libs=`$config_binary --libs`
 
-echo "mariadb_connector: ................................... $mariadb_connector"
 echo "mariadb_include_base: ................................ $include_base"
 echo "mariadb_config_cflags: ............................... $mariadb_config_cflags"
 echo "mariadb_config_libs: ................................. $mariadb_config_libs"
 
-
 cat << EOF > setup.data
 mariadb_include_base="$include_base"
-mariadb_connector="$mariadb_connector"
 mariadb_config_cflags="$mariadb_config_cflags"
 mariadb_config_libs="$mariadb_config_libs"
 EOF
