@@ -237,5 +237,5 @@ val bytes_opt : Field.t -> bytes option
 val time_opt : Field.t -> Time.t option
 ```
 
-These functions return `None` if the field value is ```Null``, or `Some v`
+These functions return `None` if the field value is `` `Null``, or `Some v`
 otherwise.
