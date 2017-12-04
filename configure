@@ -1,17 +1,23 @@
 #!/bin/sh
 
 config_binary=""
+include_base=""
 
 if command -v mariadb_config ; then
+  include_base="mariadb"
   config_binary=`command -v mariadb_config`
 fi
 
+if command -v mysql_config ; then
+  include_base="mysql"
+  config_binary=`command -v mysql_config`
+fi
+
 if [ -z "$config_binary" ]; then
-  echo "Could not find mariadb_config" 1>&2
+  echo "Could not find mariadb_config/mysql_config" 1>&2
   exit 1
 fi
 
-include_base="mariadb"
 mariadb_config_cflags=`$config_binary --cflags`
 mariadb_config_libs=`$config_binary --libs`
 
