@@ -12,12 +12,6 @@ if [ -z "$config_binary" ]; then
 fi
 
 include_base="mariadb"
-
-if [ -z "$include_base" ]; then
-  echo "Could not detect a MariaDB client library" 1>&2
-  exit 1
-fi
-
 mariadb_config_cflags=`$config_binary --cflags`
 mariadb_config_libs=`$config_binary --libs`
 
