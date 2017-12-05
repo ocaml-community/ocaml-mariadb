@@ -3,14 +3,14 @@
 config_binary=""
 include_base=""
 
-if command -v mariadb_config ; then
-  include_base="mariadb"
-  config_binary=`command -v mariadb_config`
-fi
-
 if command -v mysql_config ; then
   include_base="mysql"
   config_binary=`command -v mysql_config`
+fi
+
+if command -v mariadb_config ; then
+  include_base="mariadb"
+  config_binary=`command -v mariadb_config`
 fi
 
 if [ -z "$config_binary" ]; then
