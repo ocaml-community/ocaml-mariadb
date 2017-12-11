@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 3f47ab681719703d179f0fd2e2823c02) *)
+(* DO NOT EDIT (digest: 51c60665fe9e356574db114b3f3343f2) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -1093,6 +1093,48 @@ let package_default =
            ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
+              "oasis_executable_nonblocking_lwt_stress_test_byte";
+              "ocaml";
+              "link";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_lwt_stress_test_native";
+              "ocaml";
+              "link";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_lwt_stress_test_byte";
+              "ocaml";
+              "ocamldep";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_lwt_stress_test_native";
+              "ocaml";
+              "ocamldep";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_lwt_stress_test_byte";
+              "ocaml";
+              "compile";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_lwt_stress_test_native";
+              "ocaml";
+              "compile";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
               "oasis_executable_nonblocking_async_byte";
               "ocaml";
               "link";
@@ -1129,6 +1171,48 @@ let package_default =
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
           ([
               "oasis_executable_nonblocking_async_native";
+              "ocaml";
+              "compile";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_async_stress_test_byte";
+              "ocaml";
+              "link";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_async_stress_test_native";
+              "ocaml";
+              "link";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_async_stress_test_byte";
+              "ocaml";
+              "ocamldep";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_async_stress_test_native";
+              "ocaml";
+              "ocamldep";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_async_stress_test_byte";
+              "ocaml";
+              "compile";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_async_stress_test_native";
               "ocaml";
               "compile";
               "native"
@@ -1206,7 +1290,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 1210 "myocamlbuild.ml"
+# 1294 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let dispatch = function
@@ -1252,7 +1336,11 @@ let dispatch = function
       (fun _ _ ->
          Cmd(S[P stubgen; A"-c"; Sh">"; A"lib/ffi_generated_stubs.c"]));
 
-    flag ["c"; "compile"] & S[A"-I"; A"lib"; A"-package"; A"ctypes"]
+    flag ["c"; "compile"] & S[A"-I"; A"lib"; A"-package"; A"ctypes"];
+
+    Pathname.define_context "examples/nonblocking" ["lib"];
+    Pathname.define_context "examples/lwt" ["examples/nonblocking"];
+    Pathname.define_context "examples/async" ["examples/nonblocking"]
 
   | _ ->
     ()
