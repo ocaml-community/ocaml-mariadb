@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2e2ddd040569b5370458908776067ca3)
+# DO NOT EDIT (digest: ace6c06c38882d22e41aaf75b4aed4c0)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -92,6 +92,18 @@ true: annot, bin_annot
 <examples/lwt/nonblocking_lwt_example.{native,byte}>: package(unix)
 <examples/lwt/nonblocking_lwt_example.{native,byte}>: use_mariadb
 <examples/lwt/nonblocking_lwt_example.{native,byte}>: use_mariadb_bindings
+# Executable nonblocking_lwt_stress_test
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: oasis_executable_nonblocking_lwt_stress_test_byte
+<examples/lwt/*.ml{,i,y}>: oasis_executable_nonblocking_lwt_stress_test_byte
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: oasis_executable_nonblocking_lwt_stress_test_native
+<examples/lwt/*.ml{,i,y}>: oasis_executable_nonblocking_lwt_stress_test_native
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: package(ctypes.foreign)
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: package(ctypes.stubs)
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: package(lwt)
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: package(lwt.unix)
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: package(unix)
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: use_mariadb
+<examples/lwt/nonblocking_lwt_stress_test.{native,byte}>: use_mariadb_bindings
 <examples/lwt/*.ml{,i,y}>: package(ctypes.foreign)
 <examples/lwt/*.ml{,i,y}>: package(ctypes.stubs)
 <examples/lwt/*.ml{,i,y}>: package(lwt)
@@ -111,6 +123,18 @@ true: annot, bin_annot
 <examples/async/nonblocking_async_example.{native,byte}>: package(unix)
 <examples/async/nonblocking_async_example.{native,byte}>: use_mariadb
 <examples/async/nonblocking_async_example.{native,byte}>: use_mariadb_bindings
+# Executable nonblocking_async_stress_test
+<examples/async/nonblocking_async_stress_test.{native,byte}>: oasis_executable_nonblocking_async_stress_test_byte
+<examples/async/*.ml{,i,y}>: oasis_executable_nonblocking_async_stress_test_byte
+<examples/async/nonblocking_async_stress_test.{native,byte}>: oasis_executable_nonblocking_async_stress_test_native
+<examples/async/*.ml{,i,y}>: oasis_executable_nonblocking_async_stress_test_native
+<examples/async/nonblocking_async_stress_test.{native,byte}>: package(async)
+<examples/async/nonblocking_async_stress_test.{native,byte}>: package(ctypes.foreign)
+<examples/async/nonblocking_async_stress_test.{native,byte}>: package(ctypes.stubs)
+<examples/async/nonblocking_async_stress_test.{native,byte}>: package(threads)
+<examples/async/nonblocking_async_stress_test.{native,byte}>: package(unix)
+<examples/async/nonblocking_async_stress_test.{native,byte}>: use_mariadb
+<examples/async/nonblocking_async_stress_test.{native,byte}>: use_mariadb_bindings
 <examples/async/*.ml{,i,y}>: package(async)
 <examples/async/*.ml{,i,y}>: package(ctypes.foreign)
 <examples/async/*.ml{,i,y}>: package(ctypes.stubs)

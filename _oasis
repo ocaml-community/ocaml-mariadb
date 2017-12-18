@@ -99,6 +99,18 @@ Executable "nonblocking_lwt"
                     lwt,
                     lwt.unix
 
+Executable "nonblocking_lwt_stress_test"
+  Build$:           flag(lwt)
+  Install:          false
+  Path:             examples/lwt
+  MainIs:           nonblocking_lwt_stress_test.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb,
+                    lwt,
+                    lwt.unix
+
 Flag "async"
   Description:      Build the Async example
   Default:          false
@@ -108,6 +120,18 @@ Executable "nonblocking_async"
   Install:          false
   Path:             examples/async
   MainIs:           nonblocking_async_example.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb,
+                    async,
+                    threads
+
+Executable "nonblocking_async_stress_test"
+  Build$:           flag(async)
+  Install:          false
+  Path:             examples/async
+  MainIs:           nonblocking_async_stress_test.ml
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best

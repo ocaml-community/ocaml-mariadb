@@ -17,10 +17,11 @@ let connect () =
     ~pass:(env "OCAML_MARIADB_PASS" "")
     ~db:(env "OCAML_MARIADB_DB" "mysql") ()
 
-let test dbh =
+let test () =
+  let dbh = connect () |> or_die "connect" in
   let mk_stmt () =  M.prepare dbh "SELECT ?" |> or_die "prepare" in
   let stmt = ref (mk_stmt ()) in
-  for i = 0 to 500000 do
+  for _ = 1 to 100 do
     let n = Random.int (1 lsl Random.int 8) in
     let s = String.init n (fun i -> "ACGT".[Random.int 4]) in
     let res = M.Stmt.execute !stmt [|`String s|] |> or_die "execute" in
@@ -36,6 +37,7 @@ let test dbh =
       stmt := mk_stmt ()
     end else
       M.Stmt.reset !stmt |> or_die "reset"
-  done
+  done;
+  M.close dbh
 
-let () = test (connect () |> or_die "connect")
+let () = for _ = 1 to 500 do test () done
