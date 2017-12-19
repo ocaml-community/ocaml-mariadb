@@ -5,13 +5,10 @@ module T = Ffi_bindings.Types(Ffi_generated_types)
 
 include B
 
-let handle (typ, z) f =
-  let r = allocate typ z in
-  let s = f r in
-  (s, !@r)
-
-let handle_opt typ = handle (typ, None)
-let handle_ret = handle_opt B.mysql_opt
+let handle_ret f =
+  let ret = allocate B.mysql_opt None in
+  let status = f ret in
+  (status, !@ret)
 
 let mysql_init () =
   B.mysql_init None
