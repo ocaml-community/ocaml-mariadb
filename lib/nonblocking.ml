@@ -175,20 +175,33 @@ let build_stmt mariadb raw =
   | Some stmt -> `Ok stmt
   | None -> `Error (Common.error mariadb)
 
-let handle_prepare mariadb raw = function
-  | 0, 0 -> build_stmt mariadb raw
+type prep_stmt =
+  { raw   : B.stmt
+  ; query : char Ctypes.ptr
+  ; len   : int
+  }
+
+let handle_prepare mariadb stmt = function
+  | 0, 0 -> build_stmt mariadb stmt.raw
   | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
-let prepare_start mariadb raw_stmt query =
-  handle_prepare mariadb raw_stmt (B.mysql_stmt_prepare_start raw_stmt query)
+let prepare_start mariadb stmt query =
+  handle_prepare mariadb stmt
+    (B.mysql_stmt_prepare_start stmt.raw stmt.query stmt.len)
 
-let prepare_cont mariadb raw_stmt status =
-  handle_prepare mariadb raw_stmt (B.mysql_stmt_prepare_cont raw_stmt status)
+let prepare_cont mariadb stmt status =
+  handle_prepare mariadb stmt (B.mysql_stmt_prepare_cont stmt.raw status)
 
 let prepare mariadb query =
   match Common.stmt_init mariadb with
-  | Some raw -> `Ok (prepare_start mariadb raw query, prepare_cont mariadb raw)
+  | Some raw ->
+      let stmt =
+        { raw
+        ; query = char_ptr_buffer_of_string query
+        ; len   = String.length query
+        } in
+      `Ok (prepare_start mariadb stmt query, prepare_cont mariadb stmt)
   | None -> `Error (Common.error mariadb)
 
 module Res = struct

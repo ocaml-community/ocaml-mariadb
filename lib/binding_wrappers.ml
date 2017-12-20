@@ -171,9 +171,8 @@ let mysql_ping_start mysql =
 let mysql_ping_cont mysql status =
   handle_int (fun ret -> B.mysql_ping_cont ret mysql status)
 
-let mysql_stmt_prepare_start stmt query =
-  let len = Unsigned.ULong.of_int (String.length query) in
-  let query = char_ptr_buffer_of_string query in
+let mysql_stmt_prepare_start stmt query len =
+  let len = Unsigned.ULong.of_int len in
   handle_int (fun err -> B.mysql_stmt_prepare_start err stmt query len)
 
 let mysql_stmt_prepare_cont stmt status =
