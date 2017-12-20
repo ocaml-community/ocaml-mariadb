@@ -48,6 +48,6 @@ module Test = Nonblocking_stress_test.Make (struct
 
 end)
 
-let main = Test.main ()
+let main = Test.main () >>= fun () -> Shutdown.exit 0
 
 let () = never_returns (Scheduler.go ())
