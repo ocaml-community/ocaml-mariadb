@@ -122,14 +122,6 @@ let mysql_real_connect_start mysql host user pass db port socket flags =
 let mysql_real_connect_cont mysql status =
   handle_ret (fun ret -> B.mysql_real_connect_cont ret mysql status)
 
-let mysql_real_query_start mysql query =
-  let len = Unsigned.ULong.of_int (String.length query) in
-  let query = char_ptr_buffer_of_string query in
-  handle_int (fun err -> B.mysql_real_query_start err mysql query len)
-
-let mysql_real_query_cont mysql status =
-  handle_int (fun err -> B.mysql_real_query_cont err mysql status)
-
 let mysql_get_timeout_value mysql =
   Unsigned.UInt.to_int @@ B.mysql_get_timeout_value mysql
 

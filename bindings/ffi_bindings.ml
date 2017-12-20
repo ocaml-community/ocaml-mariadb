@@ -326,24 +326,6 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let mysql_real_connect_cont = foreign "mysql_real_connect_cont"
     (ptr mysql_opt @-> mysql @-> int @-> returning int)
 
-  let mysql_real_query_start = foreign "mysql_real_query_start"
-    (ptr int @-> mysql @-> ptr char @-> ulong @-> returning int)
-
-  let mysql_real_query_cont = foreign "mysql_real_query_cont"
-    (ptr int @-> mysql @-> int @-> returning int)
-
-  let mysql_fetch_row_start = foreign "mysql_fetch_row_start"
-    (ptr row_opt @-> res @-> returning int)
-
-  let mysql_fetch_row_cont = foreign "mysql_fetch_row_cont"
-    (ptr row_opt @-> res @-> int @-> returning int)
-
-  let mysql_free_result_start = foreign "mysql_free_result_start"
-    (res @-> returning int)
-
-  let mysql_free_result_cont = foreign "mysql_free_result_cont"
-    (res @-> int @-> returning int)
-
   let mysql_get_socket = foreign "mysql_get_socket"
     (mysql @-> returning int)
 
