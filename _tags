@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: ace6c06c38882d22e41aaf75b4aed4c0)
+# DO NOT EDIT (digest: 53396b8ebfb3904f5d78664e105c8fae)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -75,6 +75,16 @@ true: annot, bin_annot
 <examples/select/nonblocking_select_example.{native,byte}>: package(unix)
 <examples/select/nonblocking_select_example.{native,byte}>: use_mariadb
 <examples/select/nonblocking_select_example.{native,byte}>: use_mariadb_bindings
+# Executable nonblocking_select_stress_test
+<examples/select/nonblocking_select_stress_test.{native,byte}>: oasis_executable_nonblocking_select_stress_test_byte
+<examples/select/*.ml{,i,y}>: oasis_executable_nonblocking_select_stress_test_byte
+<examples/select/nonblocking_select_stress_test.{native,byte}>: oasis_executable_nonblocking_select_stress_test_native
+<examples/select/*.ml{,i,y}>: oasis_executable_nonblocking_select_stress_test_native
+<examples/select/nonblocking_select_stress_test.{native,byte}>: package(ctypes.foreign)
+<examples/select/nonblocking_select_stress_test.{native,byte}>: package(ctypes.stubs)
+<examples/select/nonblocking_select_stress_test.{native,byte}>: package(unix)
+<examples/select/nonblocking_select_stress_test.{native,byte}>: use_mariadb
+<examples/select/nonblocking_select_stress_test.{native,byte}>: use_mariadb_bindings
 <examples/select/*.ml{,i,y}>: package(ctypes.foreign)
 <examples/select/*.ml{,i,y}>: package(ctypes.stubs)
 <examples/select/*.ml{,i,y}>: package(unix)

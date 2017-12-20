@@ -83,6 +83,16 @@ Executable "nonblocking_select"
   BuildDepends:     mariadb,
                     unix
 
+Executable "nonblocking_select_stress_test"
+  Install:          false
+  Path:             examples/select
+  MainIs:           nonblocking_select_stress_test.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb,
+                    unix
+
 Flag "lwt"
   Description:      Build the Lwt example
   Default:          false
