@@ -24,20 +24,21 @@ let test () =
   for _ = 1 to 100 do
     let n = Random.int (1 lsl Random.int 8) in
     let s = String.init n (fun i -> "ACGT".[Random.int 4]) in
-    let res = M.Stmt.execute !stmt [|`String s|] |> or_die "execute" in
+    let res = M.Stmt.execute !stmt [|`String s|] |> or_die "Stmt.execute" in
     assert (M.Res.num_rows res = 1);
-    (match M.Res.fetch (module M.Row.Array) res |> or_die "fetch" with
+    (match M.Res.fetch (module M.Row.Array) res |> or_die "Res.fetch" with
      | None -> assert false
      | Some row ->
          let s' = M.Field.string row.(0) in
          if s <> s' then printf "@@@ <%s> <%s>\n%!" s s';
          assert (s = s'));
     if Random.bool () then begin
-      M.Stmt.close !stmt |> or_die "close";
+      M.Stmt.close !stmt |> or_die "Stmt.close";
       stmt := mk_stmt ()
     end else
-      M.Stmt.reset !stmt |> or_die "reset"
+      M.Stmt.reset !stmt |> or_die "Stmt.reset"
   done;
+  M.Stmt.close !stmt |> or_die "Stmt.close";
   M.close dbh
 
 let () = for _ = 1 to 500 do test () done

@@ -117,9 +117,9 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
         with Not_found ->
           make_nary_select_stmt dbh param_types
       end >>= fun stmt ->
-      M.Stmt.execute stmt params >>= or_die "execute" >>= fun res ->
+      M.Stmt.execute stmt params >>= or_die "Stmt.execute" >>= fun res ->
       assert (M.Res.num_rows res = 1);
-      M.Res.fetch (module M.Row.Array) res >>= or_die "fetch" >>=
+      M.Res.fetch (module M.Row.Array) res >>= or_die "Res.fetch" >>=
       (function
        | None -> assert false
        | Some row ->
@@ -129,12 +129,17 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
           done;
           return ()) >>= fun () ->
       if Random.bool () then
-        M.Stmt.close stmt >>= or_die "close" >|= fun () ->
+        M.Stmt.close stmt >>= or_die "Stmt.close" >|= fun () ->
         Hashtbl.remove stmt_cache param_types
       else
-        M.Stmt.reset stmt >>= or_die "reset" >|= fun () ->
+        M.Stmt.reset stmt >>= or_die "Stmt.reset" >|= fun () ->
         Hashtbl.replace stmt_cache param_types stmt
     end >>= fun () ->
+    Hashtbl.fold
+      (fun _ stmt prologue ->
+        prologue >>= fun () ->
+        M.Stmt.close stmt >>= or_die "Stmt.close")
+      stmt_cache (return ()) >>= fun () ->
     M.close dbh
 
   let main () = repeat 500 test
