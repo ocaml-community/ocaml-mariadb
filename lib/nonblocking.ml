@@ -41,60 +41,49 @@ let init () =
   | None ->
       None
 
-let handle_void f =
-  match f () with
+let handle_void = function
   | 0 -> `Ok
   | s -> `Wait (Status.of_int s)
 
-let handle_opt mariadb f =
-  match f mariadb.Common.raw with
+let handle_opt mariadb = function
   | 0, Some _ -> `Ok mariadb
   | 0, None -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
-let handle_int_ret mariadb f =
-  match f mariadb.Common.raw with
-  | 0, 0 -> `Ok mariadb
-  | 0, _ -> `Error (Common.error mariadb)
-  | s, _ -> `Wait (Status.of_int s)
-
-let handle_int mariadb f =
-  match f mariadb.Common.raw with
+let handle_int mariadb = function
   | 0, 0 -> `Ok ()
   | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
-let handle_char mariadb f =
-  match f mariadb.Common.raw with
+let handle_char mariadb = function
   | 0, '\000' -> `Ok ()
   | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
-let connect_start mariadb () =
+let connect_start mariadb =
   handle_opt mariadb
-    (fun m ->
-      B.mysql_real_connect_start
-        m
-        mariadb.host
-        mariadb.user
-        mariadb.pass
-        mariadb.db
-        mariadb.port
-        mariadb.socket
-        mariadb.flags)
+    (B.mysql_real_connect_start
+      mariadb.raw
+      mariadb.host
+      mariadb.user
+      mariadb.pass
+      mariadb.db
+      mariadb.port
+      mariadb.socket
+      mariadb.flags)
 
 let connect_cont mariadb status =
   handle_opt mariadb
-    (fun m -> B.mysql_real_connect_cont m (Status.to_int status))
+    (B.mysql_real_connect_cont mariadb.raw (Status.to_int status))
 
 let connect mariadb =
   (connect_start mariadb, connect_cont mariadb)
 
-let close_start mariadb () =
-  handle_void (fun () -> B.mysql_close_start mariadb.Common.raw)
+let close_start mariadb =
+  handle_void (B.mysql_close_start mariadb.Common.raw)
 
 let close_cont mariadb status =
-  handle_void (fun () -> B.mysql_close_cont mariadb.Common.raw status)
+  handle_void (B.mysql_close_cont mariadb.Common.raw status)
 
 let close mariadb =
   (close_start mariadb, close_cont mariadb)
@@ -108,75 +97,75 @@ let timeout mariadb =
 let timeout_ms mariadb =
   B.mysql_get_timeout_value_ms mariadb.Common.raw
 
-let set_character_set_start mariadb charset () =
-  handle_int mariadb ((flip B.mysql_set_character_set_start) charset)
+let set_character_set_start mariadb charset =
+  handle_int mariadb (B.mysql_set_character_set_start mariadb.raw charset)
 
 let set_character_set_cont mariadb status =
-  handle_int mariadb ((flip B.mysql_set_character_set_cont) status)
+  handle_int mariadb (B.mysql_set_character_set_cont mariadb.raw status)
 
 let set_character_set mariadb charset =
   (set_character_set_start mariadb charset, set_character_set_cont mariadb)
 
-let select_db_start mariadb db () =
-  handle_int mariadb ((flip B.mysql_select_db_start) db)
+let select_db_start mariadb db =
+  handle_int mariadb (B.mysql_select_db_start mariadb.raw db)
 
 let select_db_cont mariadb status =
-  handle_int mariadb ((flip B.mysql_select_db_cont) status)
+  handle_int mariadb (B.mysql_select_db_cont mariadb.raw status)
 
 let select_db mariadb db =
   (select_db_start mariadb db, select_db_cont mariadb)
 
-let change_user_start mariadb user pass db () =
-  handle_char mariadb (fun m -> B.mysql_change_user_start m user pass db)
+let change_user_start mariadb user pass db =
+  handle_char mariadb (B.mysql_change_user_start mariadb.raw user pass db)
 
 let change_user_cont mariadb status =
-  handle_char mariadb ((flip B.mysql_change_user_cont) status)
+  handle_char mariadb (B.mysql_change_user_cont mariadb.raw status)
 
 let change_user mariadb user pass db =
   (change_user_start mariadb user pass db, change_user_cont mariadb)
 
-let set_server_option_start mariadb opt () =
+let set_server_option_start mariadb opt =
   let opt = Common.int_of_server_option opt in
-  handle_int mariadb ((flip B.mysql_set_server_option_start) opt)
+  handle_int mariadb (B.mysql_set_server_option_start mariadb.raw opt)
 
 let set_server_option_cont mariadb status =
-  handle_int mariadb ((flip B.mysql_set_server_option_cont) status)
+  handle_int mariadb (B.mysql_set_server_option_cont mariadb.raw status)
 
 let set_server_option mariadb opt =
   (set_server_option_start mariadb opt, set_server_option_cont mariadb)
 
-let ping_start mariadb () =
-  handle_int mariadb B.mysql_ping_start
+let ping_start mariadb =
+  handle_int mariadb (B.mysql_ping_start mariadb.raw)
 
 let ping_cont mariadb status =
-  handle_int mariadb ((flip B.mysql_ping_cont) status)
+  handle_int mariadb (B.mysql_ping_cont mariadb.raw status)
 
 let ping mariadb =
   (ping_start mariadb, ping_cont mariadb)
 
-let autocommit_start mariadb auto () =
-  handle_char mariadb ((flip B.mysql_autocommit_start) auto)
+let autocommit_start mariadb auto =
+  handle_char mariadb (B.mysql_autocommit_start mariadb.raw auto)
 
 let autocommit_cont mariadb status =
-  handle_char mariadb ((flip B.mysql_autocommit_cont) status)
+  handle_char mariadb (B.mysql_autocommit_cont mariadb.raw status)
 
 let autocommit mariadb auto =
   (autocommit_start mariadb auto, autocommit_cont mariadb)
 
-let commit_start mariadb () =
-  handle_char mariadb B.mysql_commit_start
+let commit_start mariadb =
+  handle_char mariadb (B.mysql_commit_start mariadb.raw)
 
 let commit_cont mariadb status =
-  handle_char mariadb ((flip B.mysql_commit_cont) status)
+  handle_char mariadb (B.mysql_commit_cont mariadb.raw status)
 
 let commit mariadb =
   (commit_start mariadb, commit_cont mariadb)
 
-let rollback_start mariadb () =
-  handle_char mariadb B.mysql_rollback_start
+let rollback_start mariadb =
+  handle_char mariadb (B.mysql_rollback_start mariadb.raw)
 
 let rollback_cont mariadb status =
-  handle_char mariadb ((flip B.mysql_rollback_cont) status)
+  handle_char mariadb (B.mysql_rollback_cont mariadb.raw status)
 
 let rollback mariadb =
   (rollback_start mariadb, rollback_cont mariadb)
@@ -186,17 +175,16 @@ let build_stmt mariadb raw =
   | Some stmt -> `Ok stmt
   | None -> `Error (Common.error mariadb)
 
-let handle_prepare mariadb raw f =
-  match f raw with
+let handle_prepare mariadb raw = function
   | 0, 0 -> build_stmt mariadb raw
   | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
-let prepare_start mariadb raw_stmt query () =
-  handle_prepare mariadb raw_stmt ((flip B.mysql_stmt_prepare_start) query)
+let prepare_start mariadb raw_stmt query =
+  handle_prepare mariadb raw_stmt (B.mysql_stmt_prepare_start raw_stmt query)
 
 let prepare_cont mariadb raw_stmt status =
-  handle_prepare mariadb raw_stmt ((flip B.mysql_stmt_prepare_cont) status)
+  handle_prepare mariadb raw_stmt (B.mysql_stmt_prepare_cont raw_stmt status)
 
 let prepare mariadb query =
   match Common.stmt_init mariadb with
@@ -212,37 +200,35 @@ module Res = struct
   let affected_rows =
     Common.Res.affected_rows
 
-  let handle_fetch (type t) (module R : Row.S with type t = t) res f =
-    let stmt = res.Common.Res.stmt in
-    match f stmt with
+  let handle_fetch (type t) (module R : Row.S with type t = t) res = function
     | 0, 0 -> `Ok (Common.Res.build_row (module R) res)
-    | 0, 1 -> `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
+    | 0, 1 -> `Error (B.mysql_stmt_errno res.stmt, B.mysql_stmt_error res.stmt)
     | 0, r when r = T.Return_code.no_data -> `Ok None
     | 0, r when r = T.Return_code.data_truncated ->
         `Error (2032, "truncated data")
     | s, _ -> `Wait (Status.of_int s)
 
-  let fetch_start (type t) (module R : Row.S with type t = t) res () =
-    handle_fetch (module R) res B.mysql_stmt_fetch_start
+  let fetch_start (type t) (module R : Row.S with type t = t) res =
+    handle_fetch (module R) res (B.mysql_stmt_fetch_start res.stmt)
 
   let fetch_cont (type t) (module R : Row.S with type t = t) res status =
-    handle_fetch (module R) res ((flip B.mysql_stmt_fetch_cont) status)
+    handle_fetch (module R) res (B.mysql_stmt_fetch_cont res.stmt status)
 
   let fetch (type t) (module R : Row.S with type t = t) res =
     (fetch_start (module R) res, fetch_cont (module R) res)
 
-  let handle_free res f =
-    let stmt = res.Common.Res.stmt in
-    match f stmt with
+  let handle_free res = function
     | 0, '\000' -> `Ok ()
-    | 0, _ -> `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
+    | 0, _ ->
+        let stmt = res.Common.Res.stmt in
+        `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
-  let free_start res () =
-    handle_free res B.mysql_stmt_free_result_start
+  let free_start res =
+    handle_free res (B.mysql_stmt_free_result_start res.stmt)
 
   let free_cont res status =
-    handle_free res ((flip B.mysql_stmt_free_result_cont) status)
+    handle_free res (B.mysql_stmt_free_result_cont res.stmt status)
 
   let free res =
     (free_start res, free_cont res)
@@ -255,17 +241,16 @@ module Stmt = struct
   let init =
     Common.Stmt.init
 
-  let handle_execute stmt f =
-    match f stmt.Common.Stmt.raw with
+  let handle_execute stmt = function
     | 0, 0 -> `Ok stmt
     | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
-  let execute_start stmt () =
-    handle_execute stmt B.mysql_stmt_execute_start
+  let execute_start stmt =
+    handle_execute stmt (B.mysql_stmt_execute_start stmt.raw)
 
   let execute_cont stmt status =
-    handle_execute stmt ((flip B.mysql_stmt_execute_cont) status)
+    handle_execute stmt (B.mysql_stmt_execute_cont stmt.raw status)
 
   let execute stmt params =
     let n = B.mysql_stmt_param_count stmt.Common.Stmt.raw in
@@ -278,63 +263,59 @@ module Stmt = struct
       | `Ok bound -> `Ok (execute_start bound, execute_cont bound)
       | `Error _ as err -> err
 
-  let handle_store_result stmt f =
-    match f stmt.Common.Stmt.raw with
+  let handle_store_result stmt = function
     | 0, 0 -> Common.Stmt.bind_result stmt
     | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
-  let store_result_start stmt () =
-    handle_store_result stmt B.mysql_stmt_store_result_start
+  let store_result_start stmt =
+    handle_store_result stmt (B.mysql_stmt_store_result_start stmt.raw)
 
   let store_result_cont stmt status =
-    handle_store_result stmt ((flip B.mysql_stmt_store_result_cont) status)
+    handle_store_result stmt (B.mysql_stmt_store_result_cont stmt.raw status)
 
   let store_result stmt =
     (store_result_start stmt, store_result_cont stmt)
 
-  let handle_char_unit stmt f =
-    match f stmt.Common.Stmt.raw with
+  let handle_char_unit stmt = function
     | 0, '\000' -> `Ok ()
     | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
-  let close_start stmt () =
-    handle_char_unit stmt (fun s -> B.mysql_stmt_close_start s)
+  let close_start stmt =
+    handle_char_unit stmt (B.mysql_stmt_close_start stmt.raw)
 
   let close_cont stmt status =
-    handle_char_unit stmt (fun s -> B.mysql_stmt_close_cont s status)
+    handle_char_unit stmt (B.mysql_stmt_close_cont stmt.raw status)
 
   let close stmt =
     (close_start stmt, close_cont stmt)
 
-  let handle_reset stmt f =
-    match f stmt.Common.Stmt.raw with
+  let handle_reset stmt = function
     | 0, '\000' -> `Ok ()
     | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
-  let reset_start stmt () =
-    handle_reset stmt B.mysql_stmt_reset_start
+  let reset_start stmt =
+    handle_reset stmt (B.mysql_stmt_reset_start stmt.raw)
 
   let reset_cont stmt status =
-    handle_reset stmt ((flip B.mysql_stmt_reset_cont) status)
+    handle_reset stmt (B.mysql_stmt_reset_cont stmt.raw status)
 
   let reset stmt =
     (reset_start stmt, reset_cont stmt)
 
-  let handle_next stmt f =
-    match f stmt.Common.Stmt.raw with
+  let handle_next stmt = function
     | 0, 0 -> `Ok true
     | 0, -1 -> `Ok false
     | 0, _ -> `Error (Common.Stmt.error stmt)
     | s, _ -> `Wait (Status.of_int s)
 
   let next_result_start stmt =
-    handle_next stmt (B.mysql_stmt_next_result_start)
+    handle_next stmt (B.mysql_stmt_next_result_start stmt.raw)
 
   let next_result_cont stmt status =
-    handle_next stmt ((flip B.mysql_stmt_next_result_cont) status)
+    handle_next stmt (B.mysql_stmt_next_result_cont stmt.raw status)
 end
 
 module type Wait = sig
@@ -580,16 +561,16 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
   type server_option = Common.server_option =
     | Multi_statements of bool
 
-  let rec nonblocking m (f, g) =
-    match f () with
+  let rec nonblocking m (r, k) =
+    match r with
     | `Ok v -> return (Ok v)
-    | `Wait s -> W.wait m s >>= fun s -> nonblocking m ((fun () -> g s), g)
+    | `Wait s -> W.wait m s >>= fun s -> nonblocking m (k s, k)
     | `Error e -> return (Error e)
 
-  let rec nonblocking' m (f, g) =
-    match f () with
+  let rec nonblocking' m (r, k) =
+    match r with
     | `Ok -> return_unit
-    | `Wait s -> W.wait m s >>= fun s -> nonblocking' m ((fun () -> g s), g)
+    | `Wait s -> W.wait m s >>= fun s -> nonblocking' m (k s, k)
 
   module Time = Time
   module Field = Field
@@ -624,13 +605,12 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
       | `Error e -> return (Error e)
 
     let free_res stmt =
-      let handle_free f =
-        match f stmt.Common.Stmt.raw with
+      let handle_free = function
         | 0, '\000' -> `Ok ()
         | 0, _ -> `Error (Common.Stmt.error stmt)
         | s, _ -> `Wait (Status.of_int s) in
-      let start () = handle_free B.mysql_stmt_free_result_start in
-      let cont s = handle_free ((flip B.mysql_stmt_free_result_cont) s) in
+      let start = handle_free (B.mysql_stmt_free_result_start stmt.raw) in
+      let cont s = handle_free (B.mysql_stmt_free_result_cont stmt.raw s) in
       nonblocking stmt.Common.Stmt.mariadb (start, cont)
 
     let reset stmt =
