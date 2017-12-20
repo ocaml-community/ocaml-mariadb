@@ -71,7 +71,6 @@ let mysql_autocommit mysql auto =
   B.mysql_autocommit mysql auto = '\000'
 
 let mysql_set_character_set mysql charset =
-  let charset = char_ptr_buffer_of_string charset in
   B.mysql_set_character_set mysql charset = 0
 
 let mysql_select_db mysql db =
@@ -129,7 +128,6 @@ let mysql_get_timeout_value_ms mysql =
   Unsigned.UInt.to_int @@ B.mysql_get_timeout_value_ms mysql
 
 let mysql_set_character_set_start mysql charset =
-  let charset = char_ptr_buffer_of_string charset in
   handle_int (fun ret -> B.mysql_set_character_set_start ret mysql charset)
 
 let mysql_set_character_set_cont mysql status =

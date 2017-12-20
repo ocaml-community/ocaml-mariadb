@@ -81,13 +81,14 @@ let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
   let connect raw =
     let mariadb = Common.
       { raw
-      ; host   = char_ptr_opt_buffer_of_string host
-      ; port   = port
-      ; user   = char_ptr_opt_buffer_of_string user
-      ; pass   = char_ptr_opt_buffer_of_string pass
-      ; db     = char_ptr_opt_buffer_of_string db
-      ; socket = char_ptr_opt_buffer_of_string socket
-      ; flags  = flags
+      ; host    = char_ptr_opt_buffer_of_string host
+      ; port    = port
+      ; user    = char_ptr_opt_buffer_of_string user
+      ; pass    = char_ptr_opt_buffer_of_string pass
+      ; db      = char_ptr_opt_buffer_of_string db
+      ; socket  = char_ptr_opt_buffer_of_string socket
+      ; flags   = flags
+      ; charset = None
       } in
     match B.mysql_real_connect raw host user pass db port socket flags with
     | Some _ -> Ok mariadb
@@ -96,37 +97,39 @@ let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
   | Some raw -> connect raw
   | None -> Error (2008, "out of memory")
 
-let wrap_unit mariadb f =
-  if f mariadb.Common.raw then Ok ()
-  else Error (Common.error mariadb)
+let wrap_unit mariadb = function
+  | true -> Ok ()
+  | false -> Error (Common.error mariadb)
 
 let set_character_set mariadb charset =
-  wrap_unit mariadb ((flip B.mysql_set_character_set) charset)
+  let charset = char_ptr_buffer_of_string charset in
+  mariadb.Common.charset <- Some charset;
+  wrap_unit mariadb (B.mysql_set_character_set mariadb.raw charset)
 
 let select_db mariadb db =
-  wrap_unit mariadb ((flip B.mysql_select_db) db)
+  wrap_unit mariadb (B.mysql_select_db mariadb.raw db)
 
 let change_user mariadb user pass db =
-  wrap_unit mariadb (fun m -> B.mysql_change_user m user pass db)
+  wrap_unit mariadb (B.mysql_change_user mariadb.raw user pass db)
 
 let set_client_option =
   Common.set_client_option
 
 let set_server_option mariadb opt =
   let opt = Common.int_of_server_option opt in
-  wrap_unit mariadb ((flip B.mysql_set_server_option) opt)
+  wrap_unit mariadb (B.mysql_set_server_option mariadb.raw opt)
 
 let ping mariadb =
-  wrap_unit mariadb B.mysql_ping
+  wrap_unit mariadb (B.mysql_ping mariadb.raw)
 
 let autocommit mariadb auto =
-  wrap_unit mariadb ((flip B.mysql_autocommit) auto)
+  wrap_unit mariadb (B.mysql_autocommit mariadb.raw auto)
 
 let commit mariadb =
-  wrap_unit mariadb B.mysql_commit
+  wrap_unit mariadb (B.mysql_commit mariadb.raw)
 
 let rollback mariadb =
-  wrap_unit mariadb B.mysql_rollback
+  wrap_unit mariadb (B.mysql_rollback mariadb.raw)
 
 let prepare mariadb query =
   let build_stmt raw =

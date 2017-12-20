@@ -97,14 +97,17 @@ let timeout mariadb =
 let timeout_ms mariadb =
   B.mysql_get_timeout_value_ms mariadb.Common.raw
 
-let set_character_set_start mariadb charset =
-  handle_int mariadb (B.mysql_set_character_set_start mariadb.raw charset)
+let set_character_set_start mariadb =
+  match mariadb.Common.charset with
+  | Some charset ->
+      handle_int mariadb (B.mysql_set_character_set_start mariadb.raw charset)
+  | None -> assert false
 
 let set_character_set_cont mariadb status =
   handle_int mariadb (B.mysql_set_character_set_cont mariadb.raw status)
 
-let set_character_set mariadb charset =
-  (set_character_set_start mariadb charset, set_character_set_cont mariadb)
+let set_character_set mariadb =
+  (set_character_set_start mariadb, set_character_set_cont mariadb)
 
 let select_db_start mariadb db =
   handle_int mariadb (B.mysql_select_db_start mariadb.raw db)
@@ -644,13 +647,14 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
     | Some raw ->
         let mariadb = Common.
           { raw
-          ; host   = char_ptr_opt_buffer_of_string host
-          ; port   = port
-          ; user   = char_ptr_opt_buffer_of_string user
-          ; pass   = char_ptr_opt_buffer_of_string pass
-          ; db     = char_ptr_opt_buffer_of_string db
-          ; socket = char_ptr_opt_buffer_of_string socket
-          ; flags  = Common.int_of_flags flags
+          ; host    = char_ptr_opt_buffer_of_string host
+          ; port    = port
+          ; user    = char_ptr_opt_buffer_of_string user
+          ; pass    = char_ptr_opt_buffer_of_string pass
+          ; db      = char_ptr_opt_buffer_of_string db
+          ; socket  = char_ptr_opt_buffer_of_string socket
+          ; flags   = Common.int_of_flags flags
+          ; charset = None
           } in
         nonblocking mariadb (connect mariadb)
     | None ->
@@ -660,7 +664,10 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
 
   let library_end = Common.library_end
 
-  let set_character_set m c = nonblocking m (set_character_set m c)
+  let set_character_set m c =
+    let c = Some (char_ptr_buffer_of_string c) in
+    m.Common.charset <- c;
+    nonblocking m (set_character_set m)
 
   let select_db m db = nonblocking m (select_db m db)
 
