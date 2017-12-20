@@ -61,7 +61,7 @@ let char_ptr_opt_buffer_of_string = function
   | None -> None
   | Some s -> Some (char_ptr_buffer_of_string s)
 
-(* Blocking APi *)
+(* Blocking API *)
 
 let mysql_real_connect mysql host user pass db port socket flags =
   let host = char_ptr_opt_buffer_of_string host in
@@ -126,12 +126,7 @@ let mysql_stmt_free_result stmt =
 (* Nonblocking API *)
 
 let mysql_real_connect_start mysql host user pass db port socket flags =
-  let host = char_ptr_opt_buffer_of_string host in
-  let user = char_ptr_opt_buffer_of_string user in
-  let pass = char_ptr_opt_buffer_of_string pass in
-  let db = char_ptr_opt_buffer_of_string db in
   let port = Unsigned.UInt.of_int port in
-  let socket = char_ptr_opt_buffer_of_string socket in
   let flags = Unsigned.ULong.of_int flags in
   handle_ret
     (fun ret ->

@@ -7,7 +7,17 @@ module Row = Row
 module Field = Field
 
 type mode = [`Blocking | `Nonblocking]
-type 'm t = B.mysql constraint 'm = [< mode]
+type 'm t =
+  { raw    : B.mysql
+  ; host   : char Ctypes.ptr option
+  ; port   : int
+  ; user   : char Ctypes.ptr option
+  ; pass   : char Ctypes.ptr option
+  ; db     : char Ctypes.ptr option
+  ; socket : char Ctypes.ptr option
+  ; flags  : int
+  }
+  constraint 'm = [< mode]
 
 type 'm mariadb = 'm t
 
@@ -72,7 +82,7 @@ type server_option =
 type error = int * string
 
 let error mariadb =
-  (B.mysql_errno mariadb, B.mysql_error mariadb)
+  (B.mysql_errno mariadb.raw, B.mysql_error mariadb.raw)
 
 let int_of_server_option = function
   | Multi_statements true -> T.Server_options.multi_statements_on
@@ -168,8 +178,8 @@ let set_client_option mariadb opt =
     | Enable_cleartext_plugin b ->
         `Opt (T.Options.enable_cleartext_plugin, voidp_of_bool b) in
   match opt with
-  | `Opt (opt, arg) -> B.mysql_options mariadb opt arg
-  | `Opt4 (opt, arg1, arg2) -> B.mysql_options4 mariadb opt arg1 arg2
+  | `Opt (opt, arg) -> B.mysql_options mariadb.raw opt arg
+  | `Opt4 (opt, arg1, arg2) -> B.mysql_options4 mariadb.raw opt arg1 arg2
 
 let int_of_flag = function
   | Found_rows -> T.Flags.found_rows
@@ -197,12 +207,12 @@ module Res = struct
     ; buffers : unit ptr array
     }
 
-  type u =
-    { mariadb : B.mysql
+  type 'm u =
+    { mariadb : 'm mariadb
     ; stmt    : B.stmt
     ; meta    : meta option
     }
-  type 'm t = u constraint 'm = [< mode]
+  type 'm t = 'm u constraint 'm = [< mode]
 
   let meta result raw buffers =
     { result; raw; buffers }
@@ -230,7 +240,7 @@ module Res = struct
 end
 
 let stmt_init mariadb =
-  match B.mysql_stmt_init mariadb with
+  match B.mysql_stmt_init mariadb.raw with
   | Some stmt ->
       B.mysql_stmt_attr_set_bool stmt T.Stmt_attr.update_max_length true;
       Some stmt
@@ -248,14 +258,14 @@ module Stmt = struct
     ; result : Bind.t
     }
 
-  type u =
+  type 'm u =
     { raw : B.stmt
-    ; mariadb : B.mysql
+    ; mariadb : 'm mariadb
     ; num_params : int
     ; params : Bind.t
     ; meta : meta option
     }
-  type 'm t = u constraint 'm = [< mode]
+  type 'm t = 'm u constraint 'm = [< mode]
 
   type cursor_type
     = No_cursor
@@ -307,7 +317,7 @@ module Stmt = struct
           ; meta = Some meta
           }
     | None ->
-        if B.mysql_errno mariadb = 0 then
+        if B.mysql_errno mariadb.raw = 0 then
           Some
             { raw
             ; mariadb

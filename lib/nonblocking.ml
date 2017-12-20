@@ -28,9 +28,9 @@ let map_result f = function
 type options =
   | Nonblocking
 
-let options mariadb = function
+let options raw = function
   | Nonblocking ->
-      B.mysql_options mariadb T.Options.nonblock Ctypes.null
+      B.mysql_options raw T.Options.nonblock Ctypes.null
 
 let init () =
   match B.mysql_init () with
@@ -46,61 +46,66 @@ let handle_void f =
   | s -> `Wait (Status.of_int s)
 
 let handle_opt mariadb f =
-  match f mariadb with
-  | 0, Some r -> `Ok r
+  match f mariadb.Common.raw with
+  | 0, Some _ -> `Ok mariadb
   | 0, None -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
 let handle_int_ret mariadb f =
-  match f mariadb with
+  match f mariadb.Common.raw with
   | 0, 0 -> `Ok mariadb
   | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
 let handle_int mariadb f =
-  match f mariadb with
+  match f mariadb.Common.raw with
   | 0, 0 -> `Ok ()
   | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
 let handle_char mariadb f =
-  match f mariadb with
+  match f mariadb.Common.raw with
   | 0, '\000' -> `Ok ()
   | 0, _ -> `Error (Common.error mariadb)
   | s, _ -> `Wait (Status.of_int s)
 
-let connect_start mariadb host user pass db port socket flags () =
+let connect_start mariadb () =
   handle_opt mariadb
     (fun m ->
-      B.mysql_real_connect_start m host user pass db port socket flags)
+      B.mysql_real_connect_start
+        m
+        mariadb.host
+        mariadb.user
+        mariadb.pass
+        mariadb.db
+        mariadb.port
+        mariadb.socket
+        mariadb.flags)
 
 let connect_cont mariadb status =
   handle_opt mariadb
     (fun m -> B.mysql_real_connect_cont m (Status.to_int status))
 
-let connect mariadb ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
-  let flags = Common.int_of_flags flags in
-  let start = connect_start mariadb host user pass db port socket flags in
-  let cont = connect_cont mariadb in
-  (start, cont)
+let connect mariadb =
+  (connect_start mariadb, connect_cont mariadb)
 
 let close_start mariadb () =
-  handle_void (fun () -> B.mysql_close_start mariadb)
+  handle_void (fun () -> B.mysql_close_start mariadb.Common.raw)
 
 let close_cont mariadb status =
-  handle_void (fun () -> B.mysql_close_cont mariadb status)
+  handle_void (fun () -> B.mysql_close_cont mariadb.Common.raw status)
 
 let close mariadb =
   (close_start mariadb, close_cont mariadb)
 
 let fd mariadb =
-  Obj.magic @@ B.mysql_get_socket mariadb
+  Obj.magic @@ B.mysql_get_socket mariadb.Common.raw
 
-let timeout =
-  B.mysql_get_timeout_value
+let timeout mariadb =
+  B.mysql_get_timeout_value mariadb.Common.raw
 
-let timeout_ms =
-  B.mysql_get_timeout_value_ms
+let timeout_ms mariadb =
+  B.mysql_get_timeout_value_ms mariadb.Common.raw
 
 let set_character_set_start mariadb charset () =
   handle_int mariadb ((flip B.mysql_set_character_set_start) charset)
@@ -641,8 +646,18 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
 
   let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
     match init () with
-    | Some m ->
-        nonblocking m (connect m ?host ?user ?pass ?db ~port ?socket ~flags ())
+    | Some raw ->
+        let mariadb = Common.
+          { raw
+          ; host   = char_ptr_opt_buffer_of_string host
+          ; port   = port
+          ; user   = char_ptr_opt_buffer_of_string user
+          ; pass   = char_ptr_opt_buffer_of_string pass
+          ; db     = char_ptr_opt_buffer_of_string db
+          ; socket = char_ptr_opt_buffer_of_string socket
+          ; flags  = Common.int_of_flags flags
+          } in
+        nonblocking mariadb (connect mariadb)
     | None ->
         return (Error (2008, "out of memory"))
 

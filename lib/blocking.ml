@@ -72,22 +72,32 @@ type server_option = Common.server_option =
   | Multi_statements of bool
 
 let close mariadb =
-  B.mysql_close mariadb
+  B.mysql_close mariadb.Common.raw
 
 let library_end = Common.library_end
 
 let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
   let flags = Common.int_of_flags flags in
-  let connect m =
-    match B.mysql_real_connect m host user pass db port socket flags with
-    | Some m -> Ok m
+  let connect raw =
+    let mariadb = Common.
+      { raw
+      ; host   = char_ptr_opt_buffer_of_string host
+      ; port   = port
+      ; user   = char_ptr_opt_buffer_of_string user
+      ; pass   = char_ptr_opt_buffer_of_string pass
+      ; db     = char_ptr_opt_buffer_of_string db
+      ; socket = char_ptr_opt_buffer_of_string socket
+      ; flags  = flags
+      } in
+    match B.mysql_real_connect raw host user pass db port socket flags with
+    | Some _ -> Ok mariadb
     | None -> Error (2008, "out of memory") in
   match B.mysql_init () with
-  | Some m -> connect m
+  | Some raw -> connect raw
   | None -> Error (2008, "out of memory")
 
 let wrap_unit mariadb f =
-  if f mariadb then Ok ()
+  if f mariadb.Common.raw then Ok ()
   else Error (Common.error mariadb)
 
 let set_character_set mariadb charset =

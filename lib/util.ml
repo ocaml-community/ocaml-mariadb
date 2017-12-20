@@ -11,6 +11,10 @@ let char_ptr_buffer_of_string s =
   (buf +@ len) <-@ '\000';
   buf
 
+let char_ptr_opt_buffer_of_string = function
+  | None -> None
+  | Some s -> Some (char_ptr_buffer_of_string s)
+
 module Option = struct
   let map f = function
     | Some x -> Some (f x)
