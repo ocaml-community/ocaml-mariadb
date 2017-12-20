@@ -1,3 +1,4 @@
+open Printf
 open Util
 
 module B = Binding_wrappers
@@ -268,13 +269,14 @@ module Stmt = struct
 
   let execute stmt params =
     let n = B.mysql_stmt_param_count stmt.Common.Stmt.raw in
-    if n <> Array.length params then
-      `Error (0, "parameter count mismatch")
-    else begin
+    let len = Array.length params in
+    if n <> len then
+      let err = sprintf "parameter count mismatch: %d (expected %d)" len n in
+      `Error (2034, err)
+    else
       match Common.Stmt.bind_params stmt params with
       | `Ok bound -> `Ok (execute_start bound, execute_cont bound)
       | `Error _ as err -> err
-    end
 
   let handle_store_result stmt f =
     match f stmt.Common.Stmt.raw with
