@@ -98,10 +98,8 @@ let timeout_ms mariadb =
   B.mysql_get_timeout_value_ms mariadb.Common.raw
 
 let set_character_set_start mariadb =
-  match mariadb.Common.charset with
-  | Some charset ->
-      handle_int mariadb (B.mysql_set_character_set_start mariadb.raw charset)
-  | None -> assert false
+  let charset = Option.some mariadb.Common.charset in
+  handle_int mariadb (B.mysql_set_character_set_start mariadb.raw charset)
 
 let set_character_set_cont mariadb status =
   handle_int mariadb (B.mysql_set_character_set_cont mariadb.raw status)
@@ -110,9 +108,8 @@ let set_character_set mariadb =
   (set_character_set_start mariadb, set_character_set_cont mariadb)
 
 let select_db_start mariadb =
-  match mariadb.Common.db with
-  | Some db -> handle_int mariadb (B.mysql_select_db_start mariadb.raw db)
-  | None -> assert false
+  let db = Option.some mariadb.Common.db in
+  handle_int mariadb (B.mysql_select_db_start mariadb.raw db)
 
 let select_db_cont mariadb status =
   handle_int mariadb (B.mysql_select_db_cont mariadb.raw status)
