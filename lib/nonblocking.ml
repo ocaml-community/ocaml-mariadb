@@ -320,8 +320,8 @@ module Stmt = struct
   let reset_cont stmt status =
     handle_reset stmt ((flip B.mysql_stmt_reset_cont) status)
 
-  let reset mariadb =
-    (reset_start mariadb, reset_cont mariadb)
+  let reset stmt =
+    (reset_start stmt, reset_cont stmt)
 
   let handle_next stmt f =
     match f stmt.Common.Stmt.raw with
