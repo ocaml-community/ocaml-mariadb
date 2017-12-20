@@ -107,10 +107,17 @@ let set_character_set mariadb charset =
   wrap_unit mariadb (B.mysql_set_character_set mariadb.raw charset)
 
 let select_db mariadb db =
+  let db = char_ptr_buffer_of_string db in
+  mariadb.Common.db <- Some db;
   wrap_unit mariadb (B.mysql_select_db mariadb.raw db)
 
 let change_user mariadb user pass db =
-  wrap_unit mariadb (B.mysql_change_user mariadb.raw user pass db)
+  let user = char_ptr_buffer_of_string user in
+  let pass = char_ptr_buffer_of_string pass in
+  mariadb.Common.user <- Some user;
+  mariadb.Common.pass <- Some pass;
+  mariadb.Common.db <- char_ptr_opt_buffer_of_string db;
+  wrap_unit mariadb (B.mysql_change_user mariadb.raw user pass mariadb.db)
 
 let set_client_option =
   Common.set_client_option

@@ -19,4 +19,8 @@ module Option = struct
   let map f = function
     | Some x -> Some (f x)
     | None -> None
+
+  let some = function
+    | Some x -> x
+    | None -> failwith "Option.some: None"
 end

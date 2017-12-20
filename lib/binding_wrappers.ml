@@ -74,13 +74,9 @@ let mysql_set_character_set mysql charset =
   B.mysql_set_character_set mysql charset = 0
 
 let mysql_select_db mysql db =
-  let db = char_ptr_buffer_of_string db in
   B.mysql_select_db mysql db = 0
 
 let mysql_change_user mysql user pass db =
-  let user = char_ptr_buffer_of_string user in
-  let pass = char_ptr_buffer_of_string pass in
-  let db = char_ptr_opt_buffer_of_string db in
   B.mysql_change_user mysql user pass db = '\000'
 
 let mysql_set_server_option mysql opt =
@@ -134,16 +130,12 @@ let mysql_set_character_set_cont mysql status =
   handle_int (fun ret -> B.mysql_set_character_set_cont ret mysql status)
 
 let mysql_select_db_start mysql db =
-  let db = char_ptr_buffer_of_string db in
   handle_int (fun ret -> B.mysql_select_db_start ret mysql db)
 
 let mysql_select_db_cont mysql status =
   handle_int (fun ret -> B.mysql_select_db_cont ret mysql status)
 
 let mysql_change_user_start mysql user pass db =
-  let user = char_ptr_buffer_of_string user in
-  let pass = char_ptr_buffer_of_string pass in
-  let db = char_ptr_opt_buffer_of_string db in
   handle_char (fun ret -> B.mysql_change_user_start ret mysql user pass db)
 
 let mysql_change_user_cont mysql status =

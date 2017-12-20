@@ -109,23 +109,28 @@ let set_character_set_cont mariadb status =
 let set_character_set mariadb =
   (set_character_set_start mariadb, set_character_set_cont mariadb)
 
-let select_db_start mariadb db =
-  handle_int mariadb (B.mysql_select_db_start mariadb.raw db)
+let select_db_start mariadb =
+  match mariadb.Common.db with
+  | Some db -> handle_int mariadb (B.mysql_select_db_start mariadb.raw db)
+  | None -> assert false
 
 let select_db_cont mariadb status =
   handle_int mariadb (B.mysql_select_db_cont mariadb.raw status)
 
-let select_db mariadb db =
-  (select_db_start mariadb db, select_db_cont mariadb)
+let select_db mariadb =
+  (select_db_start mariadb, select_db_cont mariadb)
 
-let change_user_start mariadb user pass db =
-  handle_char mariadb (B.mysql_change_user_start mariadb.raw user pass db)
+let change_user_start mariadb =
+  let user = Option.some mariadb.Common.user in
+  let pass = Option.some mariadb.Common.pass in
+  handle_char mariadb
+    (B.mysql_change_user_start mariadb.raw user pass mariadb.db)
 
 let change_user_cont mariadb status =
   handle_char mariadb (B.mysql_change_user_cont mariadb.raw status)
 
-let change_user mariadb user pass db =
-  (change_user_start mariadb user pass db, change_user_cont mariadb)
+let change_user mariadb =
+  (change_user_start mariadb, change_user_cont mariadb)
 
 let set_server_option_start mariadb opt =
   let opt = Common.int_of_server_option opt in
@@ -669,9 +674,15 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
     m.Common.charset <- c;
     nonblocking m (set_character_set m)
 
-  let select_db m db = nonblocking m (select_db m db)
+  let select_db m db =
+    m.Common.db <- Some (char_ptr_buffer_of_string db);
+    nonblocking m (select_db m)
 
-  let change_user m user pass db = nonblocking m (change_user m user pass db)
+  let change_user m user pass db =
+    m.Common.user <- Some (char_ptr_buffer_of_string user);
+    m.Common.pass <- Some (char_ptr_buffer_of_string pass);
+    m.Common.db <- char_ptr_opt_buffer_of_string db;
+    nonblocking m (change_user m)
 
   let set_client_option = Common.set_client_option
 

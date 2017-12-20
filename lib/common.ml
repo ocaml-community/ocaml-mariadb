@@ -11,9 +11,9 @@ type 'm t =
   { raw             : B.mysql
   ; host            : char Ctypes.ptr option
   ; port            : int
-  ; user            : char Ctypes.ptr option
-  ; pass            : char Ctypes.ptr option
-  ; db              : char Ctypes.ptr option
+  ; mutable user    : char Ctypes.ptr option
+  ; mutable pass    : char Ctypes.ptr option
+  ; mutable db      : char Ctypes.ptr option
   ; socket          : char Ctypes.ptr option
   ; flags           : int
   ; mutable charset : char Ctypes.ptr option
