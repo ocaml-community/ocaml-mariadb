@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 88d2dcbef97134b5831009a3d8516696) *)
+(* DO NOT EDIT (digest: 8bf510f8e282ad37f248f6a8c4ec546c) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -927,15 +927,27 @@ let package_default =
                (OASISExpr.EBool true, S []);
                (OASISExpr.EFlag "mariadb_connector",
                  S [A "-cclib"; A "-lmariadb"]);
-               (OASISExpr.ENot (OASISExpr.EFlag "mariadb_connector"),
-                 S [A "-cclib"; A "-lmysqlclient"])
+               (OASISExpr.EAnd
+                  (OASISExpr.ENot (OASISExpr.EFlag "mariadb_connector"),
+                    OASISExpr.EFlag "mariadb_as_mysql"),
+                 S [A "-cclib"; A "-lmysqlclient"]);
+               (OASISExpr.EAnd
+                  (OASISExpr.ENot (OASISExpr.EFlag "mariadb_connector"),
+                    OASISExpr.ENot (OASISExpr.EFlag "mariadb_as_mysql")),
+                 S [A "-cclib"; A "-lmariadbclient"])
             ]);
           (["oasis_library_mariadb_cclib"; "ocamlmklib"; "c"],
             [
                (OASISExpr.EBool true, S []);
                (OASISExpr.EFlag "mariadb_connector", S [A "-lmariadb"]);
-               (OASISExpr.ENot (OASISExpr.EFlag "mariadb_connector"),
-                 S [A "-lmysqlclient"])
+               (OASISExpr.EAnd
+                  (OASISExpr.ENot (OASISExpr.EFlag "mariadb_connector"),
+                    OASISExpr.EFlag "mariadb_as_mysql"),
+                 S [A "-lmysqlclient"]);
+               (OASISExpr.EAnd
+                  (OASISExpr.ENot (OASISExpr.EFlag "mariadb_connector"),
+                    OASISExpr.ENot (OASISExpr.EFlag "mariadb_as_mysql")),
+                 S [A "-lmariadbclient"])
             ]);
           (["oasis_library_mariadb_byte"; "ocaml"; "link"; "byte"],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
@@ -1332,7 +1344,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 1336 "myocamlbuild.ml"
+# 1348 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let dispatch = function

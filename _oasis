@@ -15,6 +15,10 @@ Flag "mariadb_connector"
   Description:      Link to the MariaDB C/Connector library
   Default:          false
 
+Flag "mariadb_as_mysql"
+  Description:      MariaDB's libmariadbclient installed as libmysqlclient.so
+  Default:          false
+
 Library "mariadb"
   FindlibName:      mariadb
   Path:             lib
@@ -35,8 +39,10 @@ Library "mariadb"
   CCOpt:            -I $pkg_ctypes_stubs
   if flag(mariadb_connector)
     CCLib:          -lmariadb
-  else
+  else if flag(mariadb_as_mysql)
     CCLib:          -lmysqlclient
+  else
+    CCLib:          -lmariadbclient
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
   BuildDepends:     mariadb_bindings,

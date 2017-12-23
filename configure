@@ -7,12 +7,16 @@ detect () {
 
 include_base=""
 mariadb_connector="false"
+mariadb_as_mysql="false"
 
 if detect -lmariadb; then
   include_base="mariadb"
   mariadb_connector="true"
+elif detect -lmariadbclient -DMARIADB_CLIENT; then
+  include_base="mysql"
 elif detect -lmysqlclient -DMARIADB_CLIENT; then
   include_base="mysql"
+  mariadb_as_mysql="true"
 fi
 
 if [ -z "$include_base" ]; then
@@ -23,10 +27,12 @@ fi
 
 echo "mariadb_connector: ................................... $mariadb_connector"
 echo "mariadb_include_base: ................................ $include_base"
+echo "mariadb_as_mysql: .................................... $mariadb_as_mysql"
 
 cat << EOF > setup.data
 mariadb_include_base="$include_base"
 mariadb_connector="$mariadb_connector"
+mariadb_as_mysql="$mariadb_as_mysql"
 EOF
 
 # OASIS_START
