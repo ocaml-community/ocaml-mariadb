@@ -104,12 +104,12 @@ let wrap_unit mariadb = function
 let set_character_set mariadb charset =
   let charset = char_ptr_buffer_of_string charset in
   mariadb.Common.charset <- Some charset;
-  wrap_unit mariadb (B.mysql_set_character_set mariadb.raw charset)
+  wrap_unit mariadb (B.mysql_set_character_set mariadb.Common.raw charset)
 
 let select_db mariadb db =
   let db = char_ptr_buffer_of_string db in
   mariadb.Common.db <- Some db;
-  wrap_unit mariadb (B.mysql_select_db mariadb.raw db)
+  wrap_unit mariadb (B.mysql_select_db mariadb.Common.raw db)
 
 let change_user mariadb user pass db =
   let user = char_ptr_buffer_of_string user in
@@ -117,26 +117,27 @@ let change_user mariadb user pass db =
   mariadb.Common.user <- Some user;
   mariadb.Common.pass <- Some pass;
   mariadb.Common.db <- char_ptr_opt_buffer_of_string db;
-  wrap_unit mariadb (B.mysql_change_user mariadb.raw user pass mariadb.db)
+  wrap_unit mariadb
+    (B.mysql_change_user mariadb.Common.raw user pass mariadb.Common.db)
 
 let set_client_option =
   Common.set_client_option
 
 let set_server_option mariadb opt =
   let opt = Common.int_of_server_option opt in
-  wrap_unit mariadb (B.mysql_set_server_option mariadb.raw opt)
+  wrap_unit mariadb (B.mysql_set_server_option mariadb.Common.raw opt)
 
 let ping mariadb =
-  wrap_unit mariadb (B.mysql_ping mariadb.raw)
+  wrap_unit mariadb (B.mysql_ping mariadb.Common.raw)
 
 let autocommit mariadb auto =
-  wrap_unit mariadb (B.mysql_autocommit mariadb.raw auto)
+  wrap_unit mariadb (B.mysql_autocommit mariadb.Common.raw auto)
 
 let commit mariadb =
-  wrap_unit mariadb (B.mysql_commit mariadb.raw)
+  wrap_unit mariadb (B.mysql_commit mariadb.Common.raw)
 
 let rollback mariadb =
-  wrap_unit mariadb (B.mysql_rollback mariadb.raw)
+  wrap_unit mariadb (B.mysql_rollback mariadb.Common.raw)
 
 let prepare mariadb query =
   let build_stmt raw =
