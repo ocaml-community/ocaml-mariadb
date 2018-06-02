@@ -61,16 +61,18 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
     done;
     M.prepare dbh (Buffer.contents buf) >>= or_die "prepare"
 
+  let string_of_timestamp t =
+    let y, mon, day = M.Time.(year t, month t, day t) in
+    let h, m, s, us = M.Time.(hour t, minute t, second t, microsecond t) in
+    sprintf "%04d-%02d-%02dT%02d:%02d:%02d.%06d" y mon day h m s us
+
   let string_of_value = function
     | `Null -> "NULL"
     | `Int i -> sprintf "(%d : int)" i
     | `Float x -> sprintf "(%.8g : float)" x
     | `String s -> sprintf "(%S : string)" s
     | `Bytes s -> sprintf "(%S : bytes)" (Bytes.to_string s)
-    | `Time t ->
-        let y, mon, day, h, m, s =
-          M.Time.(year t, month t, day t, hour t, minute t, second t) in
-        sprintf "%04d-%02d-%02dT%02d:%02d:%02d" y mon day h m s
+    | `Time t -> string_of_timestamp t
 
   let equal_float x x' =
     abs_float (x -. x') /. (abs_float (x +. x') +. epsilon_float) < 1e-6
@@ -104,9 +106,28 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
       exit 2
     end
 
+  (* Make sure the conversion between timestamps and strings are consistent
+   * between MariaDB and OCaml. By sending timestamps to be compared as binary
+   * and as string, this also verifies the MYSQL_TIME encoding. *)
+  let test_datetime_and_string_conv dbh =
+    let t = M.Time.utc_timestamp (Random.float 1577833200.0) in
+    let s = string_of_timestamp t in
+    M.prepare dbh "SELECT CAST(? AS DATETIME), DATE_FORMAT(?, '%Y-%m-%dT%T.%f')"
+      >>= or_die "prepare" >>= fun stmt ->
+    let params = [|`String s; `Time t|] in
+    M.Stmt.execute stmt params >>= or_die "Stmt.execute" >>= fun res ->
+    assert (M.Res.num_rows res = 1);
+    M.Res.fetch (module M.Row.Array) res >>= or_die "Res.fetch" >|=
+    (function
+     | Some [|t'; s'|] ->
+        assert (equal_time t M.Field.(time t'));
+        assert (s = M.Field.(string s'))
+     | _ -> assert false)
+
   let test () =
     let stmt_cache = Hashtbl.create 7 in
     connect () >>= or_die "connect" >>= fun dbh ->
+    test_datetime_and_string_conv dbh >>= fun () ->
     repeat 100 begin fun () ->
       let n = Random.int (1 lsl Random.int 8) + 1 in
       let param_types = Array.init n random_param_type in

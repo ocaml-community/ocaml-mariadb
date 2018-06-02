@@ -155,6 +155,7 @@ module Types (F: Cstubs.Types.TYPE) = struct
     let hour = field t "hour" uint
     let minute = field t "minute" uint
     let second = field t "second" uint
+    let second_part = field t "second_part" ulong
 
     let () = seal t
   end
