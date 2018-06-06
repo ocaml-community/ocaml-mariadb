@@ -53,6 +53,7 @@ let to_time field kind =
   let buf = buffer field in
   let tp = coerce (ptr void) (ptr T.Time.t) buf in
   let member f = Unsigned.UInt.to_int @@ getf (!@tp) f in
+  let member_long f = Unsigned.ULong.to_int @@ getf (!@tp) f in
   { Time.
     year   = member T.Time.year
   ; month  = member T.Time.month
@@ -60,6 +61,7 @@ let to_time field kind =
   ; hour   = member T.Time.hour
   ; minute = member T.Time.minute
   ; second = member T.Time.second
+  ; microsecond = member_long T.Time.second_part
   ; kind
   }
 

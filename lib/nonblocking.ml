@@ -370,13 +370,14 @@ module type S = sig
     val hour : t -> int
     val minute : t -> int
     val second : t -> int
+    val microsecond : t -> int
 
-    val time : hour:int -> minute:int -> second:int -> t
+    val time : hour:int -> minute:int -> ?microsecond:int -> second:int -> t
     val local_timestamp : float -> t
     val utc_timestamp : float -> t
     val date : year:int -> month:int -> day:int -> t
     val datetime : year:int -> month:int -> day:int
-                -> hour:int -> minute:int -> second:int -> t
+                -> hour:int -> minute:int -> ?microsecond:int -> second:int -> t
   end
 
   module Field : sig

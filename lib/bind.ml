@@ -173,12 +173,14 @@ let type_of_time_kind = function
 let time b param ~at =
   let tp = allocate_n T.Time.t ~count:1 in
   let to_uint = Unsigned.UInt.of_int in
+  let to_ulong = Unsigned.ULong.of_int in
   setf (!@tp) T.Time.year (to_uint param.Time.year);
   setf (!@tp) T.Time.month (to_uint param.Time.month);
   setf (!@tp) T.Time.day (to_uint param.Time.day);
   setf (!@tp) T.Time.hour (to_uint param.Time.hour);
   setf (!@tp) T.Time.minute (to_uint param.Time.minute);
   setf (!@tp) T.Time.second (to_uint param.Time.second);
+  setf (!@tp) T.Time.second_part (to_ulong param.Time.microsecond);
   bind b
     ~buffer:(coerce (ptr T.Time.t) (ptr void) tp)
     ~size:(sizeof T.Time.t)
