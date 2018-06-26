@@ -33,12 +33,14 @@ module type S = sig
 
     (** {2 Creation of time values} *)
 
-    val time : hour:int -> minute:int -> ?microsecond:int -> second:int -> t
+    val time : hour:int -> minute:int -> second:int
+            -> ?microsecond:int -> unit -> t
     val local_timestamp : float -> t
     val utc_timestamp : float -> t
-    val date : year:int -> month:int -> day:int -> t
+    val date : year:int -> month:int -> day:int -> unit -> t
     val datetime : year:int -> month:int -> day:int
-                -> hour:int -> minute:int -> ?microsecond:int -> second:int -> t
+                -> hour:int -> minute:int -> second:int
+                -> ?microsecond:int -> unit -> t
   end
 
   (** This module defines a database field retrieved by a query. *)
@@ -359,12 +361,14 @@ module Nonblocking : sig
       val second : t -> int
       val microsecond : t -> int
 
-      val time : hour:int -> minute:int -> ?microsecond:int -> second:int -> t
+      val time : hour:int -> minute:int -> second:int
+              -> ?microsecond:int -> unit -> t
       val local_timestamp : float -> t
       val utc_timestamp : float -> t
-      val date : year:int -> month:int -> day:int -> t
+      val date : year:int -> month:int -> day:int -> unit -> t
       val datetime : year:int -> month:int -> day:int
-                  -> hour:int -> minute:int -> ?microsecond:int -> second:int -> t
+                  -> hour:int -> minute:int -> second:int
+                  -> ?microsecond:int -> unit -> t
     end
 
     module Field : sig
