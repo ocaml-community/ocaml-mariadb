@@ -19,7 +19,7 @@ let minute t = t.minute
 let second t = t.second
 let microsecond t = t.microsecond
 
-let time ~hour ~minute ?(microsecond = 0) ~second =
+let time ~hour ~minute ~second ?(microsecond = 0) () =
   { year = 0
   ; month = 0
   ; day = 0
@@ -49,7 +49,7 @@ let local_timestamp t =
 let utc_timestamp t =
   timestamp Unix.gmtime t
 
-let date ~year ~month ~day =
+let date ~year ~month ~day () =
   { year
   ; month
   ; day
@@ -60,7 +60,7 @@ let date ~year ~month ~day =
   ; kind = `Date
   }
 
-let datetime ~year ~month ~day ~hour ~minute ?(microsecond = 0) ~second =
+let datetime ~year ~month ~day ~hour ~minute ~second ?(microsecond = 0) () =
   { year
   ; month
   ; day
