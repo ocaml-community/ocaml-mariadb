@@ -50,7 +50,7 @@ $ opam install mariadb
 To install it manually, type
 
 ```sh
-$ ocaml setup.ml -configure
+$ ./configure
 $ ocaml setup.ml -build
 $ ocaml setup.ml -install
 
