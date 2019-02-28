@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9b64ddc2579fde50c21b884d7bc92e1e)
-version = "1.1.1"
+# DO NOT EDIT (digest: 22d640cd48269a570d304b34050e8778)
+version = "1.1.2"
 description = "OCaml bindings for MariaDB"
 requires = "mariadb_bindings unix"
 archive(byte) = "mariadb.cma"
