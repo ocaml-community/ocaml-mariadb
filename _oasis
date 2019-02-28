@@ -1,6 +1,6 @@
 OASISFormat:  0.4
 Name:         mariadb
-Version:      1.1.1
+Version:      1.1.2
 Synopsis:     OCaml bindings for MariaDB
 Authors:      Andre Nathan
 License:      MIT
@@ -54,7 +54,7 @@ Library "mariadb_bindings"
   Modules:          Ffi_bindings
   ByteOpt:          -warn-error +1..45
   NativeOpt:        -warn-error +1..45
-  BuildDepends:     ctypes.stubs, ctypes.foreign
+  BuildDepends:     ctypes.stubs
 
 Executable "ffi_stubgen"
   Install:          false
