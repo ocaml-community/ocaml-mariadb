@@ -278,7 +278,7 @@ module Stmt = struct
     | Prefetch_rows of int
 
   let error stmt =
-    (B.mysql_stmt_errno stmt.raw, B.mysql_error stmt.raw)
+    (B.mysql_stmt_errno stmt.raw, B.mysql_stmt_error stmt.raw)
 
   let fetch_field res i =
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct res i)
