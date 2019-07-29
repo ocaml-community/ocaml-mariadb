@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "mariadb"
-version: "1.1.2"
+version: "1.1.3"
 maintainer: "Andre Nathan <andrenth@gmail.com>"
 authors: "Andre Nathan <andrenth@gmail.com>"
 homepage: "https://github.com/andrenth/ocaml-mariadb"
