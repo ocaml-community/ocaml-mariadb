@@ -56,8 +56,8 @@ let env var def =
   | None -> def
 
 let or_die where = function
-  | Pervasives.Ok r -> return r
-  | Pervasives.Error (i, e) -> failwith @@ sprintf "%s: (%d) %s" where i e
+  | Stdlib.Ok r -> return r
+  | Stdlib.Error (i, e) -> failwith @@ sprintf "%s: (%d) %s" where i e
 
 let print_row row =
   printf "---\n%!";
