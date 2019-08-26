@@ -13,7 +13,7 @@ module type S = sig
   type error = int * string
     (** The type of errors that can result from MariaDB API calls. *)
 
-  type 'a result = ('a, error) Pervasives.result
+  type 'a result = ('a, error) Stdlib.result
     (** The result of MariaDB API calls. *)
 
   (** Module representing MariaDB date- and time-related values. *)
@@ -348,7 +348,7 @@ module Nonblocking : sig
   module type S = sig
     type error = int * string
     type 'a future
-    type 'a result = ('a, error) Pervasives.result
+    type 'a result = ('a, error) Stdlib.result
 
     module Time : sig
       type t

@@ -78,7 +78,7 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
     abs_float (x -. x') /. (abs_float (x +. x') +. epsilon_float) < 1e-6
 
   let equal_time t t' =
-    let open M.Time in let open Pervasives in
+    let open M.Time in let open Stdlib in
     (* Treat `Datetime and `Timestamp as equal. *)
     year t = year t' && month t = month t' && day t = day t' &&
     hour t = hour t' && minute t = minute t' && second t = second t'

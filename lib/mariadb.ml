@@ -1,6 +1,6 @@
 module type S = sig
   type error = int * string
-  type 'a result = ('a, error) Pervasives.result
+  type 'a result = ('a, error) Stdlib.result
 
   module Time : sig
     type t

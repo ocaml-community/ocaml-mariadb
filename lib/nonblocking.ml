@@ -359,7 +359,7 @@ end
 module type S = sig
   type error = int * string
   type 'a future
-  type 'a result = ('a, error) Pervasives.result
+  type 'a result = ('a, error) Stdlib.result
 
   module Time : sig
     type t
@@ -527,7 +527,7 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
 
   type 'a future = 'a W.IO.future
   type error = int * string
-  type 'a result = ('a, error) Pervasives.result
+  type 'a result = ('a, error) Stdlib.result
 
   let (>>=) = W.IO.(>>=)
   let return = W.IO.return

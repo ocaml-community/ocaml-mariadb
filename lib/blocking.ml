@@ -11,7 +11,7 @@ type t = [`Blocking] Common.t
 type mariadb = t
 
 type error = Common.error
-type 'a result = ('a, error) Pervasives.result
+type 'a result = ('a, error) Stdlib.result
 
 type flag = Common.flag =
   | Compress
