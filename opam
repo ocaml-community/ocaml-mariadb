@@ -15,10 +15,6 @@ build: [
   [make]
 ]
 install: [make "install"]
-remove: [
-  ["ocamlfind" "remove" "mariadb"]
-  ["ocamlfind" "remove" "mariadb_bindings"]
-]
 depends: [
   "ocaml" {>= "4.07.0"}
   "ocamlfind" {build}
@@ -30,4 +26,3 @@ depexts: [
   ["libmariadb-dev"] {os-distribution = "debian"}
   ["libmariadb-dev"] {os-distribution = "ubuntu"}
 ]
-flags: light-uninstall
