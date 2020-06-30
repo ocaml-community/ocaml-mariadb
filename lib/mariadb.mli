@@ -224,7 +224,8 @@ module type S = sig
              -> ?user:string
              -> ?pass:string
              -> ?db:string -> ?port:int -> ?socket:string
-             -> ?flags:flag list -> unit
+             -> ?flags:flag list
+             -> ?options:client_option list -> unit
              -> t result
 		(** Connect to a MariaDB server at the specified location with the specified
 				flags and optionally select a database [db]. *)
@@ -495,7 +496,8 @@ module Nonblocking : sig
                -> ?user:string
                -> ?pass:string
                -> ?db:string -> ?port:int -> ?socket:string
-               -> ?flags:flag list -> unit
+               -> ?flags:flag list
+               -> ?options:client_option list -> unit
                -> t result future
 
     val close : t -> unit future

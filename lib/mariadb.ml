@@ -146,7 +146,8 @@ module type S = sig
              -> ?user:string
              -> ?pass:string
              -> ?db:string -> ?port:int -> ?socket:string
-             -> ?flags:flag list -> unit
+             -> ?flags:flag list
+             -> ?options:client_option list -> unit
              -> t result
 
   val close : t -> unit

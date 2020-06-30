@@ -76,7 +76,7 @@ let close mariadb =
 
 let library_end = Common.library_end
 
-let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
+let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) ?(options=[]) () =
   let flags = Common.int_of_flags flags in
   let connect raw =
     let mariadb = Common.
@@ -90,6 +90,7 @@ let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
       ; flags   = flags
       ; charset = None
       } in
+    List.iter (Common.set_client_option mariadb) options;
     match B.mysql_real_connect raw host user pass db port socket flags with
     | Some _ -> Ok mariadb
     | None -> Error (2008, "out of memory") in

@@ -505,7 +505,8 @@ module type S = sig
              -> ?user:string
              -> ?pass:string
              -> ?db:string -> ?port:int -> ?socket:string
-             -> ?flags:flag list -> unit
+             -> ?flags:flag list
+             -> ?options:client_option list -> unit
              -> t result future
 
   val close : t -> unit future
@@ -659,7 +660,7 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
       | Error _ as e -> return e
   end
 
-  let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) () =
+  let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) ?(options=[]) () =
     match init () with
     | Some raw ->
         let mariadb = Common.
@@ -673,6 +674,7 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
           ; flags   = Common.int_of_flags flags
           ; charset = None
           } in
+        List.iter (Common.set_client_option mariadb) options;
         nonblocking mariadb (connect mariadb)
     | None ->
         return (Error (2008, "out of memory"))
