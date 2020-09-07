@@ -74,7 +74,9 @@ let convert field typ unsigned =
   let open Unsigned in
   match typ, unsigned with
   | `Null,                _ -> `Null
-  | (`Tiny | `Year),      _ -> `Int (int_of_char (cast_to char field))
+  | `Year,                _
+  | `Tiny,             true -> `Int (int_of_char (cast_to char field))
+  | `Tiny,            false -> `Int (cast_to schar field)
   | `Short,            true -> `Int (cast_to int field)
   | `Short,           false -> `Int (UInt.to_int (cast_to uint field))
   | (`Int24 | `Long),  true -> `Int (UInt32.to_int (cast_to uint32_t field))
