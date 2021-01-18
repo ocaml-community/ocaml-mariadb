@@ -57,7 +57,7 @@ let mysql_real_connect mysql host user pass db port socket flags =
   let db = char_ptr_opt_buffer_of_string db in
   let port = Unsigned.UInt.of_int port in
   let socket = char_ptr_opt_buffer_of_string socket in
-  let flags = Unsigned.ULong.of_int flags in
+  let flags = Unsigned.ULong.of_int64 (Int64.of_int32 flags) in
   B.mysql_real_connect mysql host user pass db port socket flags
 
 let mysql_commit mysql =
@@ -109,7 +109,7 @@ let mysql_stmt_free_result stmt =
 
 let mysql_real_connect_start mysql host user pass db port socket flags =
   let port = Unsigned.UInt.of_int port in
-  let flags = Unsigned.ULong.of_int flags in
+  let flags = Unsigned.ULong.of_int64 (Int64.of_int32 flags) in
   handle_ret
     (fun ret ->
       B.mysql_real_connect_start ret mysql host user pass db port socket flags)
