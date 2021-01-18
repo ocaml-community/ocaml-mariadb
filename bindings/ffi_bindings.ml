@@ -164,17 +164,23 @@ end
 module Bindings (F : Cstubs.FOREIGN) = struct
   open F
 
-  type mysql = unit ptr
-  let mysql : mysql typ = ptr void
+  type st_mysql
+  let st_mysql : st_mysql structure typ = structure "st_mysql"
 
-  type mysql_opt = unit ptr option
-  let mysql_opt : mysql_opt typ = ptr_opt void
+  type mysql = st_mysql structure ptr
+  let mysql : mysql typ = ptr st_mysql
 
-  type res = unit ptr
-  let res : res typ = ptr void
+  type mysql_opt = st_mysql structure ptr option
+  let mysql_opt : mysql_opt typ = ptr_opt st_mysql
 
-  type res_opt = unit ptr option
-  let res_opt : res_opt typ = ptr_opt void
+  type st_mysql_res
+  let st_mysql_res : st_mysql_res structure typ = structure "st_mysql_res"
+
+  type res = st_mysql_res structure ptr
+  let res : res typ = ptr st_mysql_res
+
+  type res_opt = st_mysql_res structure ptr option
+  let res_opt : res_opt typ = ptr_opt st_mysql_res
 
   type row = char ptr ptr
   let row : row typ = ptr (ptr char)
@@ -182,14 +188,20 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   type row_opt = char ptr ptr option
   let row_opt : row_opt typ = ptr_opt (ptr char)
 
-  type stmt = unit ptr
-  let stmt : stmt typ = ptr void
+  type st_mysql_stmt
+  let st_mysql_stmt : st_mysql_stmt structure typ = structure "st_mysql_stmt"
 
-  type stmt_opt = unit ptr option
-  let stmt_opt : stmt_opt typ = ptr_opt void
+  type stmt = st_mysql_stmt structure ptr
+  let stmt : stmt typ = ptr st_mysql_stmt
 
-  type field = unit ptr
-  let field : field typ = ptr void
+  type stmt_opt = st_mysql_stmt structure ptr option
+  let stmt_opt : stmt_opt typ = ptr_opt st_mysql_stmt
+
+  type st_mysql_field
+  let st_mysql_field : st_mysql_field structure typ = structure "st_mysql_field"
+
+  type field = st_mysql_field structure ptr
+  let field : field typ = ptr st_mysql_field
 
   type my_bool = char
   let my_bool : char typ = char
@@ -257,7 +269,7 @@ module Bindings (F : Cstubs.FOREIGN) = struct
     (stmt @-> returning ullong)
 
   let mysql_stmt_affected_rows = foreign "mysql_stmt_affected_rows"
-    (res @-> returning ullong)
+    (stmt @-> returning ullong)
 
   (* Blocking API *)
 
