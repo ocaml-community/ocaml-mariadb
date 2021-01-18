@@ -1,7 +1,7 @@
 #!/bin/sh
 
 detect () {
-  gcc -o /dev/null detect/detect.c $@ > /dev/null 2>&1
+  cc -o /dev/null detect/detect.c $@ > /dev/null 2>&1
   return $?
 }
 
