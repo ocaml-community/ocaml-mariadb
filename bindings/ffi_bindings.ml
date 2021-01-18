@@ -48,18 +48,18 @@ module Types (F: Cstubs.Types.TYPE) = struct
   end
 
   module Flags = struct
-    let compress = constant "CLIENT_COMPRESS" int
-    let found_rows = constant "CLIENT_FOUND_ROWS" int
-    let ignore_sigpipe = constant "CLIENT_IGNORE_SIGPIPE" int
-    let ignore_space = constant "CLIENT_IGNORE_SPACE" int
-    let interactive = constant "CLIENT_INTERACTIVE" int
-    let local_files = constant "CLIENT_LOCAL_FILES" int
-    let multi_results = constant "CLIENT_MULTI_RESULTS" int
-    let multi_statements = constant "CLIENT_MULTI_STATEMENTS" int
-    let no_schema = constant "CLIENT_NO_SCHEMA" int
-    let odbc = constant "CLIENT_ODBC" int
-    let ssl = constant "CLIENT_SSL" int
-    let remember_options = constant "CLIENT_REMEMBER_OPTIONS" int
+    let compress = constant "CLIENT_COMPRESS" int32_t
+    let found_rows = constant "CLIENT_FOUND_ROWS" int32_t
+    let ignore_sigpipe = constant "CLIENT_IGNORE_SIGPIPE" int32_t
+    let ignore_space = constant "CLIENT_IGNORE_SPACE" int32_t
+    let interactive = constant "CLIENT_INTERACTIVE" int32_t
+    let local_files = constant "CLIENT_LOCAL_FILES" int32_t
+    let multi_results = constant "CLIENT_MULTI_RESULTS" int32_t
+    let multi_statements = constant "CLIENT_MULTI_STATEMENTS" int32_t
+    let no_schema = constant "CLIENT_NO_SCHEMA" int32_t
+    let odbc = constant "CLIENT_ODBC" int32_t
+    let ssl = constant "CLIENT_SSL" int32_t
+    let remember_options = constant "CLIENT_REMEMBER_OPTIONS" int32_t
   end
 
   module Server_options = struct

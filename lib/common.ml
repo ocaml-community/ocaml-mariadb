@@ -15,7 +15,7 @@ type 'm t =
   ; mutable pass    : char Ctypes.ptr option
   ; mutable db      : char Ctypes.ptr option
   ; socket          : char Ctypes.ptr option
-  ; flags           : int
+  ; flags           : int32
   ; mutable charset : char Ctypes.ptr option
   }
   constraint 'm = [< mode]
@@ -197,7 +197,7 @@ let int_of_flag = function
   | Remember_options -> T.Flags.remember_options
 
 let int_of_flags =
-  List.fold_left (fun acc flag -> acc lor int_of_flag flag) 0
+  List.fold_left (fun acc flag -> Int32.logor acc (int_of_flag flag)) 0l
 
 module Res = struct
   open Ctypes
