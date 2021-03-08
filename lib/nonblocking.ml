@@ -643,6 +643,7 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
       let raw = stmt.Common.Stmt.raw in
       let start = handle_free (B.mysql_stmt_free_result_start raw) in
       let cont s = handle_free (B.mysql_stmt_free_result_cont raw s) in
+      let () = match stmt.Common.Stmt.meta with None -> () | Some { res; _ } -> B.mysql_free_result res in
       nonblocking stmt.Common.Stmt.mariadb (start, cont)
 
     let reset stmt =
