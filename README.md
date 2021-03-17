@@ -80,10 +80,12 @@ let or_die = function
 
 let main () =
   let mariadb =
-    Mariadb.connect
+    M.connect
       ~host:"localhost"
       ~user:"myuser"
-      ~pass:"secret" |> or_die in
+      ~pass:"secret"
+      ()
+    |> or_die in
   let query = "SELECT * FROM mysql.users WHERE Host LIKE ? LIMIT ?" in
   let stmt = M.prepare mariadb query |> or_die in
   let res = M.Stmt.execute stmt [| `String "%"; `Int 10 |] |> or_die in
@@ -150,10 +152,12 @@ module M = Mariadb.Nonblocking.Make(struct
 end)
 
 let main () =
-  Mariadb.connect
+  M.connect
     ~host:"localhost"
     ~user:"myuser"
-    ~pass:"secret" >>= or_die
+    ~pass:"secret"
+    ()
+  >>= or_die
   >>= fun mariadb ->
   let query = "SELECT * FROM mysql.users WHERE Host LIKE ? LIMIT ?" in
   M.prepare mariadb query >>= or_die
