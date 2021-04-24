@@ -635,6 +635,7 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
       | `Error e -> return (Error e)
 
     let free_res stmt =
+      Common.Stmt.free_meta stmt;
       let handle_free = function
         | 0, '\000' -> `Ok ()
         | 0, _ -> `Error (Common.Stmt.error stmt)
