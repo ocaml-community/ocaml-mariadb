@@ -264,7 +264,7 @@ module Stmt = struct
     ; mariadb : 'm mariadb
     ; num_params : int
     ; params : Bind.t
-    ; meta : meta option
+    ; meta : meta option lazy_t
     }
   type 'm t = 'm u constraint 'm = [< mode]
 
@@ -303,31 +303,21 @@ module Stmt = struct
 
   let init mariadb raw =
     let np = B.mysql_stmt_param_count raw in
-    match B.mysql_stmt_result_metadata raw with
-    | Some res ->
-        let nf = B.mysql_num_fields res in
-        let meta =
+    let meta = lazy (
+      Option.map
+        (fun res ->
+          let nf = B.mysql_num_fields res in
           { res
           ; result = alloc_result res nf
-          } in
-        Some
-          { raw
-          ; mariadb
-          ; num_params = np
-          ; params = Bind.alloc np
-          ; meta = Some meta
-          }
-    | None ->
-        if B.mysql_errno mariadb.raw = 0 then
-          Some
-            { raw
-            ; mariadb
-            ; num_params = np
-            ; params = Bind.alloc np
-            ; meta = None
-            }
-        else
-          None
+          })
+        (B.mysql_stmt_result_metadata raw))
+    in
+    { raw
+    ; mariadb
+    ; num_params = np
+    ; params = Bind.alloc np
+    ; meta
+    }
 
   let bind_params stmt params =
     match Array.length params with
@@ -380,7 +370,7 @@ module Stmt = struct
         setf (!@bp) T.Bind.buffer b.Bind.buffers.(i)
 
   let bind_result stmt =
-    match stmt.meta with
+    match Lazy.force stmt.meta with
     | Some meta ->
         let b = meta.result in
         let n = b.Bind.n in

@@ -178,9 +178,7 @@ let rollback mariadb =
   (rollback_start mariadb, rollback_cont mariadb)
 
 let build_stmt mariadb raw =
-  match Common.Stmt.init mariadb raw with
-  | Some stmt -> `Ok stmt
-  | None -> `Error (Common.error mariadb)
+  `Ok (Common.Stmt.init mariadb raw)
 
 type prep_stmt =
   { raw   : B.stmt
