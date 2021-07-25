@@ -320,6 +320,9 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let mysql_get_proto_info = foreign "mysql_get_proto_info"
     (mysql @-> returning uint)
 
+  let mysql_sqlstate = foreign "mysql_sqlstate"
+    (mysql @-> returning string)
+
   let mysql_stmt_prepare = foreign "mysql_stmt_prepare"
     (stmt @-> ptr char @-> ulong @-> returning int)
 
@@ -331,6 +334,9 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let mysql_stmt_fetch = foreign "mysql_stmt_fetch"
     (stmt @-> returning int)
+
+  let mysql_stmt_sqlstate = foreign "mysql_stmt_sqlstate"
+    (stmt @-> returning string)
 
   let mysql_stmt_close = foreign "mysql_stmt_close"
     (stmt @-> returning my_bool)
