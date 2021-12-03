@@ -86,6 +86,7 @@ struct
   let string_of_value = function
     | `Null -> "NULL"
     | `Int i -> sprintf "(%d : int)" i
+    | `Int64 i -> sprintf "(%Ld : int64)" i
     | `Float x -> sprintf "(%.8g : float)" x
     | `String s -> sprintf "(%S : string)" s
     | `Bytes s -> sprintf "(%S : bytes)" (Bytes.to_string s)
@@ -106,7 +107,10 @@ struct
     | `Null, _ | _, `Null -> false
     | `Int i, `Int i' -> i = i'
     | `Int i, `Float x | `Float x, `Int i -> float_of_int i = x
+    | `Int64 i, `Int x | `Int x, `Int64 i -> Int64.(equal i (of_int x))
+    | `Int64 i, `Float x | `Float x, `Int64 i -> Int64.to_float i = x
     | `Int _, _ | _, `Int _ -> false
+    | `Int64 _, _ | _, `Int64 _ -> false
     | `Float x, `Float x' -> equal_float x x'
     | `Float _, _ | _, `Float _ -> false
     | `String s, `String s' -> s = s'

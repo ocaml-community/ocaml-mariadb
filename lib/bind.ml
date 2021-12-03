@@ -124,6 +124,15 @@ let int ?(unsigned = false) b param ~at =
     ~unsigned:(if unsigned then yes else no)
     ~at
 
+let int64 ?(unsigned = false) b param ~at =
+  let p = allocate int64_t param in
+  bind b
+    ~buffer:(coerce (ptr int64_t) (ptr void) p)
+    ~size:(sizeof int64_t)
+    ~mysql_type:T.Type.long_long
+    ~unsigned:(if unsigned then yes else no)
+    ~at
+
 let float b param ~at =
   let p = allocate float param in
   bind b

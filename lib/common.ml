@@ -323,6 +323,7 @@ module Stmt = struct
             match arg with
             | `Null -> Bind.null b ~at
             | `Int i -> Bind.int b i ~at
+            | `Int64 i -> Bind.int64 b i ~at
             | `Float x -> Bind.float b x ~at
             | `String s -> Bind.string b s ~at
             | `Bytes s -> Bind.blob b s ~at

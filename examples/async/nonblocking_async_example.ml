@@ -66,6 +66,7 @@ let print_row row =
       printf "%20s " name;
       match M.Field.value field with
       | `Int i -> printf "%d\n%!" i
+      | `Int64 i -> printf "%Ld\n%!" i
       | `Float x -> printf "%f\n%!" x
       | `String s -> printf "%s\n%!" s
       | `Bytes b -> printf "%s\n%!" (Caml_bytes.to_string b)

@@ -398,6 +398,7 @@ module type S = sig
     type value =
       [ `Null
       | `Int of int
+      | `Int64 of Int64.t
       | `Float of float
       | `String of string
       | `Bytes of bytes
