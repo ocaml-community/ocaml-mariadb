@@ -51,6 +51,7 @@ module type S = sig
     type value =
       [ `Null
       | `Int of int
+      | `Int64 of Int64.t
       | `Float of float
       | `String of string
       | `Bytes of bytes
@@ -81,12 +82,14 @@ module type S = sig
     *)
 
     val int : t -> int
+    val int64 : t -> Int64.t
     val float : t -> float
     val string : t -> string
     val bytes : t -> bytes
     val time : t -> Time.t
 
     val int_opt : t -> int option
+    val int64_opt : t -> Int64.t option
     val float_opt : t -> float option
     val string_opt : t -> string option
     val bytes_opt : t -> bytes option
@@ -378,6 +381,7 @@ module Nonblocking : sig
       type value =
         [ `Null
         | `Int of int
+        | `Int64 of Int64.t
         | `Float of float
         | `String of string
         | `Bytes of bytes

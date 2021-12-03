@@ -5,6 +5,7 @@ module T = Ffi_bindings.Types(Ffi_generated_types)
 type value =
   [ `Null
   | `Int of int
+  | `Int64 of Int64.t
   | `Float of float
   | `String of string
   | `Bytes of bytes
@@ -81,8 +82,8 @@ let convert field typ unsigned =
   | `Short,           false -> `Int (UInt.to_int (cast_to uint field))
   | (`Int24 | `Long),  true -> `Int (UInt32.to_int (cast_to uint32_t field))
   | (`Int24 | `Long), false -> `Int (Int32.to_int (cast_to int32_t field))
-  | `Long_long,        true -> `Int (UInt64.to_int (cast_to uint64_t field))
-  | `Long_long,       false -> `Int (Int64.to_int (cast_to int64_t field))
+  | `Long_long,        true -> `Int64 (UInt64.to_int64 (cast_to uint64_t field))
+  | `Long_long,       false -> `Int64 (cast_to int64_t field)
   | `Float,               _ -> `Float (cast_to float field)
   | `Double,              _ -> `Float (cast_to double field)
   | #to_string,           _ -> `String (Bytes.to_string (to_bytes field))
@@ -103,6 +104,11 @@ let int field =
   match value field with
   | `Int i -> i
   | _ -> err field ~info:"an integer"
+
+let int64 field =
+  match value field with
+  | `Int64 i -> i
+  | _ -> err field ~info:"an 64-bit integer"
 
 let float field =
   match value field with
@@ -129,6 +135,12 @@ let int_opt field =
   | `Int i -> Some i
   | `Null -> None
   | _ -> err field ~info:"a nullable integer"
+
+let int64_opt field =
+  match value field with
+  | `Int64 i -> Some i
+  | `Null -> None
+  | _ -> err field ~info:"a nullable 64-bit integer"
 
 let float_opt field =
   match value field with
