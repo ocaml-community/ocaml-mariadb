@@ -172,3 +172,13 @@ Executable "blocking_stress_test"
   NativeOpt:        -warn-error +1..45
   CompiledObject:   best
   BuildDepends:     mariadb
+
+Executable "nonblocking_stress_test"
+  Build$:           flag(lwt)
+  Install:          false
+  Path:             examples/nonblocking
+  MainIs:           nonblocking_stress_test.ml
+  ByteOpt:          -warn-error +1..45
+  NativeOpt:        -warn-error +1..45
+  CompiledObject:   best
+  BuildDepends:     mariadb

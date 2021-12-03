@@ -29,7 +29,8 @@ module type S = sig
     type value =
       [ `Null
       | `Int of int
-      | `Int64 of int64
+      | `Int64 of Int64.t
+      | `UInt64 of Unsigned.UInt64.t
       | `Float of float
       | `String of string
       | `Bytes of bytes
@@ -43,6 +44,7 @@ module type S = sig
 
     val int : t -> int
     val int64 : t -> Int64.t
+    val uint64 : t -> Unsigned.UInt64.t
     val float : t -> float
     val string : t -> string
     val bytes : t -> bytes
@@ -50,6 +52,7 @@ module type S = sig
 
     val int_opt : t -> int option
     val int64_opt : t -> Int64.t option
+    val uint64_opt : t -> Unsigned.UInt64.t option
     val float_opt : t -> float option
     val string_opt : t -> string option
     val bytes_opt : t -> bytes option

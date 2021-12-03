@@ -6,6 +6,7 @@ type value =
   [ `Null
   | `Int of int
   | `Int64 of Int64.t
+  | `UInt64 of Unsigned.UInt64.t
   | `Float of float
   | `String of string
   | `Bytes of bytes
@@ -82,7 +83,7 @@ let convert field typ unsigned =
   | `Short,           false -> `Int (UInt.to_int (cast_to uint field))
   | (`Int24 | `Long),  true -> `Int (UInt32.to_int (cast_to uint32_t field))
   | (`Int24 | `Long), false -> `Int (Int32.to_int (cast_to int32_t field))
-  | `Long_long,        true -> `Int64 (UInt64.to_int64 (cast_to uint64_t field))
+  | `Long_long,        true -> `UInt64 (cast_to uint64_t field)
   | `Long_long,       false -> `Int64 (cast_to int64_t field)
   | `Float,               _ -> `Float (cast_to float field)
   | `Double,              _ -> `Float (cast_to double field)
@@ -108,7 +109,12 @@ let int field =
 let int64 field =
   match value field with
   | `Int64 i -> i
-  | _ -> err field ~info:"an 64-bit integer"
+  | _ -> err field ~info:"a 64-bit integer"
+
+let uint64 field =
+  match value field with
+  | `UInt64 i -> i
+  | _ -> err field ~info:"a 64-bit unsigned integer"
 
 let float field =
   match value field with
@@ -141,6 +147,12 @@ let int64_opt field =
   | `Int64 i -> Some i
   | `Null -> None
   | _ -> err field ~info:"a nullable 64-bit integer"
+
+let uint64_opt field =
+  match value field with
+  | `UInt64 i -> Some i
+  | `Null -> None
+  | _ -> err field ~info:"a nullable 64-bit unsigned integer"
 
 let float_opt field =
   match value field with
