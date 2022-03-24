@@ -69,6 +69,8 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
   let string_of_value = function
     | `Null -> "NULL"
     | `Int i -> sprintf "(%d : int)" i
+    | `Int64 i -> sprintf "(%Ld : int64)" i
+    | `UInt64 i -> sprintf "(%s : uint64)" (Unsigned.UInt64.to_string i)
     | `Float x -> sprintf "(%.8g : float)" x
     | `String s -> sprintf "(%S : string)" s
     | `Bytes s -> sprintf "(%S : bytes)" (Bytes.to_string s)
@@ -89,7 +91,14 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
     | `Null, _ | _, `Null -> false
     | `Int i, `Int i' -> i = i'
     | `Int i, `Float x | `Float x, `Int i -> float_of_int i = x
+    | `Int64 i, `Int x | `Int x, `Int64 i -> Int64.(equal i (of_int x))
+    | `Int64 i, `Float x | `Float x, `Int64 i -> Int64.to_float i = x
+    | `UInt64 i, `Int x | `Int x, `UInt64 i -> Unsigned.UInt64.(equal i (of_int x))
+    | `UInt64 i, `Float x | `Float x, `UInt64 i -> Int64.to_float (Unsigned.UInt64.to_int64 i) = x
+    | `UInt64 i, `Int64 x | `Int64 x, `UInt64 i -> Int64.equal (Unsigned.UInt64.to_int64 i) x
     | `Int _, _ | _, `Int _ -> false
+    | `Int64 _, _ | _, `Int64 _ -> false
+    | `UInt64 _, _ | _, `UInt64 _ -> false
     | `Float x, `Float x' -> equal_float x x'
     | `Float _, _ | _, `Float _ -> false
     | `String s, `String s' -> s = s'

@@ -206,6 +206,8 @@ function.
 ```ocaml
 type value =
   [ `Int of int
+  | `Int64 of Int64.t
+  | `UInt64 of Unsigned.UInt64.t
   | `Float of float
   | `String of string
   | `Bytes of bytes
@@ -222,6 +224,8 @@ provided to extract the OCaml types directly from a field:
 
 ```ocaml
 val int : Field.t -> int
+val int64 : Field.t -> Int64.t
+val uint64 : Field.t -> Unsigned.Int64.t
 val float : Field.t -> float
 val string : Field.t -> string
 val bytes : Field.t -> bytes
@@ -235,6 +239,8 @@ For nullable fields, the following analogous functions are also provided:
 
 ```ocaml
 val int_opt : Field.t -> int option
+val int64_opt : Field.t -> Int64.t option
+val uint64_opt : Field.t -> Unsigned.UInt64.t option
 val float_opt : Field.t -> float option
 val string_opt : Field.t -> string option
 val bytes_opt : Field.t -> bytes option

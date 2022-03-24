@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 8bf510f8e282ad37f248f6a8c4ec546c) *)
+(* DO NOT EDIT (digest: 7011cb26a56db26fc749ec61ecb76f13) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -1326,6 +1326,48 @@ let package_default =
               "compile";
               "native"
            ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_stress_test_byte";
+              "ocaml";
+              "link";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_stress_test_native";
+              "ocaml";
+              "link";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_stress_test_byte";
+              "ocaml";
+              "ocamldep";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_stress_test_native";
+              "ocaml";
+              "ocamldep";
+              "native"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_stress_test_byte";
+              "ocaml";
+              "compile";
+              "byte"
+           ],
+            [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])]);
+          ([
+              "oasis_executable_nonblocking_stress_test_native";
+              "ocaml";
+              "compile";
+              "native"
+           ],
             [(OASISExpr.EBool true, S [A "-warn-error"; A "+1..45"])])
        ];
      includes =
@@ -1333,6 +1375,7 @@ let package_default =
           ("stubgen", ["bindings"]);
           ("lib", ["bindings"]);
           ("examples/select", ["lib"]);
+          ("examples/nonblocking", ["lib"]);
           ("examples/lwt", ["lib"]);
           ("examples/blocking", ["lib"]);
           ("examples/async", ["lib"])
@@ -1344,7 +1387,7 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 1348 "myocamlbuild.ml"
+# 1391 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 let dispatch = function

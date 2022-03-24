@@ -52,6 +52,8 @@ let print_row row =
       Lwt_io.printf "%20s " name >>= fun () ->
       match M.Field.value field with
       | `Int i -> Lwt_io.printf "%d\n%!" i
+      | `Int64 i -> Lwt_io.printf "%Ld\n%!" i
+      | `UInt64 i -> Lwt_io.printf "%s\n%!" (Unsigned.UInt64.to_string i)
       | `Float x -> Lwt_io.printf "%f\n%!" x
       | `String s -> Lwt_io.printf "%s\n%!" s
       | `Bytes b -> Lwt_io.printf "%s\n%!" (Bytes.to_string b)
