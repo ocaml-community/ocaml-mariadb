@@ -19,7 +19,8 @@ let connect () =
 
 let test () =
   let dbh = connect () |> or_die "connect" in
-  let mk_stmt () =  M.prepare dbh "SELECT ?" |> or_die "prepare" in
+  (* without CAST result is typed as NULL for some reason *)
+  let mk_stmt () =  M.prepare dbh "SELECT CAST(? AS BINARY)" |> or_die "prepare" in
   let stmt = ref (mk_stmt ()) in
   for _ = 1 to 100 do
     let n = Random.int (1 lsl Random.int 8) in
