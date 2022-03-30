@@ -525,6 +525,10 @@ module type S = sig
   val set_character_set : t -> string -> unit result future
   val select_db : t -> string -> unit result future
   val change_user : t -> string -> string -> string option -> unit result future
+  val get_server_info : t -> string
+  val get_server_version : t -> int
+  val get_host_info : t -> string
+  val get_proto_info : t -> int
   val set_client_option : t -> client_option -> unit
   val set_server_option : t -> server_option -> unit result future
   val ping : t -> unit result future
@@ -711,6 +715,14 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
     m.Common.pass <- Some (char_ptr_buffer_of_string pass);
     m.Common.db <- char_ptr_opt_buffer_of_string db;
     nonblocking m (change_user m)
+
+  let get_server_info = Common.get_server_info
+
+  let get_server_version = Common.get_server_version
+
+  let get_host_info = Common.get_host_info
+
+  let get_proto_info = Common.get_proto_info
 
   let set_client_option = Common.set_client_option
 
