@@ -255,6 +255,18 @@ module type S = sig
         [user] with password [password] and optionally change to database
         [db]. *)
 
+  val get_server_info : t -> string
+    (** The version version as a string. *)
+
+  val get_server_version : t -> int
+    (** The server version encoded as [major * 10000 + minor * 100 + patch]. *)
+
+  val get_host_info : t -> string
+    (** A string representing the server host name and the connection type. *)
+
+  val get_proto_info : t -> int
+    (** The protocol version used for the connection. *)
+
   val set_client_option : t -> client_option -> unit
     (** Sets the given client option on the connection. *)
 
@@ -514,6 +526,10 @@ module Nonblocking : sig
     val select_db : t -> string -> unit result future
     val change_user : t -> string -> string -> string option
                    -> unit result future
+    val get_server_info : t -> string
+    val get_server_version : t -> int
+    val get_host_info : t -> string
+    val get_proto_info : t -> int
     val set_client_option : t -> client_option -> unit
     val set_server_option : t -> server_option -> unit result future
     val ping : t -> unit result future
