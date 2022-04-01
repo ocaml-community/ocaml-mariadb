@@ -1,6 +1,6 @@
 OASISFormat:  0.4
 Name:         mariadb
-Version:      1.1.5
+Version:      1.1.6
 Synopsis:     OCaml bindings for MariaDB
 Authors:      Andre Nathan
 License:      MIT
