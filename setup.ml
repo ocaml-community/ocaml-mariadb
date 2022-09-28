@@ -1,3 +1,8 @@
+(* manual quick-fix until oasis is updated for OCaml 5 *)
+#use "topfind";;
+#require "camlp-streams";;
+module Pervasives = Stdlib
+
 (* setup.ml generated for the first time by OASIS v0.4.6 *)
 
 (* OASIS_START *)
