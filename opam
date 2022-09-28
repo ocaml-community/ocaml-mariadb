@@ -1,6 +1,5 @@
 opam-version: "2.0"
 name: "mariadb"
-version: "1.1.4"
 maintainer: "Andre Nathan <andrenth@gmail.com>"
 authors: "Andre Nathan <andrenth@gmail.com>"
 homepage: "https://github.com/andrenth/ocaml-mariadb"
@@ -20,5 +19,6 @@ depends: [
   "ocamlfind" {build}
   "ocamlbuild" {build}
   "ctypes" {>= "0.7.0"}
-  "conf-mariadb" {build}
+  "conf-mariadb"
+  "conf-gcc"
 ]
