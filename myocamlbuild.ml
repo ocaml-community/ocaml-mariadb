@@ -1372,7 +1372,7 @@ let dispatch = function
          let env = BaseEnvLight.load () in
          let cc = BaseEnvLight.var_get "bytecomp_c_compiler" env in
          let stdlib = BaseEnvLight.var_get "standard_library" env in
-         let ctypes = BaseEnvLight.var_get "pkg_ctypes_stubs" env in
+         let ctypes = BaseEnvLight.var_get "pkg_ctypes" env in
          Cmd (S [Sh cc; A"stubgen/ffi_ml_types_stubgen.c";
                  A"-I"; P ctypes; A"-I"; P stdlib;
                  A"-o"; A stubgen_ml_types])
