@@ -177,6 +177,15 @@ let rollback_cont mariadb status =
 let rollback mariadb =
   (rollback_start mariadb, rollback_cont mariadb)
 
+let start_txn_start mariadb =
+  handle_int mariadb (B.mysql_real_query_start mariadb.Common.raw "START TRANSACTION")
+
+let start_txn_cont mariadb status =
+  handle_int mariadb (B.mysql_real_query_cont mariadb.Common.raw status)
+
+let start_txn mariadb =
+  (start_txn_start mariadb, start_txn_cont mariadb)
+
 let build_stmt mariadb raw =
   `Ok (Common.Stmt.init mariadb raw)
 
@@ -516,6 +525,7 @@ module type S = sig
   val set_server_option : t -> server_option -> unit result future
   val ping : t -> unit result future
   val autocommit : t -> bool -> unit result future
+  val start_txn : t -> unit result future
   val commit : t -> unit result future
   val rollback : t -> unit result future
   val prepare : t -> string -> Stmt.t result future
@@ -703,6 +713,8 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
   let ping m = nonblocking m (ping m)
 
   let autocommit m b = nonblocking m (autocommit m b)
+
+  let start_txn m = nonblocking m (start_txn m)
 
   let commit m = nonblocking m (commit m)
 
