@@ -313,7 +313,7 @@ module Stmt = struct
   let bind_params stmt params =
     match Array.length params with
     | 0 -> `Ok stmt
-    | n ->
+    | _ ->
         let b = stmt.params in
         Array.iteri
           (fun at arg ->
