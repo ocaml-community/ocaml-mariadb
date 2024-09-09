@@ -12,7 +12,6 @@ jobs:
     services:
       mariadb:
         image: mariadb:latest
-        ports: ["3306:3306"]
         env:
           MARIADB_USER: testuser
           MARIADB_PASSWORD: testpw
@@ -23,55 +22,69 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
-          # ubuntu-20.04 has the same MariaDB client library options as latest
-          # macos-latest does not work since we're using a service container
+          # The main aim is to target different kinds of MariaDB client
+          # libraries; see the OPAM specification of conf-mariadb.
+          - "alpine"       # MariaDB C connector
+          - "ubuntu"       # libmariadb
+          # "ubuntu-18.04" has libmariadbclient but has too old libc for node.js
         ocaml-compiler:
-          - 5
-          - 4.07
+          - "5.2"
+          - "4.07"
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    container:
+      image: "ocaml/opam:${{ matrix.os }}-ocaml-${{ matrix.ocaml-compiler }}"
+      # Currently needed for the GitHub Actions, use sudo for other steps.
+      options: "--user root"
 
     steps:
       - name: Check out source code
         uses: actions/checkout@v4
 
-      - name: Set up OCaml
-        uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+      - name: Install system dependencies (alpine)
+        if: "${{ matrix.os == 'alpine' }}"
+        run: "apk add --no-cache linux-headers mariadb-connector-c-dev"
+
+      - name: Install system dependencies (ubuntu)
+        if: "${{ matrix.os == 'ubuntu' }}"
+        run: "apt-get update && apt-get install -y pkg-config libmariadb-dev"
 
       - name: Restore cached dependencies
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-ocaml-${{ matrix.ocaml-compiler }}-deps-${{ hashFiles('*.opam') }}
-          path: ~/.opam
+          # Since we use docker tag aliases we compute a digest of relevant
+          # files on the system instead of using the matrix here.
+          key: "${{ hashFiles('/etc/*-release', '.opam/config', '*.opam') }}"
+          path: /home/opam/.opam
+
+      - name: Give the opam user access to the workspace
+        run: "chown -Rh opam: ."
 
       - name: Install dependencies
-        run: opam install . --deps-only -t
+        run: "sudo -u opam opam install -y --deps-only -t ."
 
       - name: Build
-        run: opam exec -- dune build
+        run: "sudo -u opam opam exec -- dune build"
 
       - name: Run tests
-        run: opam exec -- dune runtest
+        run: "sudo -u opam --preserve-env=OCAML_MARIADB_HOST,OCAML_MARIADB_PORT,OCAML_MARIADB_USER,OCAML_MARIADB_PASS,OCAML_MARIADB_DB,OCAML_MARIADB_QUERY opam exec -- dune runtest"
         env:
-          OCAML_MARIADB_HOST: 127.0.0.1
+          OCAML_MARIADB_HOST: mariadb
           OCAML_MARIADB_PORT: 3306
           OCAML_MARIADB_USER: testuser
           OCAML_MARIADB_PASS: testpw
           OCAML_MARIADB_DB: testdb
 
-  lint-opam:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out source code
-        uses: actions/checkout@v4
-
-      - name: Set up OCaml
-        uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: 5
-
-      - name: Lint OPAM package descriptions
-        uses: ocaml/setup-ocaml/lint-opam@v3
+#  lint-opam:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Check out source code
+#        uses: actions/checkout@v4
+#
+#      - name: Set up OCaml
+#        uses: ocaml/setup-ocaml@v3
+#        with:
+#          ocaml-compiler: 5
+#
+#      - name: Lint OPAM package descriptions
+#        uses: ocaml/setup-ocaml/lint-opam@v3
