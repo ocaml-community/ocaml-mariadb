@@ -71,6 +71,7 @@ module type S = sig
 
     val num_rows : t -> int
     val affected_rows : t -> int
+    val insert_id : t -> int
     val fetch : (module Row.S with type t = 'r) -> t -> 'r option result
   end
 
