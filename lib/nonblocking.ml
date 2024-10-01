@@ -218,6 +218,9 @@ module Res = struct
   let affected_rows =
     Common.Res.affected_rows
 
+  let insert_id =
+    Common.Res.insert_id
+
   let handle_fetch (type t) (module R : Row.S with type t = t) res = function
     | 0, 0 ->
         `Ok (Common.Res.build_row (module R) res)
@@ -428,6 +431,7 @@ module type S = sig
 
     val num_rows : t -> int
     val affected_rows : t -> int
+    val insert_id : t -> int
     val fetch : (module Row.S with type t = 'r) -> t -> 'r option result future
   end
 
@@ -617,6 +621,9 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
 
     let affected_rows =
       Res.affected_rows
+
+    let insert_id =
+      Res.insert_id
 
     let free res =
       nonblocking res.Common.Res.mariadb (Res.free res)

@@ -271,6 +271,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let mysql_stmt_affected_rows = foreign "mysql_stmt_affected_rows"
     (stmt @-> returning ullong)
 
+  let mysql_stmt_insert_id = foreign "mysql_stmt_insert_id"
+    (stmt @-> returning ullong)
+
   (* Blocking API *)
 
   let mysql_free_result = foreign "mysql_free_result"
