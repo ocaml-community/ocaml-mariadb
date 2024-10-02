@@ -150,6 +150,9 @@ let prepare mariadb query =
   | Some raw -> build_stmt raw
   | None -> Error (2008, "out of memory")
 
+let start_txn mariadb =
+  wrap_unit mariadb (B.mysql_real_query mariadb.Common.raw "START TRANSACTION")
+
 module Res = struct
   type t = [`Blocking] Common.Res.t
 

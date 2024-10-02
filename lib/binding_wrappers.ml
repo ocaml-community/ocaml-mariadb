@@ -105,6 +105,11 @@ let mysql_stmt_store_result stmt =
 let mysql_stmt_free_result stmt =
   B.mysql_stmt_free_result stmt = '\000'
 
+let mysql_real_query mysql query =
+  let len = Unsigned.ULong.of_int (String.length query) in
+  let query = char_ptr_buffer_of_string query in
+  B.mysql_real_query mysql query len = 0
+
 (* Nonblocking API *)
 
 let mysql_real_connect_start mysql host user pass db port socket flags =
@@ -220,3 +225,11 @@ let mysql_stmt_next_result_start stmt =
 
 let mysql_stmt_next_result_cont stmt status =
   handle_int (fun err -> B.mysql_stmt_next_result_cont err stmt status)
+
+let mysql_real_query_start mysql query =
+  let len = Unsigned.ULong.of_int (String.length query) in
+  let query = char_ptr_buffer_of_string query in
+  handle_int (fun err -> B.mysql_real_query_start err mysql query len)
+
+let mysql_real_query_cont mysql status =
+  handle_int (fun err -> B.mysql_real_query_cont err mysql status)

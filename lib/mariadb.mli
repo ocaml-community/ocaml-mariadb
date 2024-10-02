@@ -264,6 +264,8 @@ module type S = sig
   val autocommit : t -> bool -> unit result
     (** Sets autocommit mode on or off. *)
 
+  val start_txn : t -> unit result
+
   val commit : t -> unit result
     (** Commits the current transaction. *)
 
@@ -510,6 +512,7 @@ module Nonblocking : sig
     val set_server_option : t -> server_option -> unit result future
     val ping : t -> unit result future
     val autocommit : t -> bool -> unit result future
+    val start_txn : t -> unit result future
     val commit : t -> unit result future
     val rollback : t -> unit result future
     val prepare : t -> string -> Stmt.t result future
