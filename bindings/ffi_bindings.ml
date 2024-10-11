@@ -326,6 +326,9 @@ module Bindings (F : Cstubs.FOREIGN) = struct
   let mysql_stmt_free_result = foreign "mysql_stmt_free_result"
     (stmt @-> returning my_bool)
 
+  let mysql_real_query = foreign "mysql_real_query"
+    (mysql @-> ptr char @-> ulong @-> returning int)
+
   (* Nonblocking API *)
 
   let mysql_close_start = foreign "mysql_close_start"
@@ -447,4 +450,10 @@ module Bindings (F : Cstubs.FOREIGN) = struct
 
   let mysql_stmt_next_result_cont = foreign "mysql_stmt_next_result_cont"
     (ptr int @-> stmt @-> int @-> returning int)
+
+  let mysql_real_query_start = foreign "mysql_real_query_start"
+    (ptr int @-> mysql @-> ptr char @-> ulong @-> returning int)
+
+  let mysql_real_query_cont = foreign "mysql_real_query_cont"
+    (ptr int @-> mysql @-> int @-> returning int)
 end
