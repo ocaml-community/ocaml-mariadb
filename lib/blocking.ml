@@ -166,7 +166,7 @@ module Res = struct
 
   let affected_rows =
     Common.Res.affected_rows
-  
+
   let insert_id =
     Common.Res.insert_id
 end
