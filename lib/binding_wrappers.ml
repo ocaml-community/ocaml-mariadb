@@ -48,6 +48,9 @@ let mysql_stmt_num_rows stmt =
 let mysql_stmt_affected_rows stmt =
   Unsigned.ULLong.to_int @@ B.mysql_stmt_affected_rows stmt
 
+let mysql_stmt_insert_id stmt =
+  Unsigned.ULLong.to_int @@ B.mysql_stmt_insert_id stmt
+
 (* Blocking API *)
 
 let mysql_real_connect mysql host user pass db port socket flags =

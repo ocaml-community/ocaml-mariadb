@@ -227,6 +227,9 @@ module Res = struct
   let affected_rows res =
     B.mysql_stmt_affected_rows res.stmt
 
+  let insert_id res =
+    B.mysql_stmt_insert_id res.stmt
+
   let fetch_field raw i =
     coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct raw i)
 
