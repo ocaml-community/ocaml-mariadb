@@ -67,14 +67,13 @@ jobs:
         run: "sudo -u opam opam exec -- dune build"
 
       - name: Run tests
-        run: "sudo -u opam --preserve-env=OCAML_MARIADB_HOST,OCAML_MARIADB_PORT,OCAML_MARIADB_USER,OCAML_MARIADB_PASS,OCAML_MARIADB_DB,OCAML_MARIADB_QUERY opam exec -- dune runtest"
+        run: "sudo -u opam --preserve-env=OCAML_MARIADB_HOST,OCAML_MARIADB_PORT,OCAML_MARIADB_USER,OCAML_MARIADB_PASS,OCAML_MARIADB_DB opam exec -- dune runtest"
         env:
           OCAML_MARIADB_HOST: mariadb
           OCAML_MARIADB_PORT: 3306
           OCAML_MARIADB_USER: testuser
           OCAML_MARIADB_PASS: testpw
           OCAML_MARIADB_DB: testdb
-          OCAML_MARIADB_QUERY: "SELECT 'hello ' || ?"
 
 #  lint-opam:
 #    runs-on: ubuntu-latest
