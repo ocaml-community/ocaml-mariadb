@@ -1,0 +1,4 @@
+(test
+ (name nonblocking_testsuite_lwt)
+ (libraries mariadb lwt lwt.unix nonblocking_testsuite)
+ (enabled_if %{lib-available:lwt}))

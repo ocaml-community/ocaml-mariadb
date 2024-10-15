@@ -4,7 +4,7 @@ open Async
 
 module S = Mariadb.Nonblocking.Status
 
-module Test = Nonblocking_stress_test.Make (struct
+module Test = Nonblocking_testsuite.Make (struct
 
   module IO = struct
     type 'a future = 'a Deferred.t

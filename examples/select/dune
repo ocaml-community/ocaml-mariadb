@@ -1,5 +1,3 @@
-(tests
- (names
-    nonblocking_select_example
-    nonblocking_select_stress_test)
- (libraries mariadb unix nonblocking_tests))
+(executable
+ (name nonblocking_select_example)
+ (libraries mariadb unix))
