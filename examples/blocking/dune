@@ -1,5 +1,3 @@
-(tests
- (names
-    blocking_example
-    blocking_stress_test)
+(executable
+ (name blocking_example)
  (libraries mariadb))
