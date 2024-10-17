@@ -2,7 +2,7 @@ open Lwt.Infix
 
 module S = Mariadb.Nonblocking.Status
 
-module Test = Nonblocking_testsuite.Make (struct
+module Wait = struct
 
   module IO = struct
     type 'a future = 'a Lwt.t
@@ -32,6 +32,10 @@ module Test = Nonblocking_testsuite.Make (struct
       (function
        | Lwt_unix.Timeout -> Lwt.return @@ S.create ~timeout:true ()
        | e -> Lwt.fail e)
-end)
+
+end
+
+module Test =
+  Nonblocking_testsuite.Make (Wait.IO) (Mariadb.Nonblocking.Make (Wait))
 
 let () = Lwt_main.run (Test.main ())

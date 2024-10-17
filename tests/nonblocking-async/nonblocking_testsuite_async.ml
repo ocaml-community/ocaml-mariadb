@@ -4,7 +4,7 @@ open Async
 
 module S = Mariadb.Nonblocking.Status
 
-module Test = Nonblocking_testsuite.Make (struct
+module Wait = struct
 
   module IO = struct
     type 'a future = 'a Deferred.t
@@ -45,8 +45,10 @@ module Test = Nonblocking_testsuite.Make (struct
     Fd.close ~file_descriptor_handling:Fd.Do_not_close_file_descriptor fd
     >>= fun () ->
     Deferred.return @@ S.create ~read ~write ~timeout ()
+end
 
-end)
+module Test =
+  Nonblocking_testsuite.Make (Wait.IO) (Mariadb.Nonblocking.Make (Wait))
 
 let _main : unit Deferred.t = Test.main () >>= fun () -> Shutdown.exit 0
 

@@ -1,8 +1,16 @@
 open Printf
 
-module Make (W : Mariadb.Nonblocking.Wait) = struct
-  module M = Mariadb.Nonblocking.Make (W)
-  open W.IO
+module type IO = sig
+  type 'a future
+  val (>>=) : 'a future -> ('a -> 'b future) -> 'b future
+  val return : 'a -> 'a future
+end
+
+module Make
+    (IO : IO)
+    (M : Mariadb.Nonblocking.S with type 'a future := 'a IO.future) =
+struct
+  open IO
 
   let (>|=) m f = m >>= fun x -> return (f x)
 

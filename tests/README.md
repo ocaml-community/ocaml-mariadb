@@ -4,11 +4,10 @@ latter there are instances depending on the concurrency library:
 
 | Directory           | Description
 | ---------           | -----------
-| blocking            | Tests using the blocking interface.
-| nonblocking         | Test library using the non-blocking interface.
-| nonblocking-block   | Blocking instance of nonblocking tests.
-| nonblocking-async   | Async instance of nonblocking tests.
-| nonblocking-lwt     | Lwt instance of nonblocking tests.
+| nonblocking         | Abstract tests suite implementation.
+| blocking            | Tests the blocking and nonblocking APIs without concurrency.
+| nonblocking-async   | Tests the nonblocking API using async.
+| nonblocking-lwt     | Tests the nonblocking API using Lwt.
 
 Tests require access to a MariaDB instance to run.  You will likely need to
 set some environment variables to point the test suite to the right place:

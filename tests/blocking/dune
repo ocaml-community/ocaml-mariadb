@@ -1,3 +1,3 @@
 (test
  (name blocking_testsuite)
- (libraries mariadb))
+ (libraries mariadb nonblocking_testsuite unix))

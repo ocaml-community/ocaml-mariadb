@@ -1,3 +1,0 @@
-(test
- (name nonblocking_testsuite_block)
- (libraries mariadb nonblocking_testsuite unix))
