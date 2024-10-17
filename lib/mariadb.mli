@@ -161,8 +161,8 @@ module type S = sig
           [stmt]. *)
 
     val close : t -> unit result
-			(** [close stmt] closes the prepapred statement [stmt] and frees
-					any allocated memory associated with it and its result. *)
+      (** [close stmt] closes the prepapred statement [stmt] and frees any
+          allocated memory associated with it and its result. *)
   end
 
   type t
@@ -233,17 +233,16 @@ module type S = sig
              -> ?flags:flag list
              -> ?options:client_option list -> unit
              -> t result
-		(** Connect to a MariaDB server at the specified location with the specified
-				flags and optionally select a database [db]. *)
+    (** Connect to a MariaDB server at the specified location with the specified
+        flags and optionally select a database [db]. *)
 
   val close : t -> unit
     (** Close a database handle. *)
 
   val library_end : unit -> unit
-		(** [library_end ()] should be called when you're done using the
-        library. For maximum portability across MariaDB C client libraries,
-        call this function only once, after you've [close]d all database
-        handles. *)
+    (** [library_end ()] should be called when you're done using the library.
+        For maximum portability across MariaDB C client libraries, call this
+        function only once, after you've [close]d all database handles. *)
 
   val set_character_set : t -> string -> unit result
     (** Sets the connection character set to the given parameter. *)
@@ -280,9 +279,9 @@ module type S = sig
         enabled. *)
 
   val prepare : t -> string -> Stmt.t result
-		(** [prepare mariadb query] creates a prepared statement for [query].
-				The query may contain [?] as placeholders for parameters that
-				can be bound by calling [Stmt.execute]. *)
+    (** [prepare mariadb query] creates a prepared statement for [query].  The
+        query may contain [?] as placeholders for parameters that can be bound
+        by calling [Stmt.execute]. *)
 end
 
 (** The module for blocking MariaDB API calls. It should be possible to call
@@ -334,8 +333,8 @@ module Nonblocking : sig
   val timeout_ms : t -> int
     (** Same as [timeout] but with millisecond resolution. *)
 
-	(** Input module signature for the functor that generates a nonblocking
-			connection module. *)
+    (** Input module signature for the functor that generates a nonblocking
+        connection module. *)
   module type Wait = sig
     (** A module defining a nonblocking I/O monadic interface. *)
     module IO : sig
@@ -346,9 +345,9 @@ module Nonblocking : sig
     end
 
     val wait : t -> Status.t -> Status.t IO.future
-			(** [wait mariadb status] must wait for the events set in [status]
-					to occur in the [mariadb] connection and return a [Status.t]
-					indicating which events have actually occured. *)
+      (** [wait mariadb status] must wait for the events set in [status] to
+          occur in the [mariadb] connection and return a [Status.t] indicating
+          which events have actually occured. *)
   end
 
   (* The MariaDB nonblocking interface. The exact same functions in the
@@ -525,7 +524,7 @@ module Nonblocking : sig
     val prepare : t -> string -> Stmt.t result future
   end
 
-	(** Functor that generates a nonblocking database interface, given a
+  (** Functor that generates a nonblocking database interface, given a
       nonblocking IO monad and a way to wait for connection socket events. *)
   module Make (W : Wait) : S with type 'a future := 'a W.IO.future
 end
