@@ -12,6 +12,14 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
     | Ok r -> return r
     | Error (i, e) -> eprintf "%s: (%d) %s\n%!" where i e; exit 2
 
+  let rec iter_s_list f = function
+    | [] -> return ()
+    | x :: xs -> f x >>= fun () -> iter_s_list f xs
+
+  let rec map_s_list f = function
+    | [] -> return []
+    | x :: xs -> f x >>= fun y -> map_s_list f xs >|= fun ys -> y :: ys
+
   let connect () =
     M.connect
       ~host:(env "OCAML_MARIADB_HOST" "localhost")
@@ -106,6 +114,50 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
       exit 2
     end
 
+  let execute_no_data stmt =
+    M.Stmt.execute stmt [||] >>= or_die "execute" >|= fun res ->
+    assert (M.Res.num_rows res = 0)
+
+  let fetch_single_row res =
+    assert (M.Res.num_rows res = 1);
+    M.Res.fetch (module M.Row.Array) res >>= or_die "fetch" >|= fun row ->
+    (match row with
+     | None -> failwith "expecting one row, no rows returned"
+     | Some a -> a)
+
+  let test_txn () =
+    connect () >>= or_die "connect" >>= fun dbh ->
+
+    M.prepare dbh
+      "CREATE TEMPORARY TABLE ocaml_mariadb_test (i integer PRIMARY KEY)"
+      >>= or_die "prepare create_table_stmt"
+      >>= fun create_table_stmt ->
+    execute_no_data create_table_stmt >>= fun () ->
+
+    map_s_list (fun s -> M.prepare dbh s >>= or_die "prepare")
+      ["INSERT INTO ocaml_mariadb_test VALUES (1), (2)";
+       "INSERT INTO ocaml_mariadb_test SELECT i + 10 FROM ocaml_mariadb_test"]
+      >>= fun insert_stmts ->
+    M.prepare dbh "SELECT CAST(sum(i) AS integer) FROM ocaml_mariadb_test"
+      >>= or_die "prepare sum"
+      >>= fun sum_stmt ->
+
+    M.start_txn dbh >>= or_die "start_txn" >>= fun () ->
+    iter_s_list execute_no_data insert_stmts >>= fun () ->
+    M.rollback dbh >>= or_die "rollback" >>= fun () ->
+    M.Stmt.execute sum_stmt [||] >>= or_die "execute" >>= fun res ->
+    fetch_single_row res >>= fun row ->
+    assert (Array.length row = 1 && M.Field.null_value row.(0));
+
+    M.start_txn dbh >>= or_die "start_txn" >>= fun () ->
+    iter_s_list execute_no_data insert_stmts >>= fun () ->
+    M.commit dbh >>= or_die "rollback" >>= fun () ->
+    M.Stmt.execute sum_stmt [||] >>= or_die "execute" >>= fun res ->
+    fetch_single_row res >>= fun row ->
+    assert (Array.length row = 1 && M.Field.int row.(0) = 26);
+
+    M.close dbh
+
   (* Make sure the conversion between timestamps and strings are consistent
    * between MariaDB and OCaml. By sending timestamps to be compared as binary
    * and as string, this also verifies the MYSQL_TIME encoding. *)
@@ -124,7 +176,7 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
         assert (s = M.Field.(string s'))
      | _ -> assert false)
 
-  let test () =
+  let test_random_select () =
     let stmt_cache = Hashtbl.create 7 in
     connect () >>= or_die "connect" >>= fun dbh ->
     test_datetime_and_string_conv dbh >>= fun () ->
@@ -163,5 +215,9 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
       stmt_cache (return ()) >>= fun () ->
     M.close dbh
 
-  let main () = repeat 500 test
+  let test_many_select () = repeat 500 test_random_select
+
+  let main () =
+    test_txn () >>= fun () ->
+    test_many_select ()
 end
