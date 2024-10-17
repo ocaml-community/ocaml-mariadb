@@ -125,6 +125,27 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
      | None -> failwith "expecting one row, no rows returned"
      | Some a -> a)
 
+  let test_insert_id () =
+    connect () >>= or_die "connect" >>= fun dbh ->
+    M.prepare dbh
+      "CREATE TEMPORARY TABLE ocaml_mariadb_test \
+        (id integer PRIMARY KEY AUTO_INCREMENT)"
+      >>= or_die "prepare"
+      >>= fun create_table_stmt ->
+    execute_no_data create_table_stmt >>= fun () ->
+    M.prepare dbh "INSERT INTO ocaml_mariadb_test VALUES (DEFAULT)"
+      >>= or_die "prepare"
+      >>= fun insert_stmt ->
+    let rec check_inserts_from expected_id =
+      if expected_id > 5 then return () else
+      M.Stmt.execute insert_stmt [||] >>= or_die "insert" >>= fun res ->
+      assert (M.Res.num_rows res = 0);
+      assert (M.Res.insert_id res = expected_id);
+      check_inserts_from (expected_id + 1)
+    in
+    check_inserts_from 1 >>= fun () ->
+    M.close dbh
+
   let test_txn () =
     connect () >>= or_die "connect" >>= fun dbh ->
 
@@ -218,6 +239,7 @@ module Make (W : Mariadb.Nonblocking.Wait) = struct
   let test_many_select () = repeat 500 test_random_select
 
   let main () =
+    test_insert_id () >>= fun () ->
     test_txn () >>= fun () ->
     test_many_select ()
 end

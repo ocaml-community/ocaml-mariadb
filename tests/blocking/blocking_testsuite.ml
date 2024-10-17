@@ -28,6 +28,26 @@ let fetch_single_row res =
    | None -> failwith "expecting one row, no rows returned"
    | Some a -> a)
 
+let test_insert_id () =
+  let dbh = connect () |> or_die "connect" in
+  let create_table_stmt =
+    M.prepare dbh
+      "CREATE TEMPORARY TABLE ocaml_mariadb_test \
+        (id integer PRIMARY KEY AUTO_INCREMENT)"
+    |> or_die "prepare"
+  in
+  execute_no_data create_table_stmt;
+  let insert_stmt =
+    M.prepare dbh "INSERT INTO ocaml_mariadb_test VALUES (DEFAULT)"
+    |> or_die "prepare"
+  in
+  for expected_id = 1 to 5 do
+    let res = M.Stmt.execute insert_stmt [||] |> or_die "insert" in
+    assert (M.Res.num_rows res = 0);
+    assert (M.Res.insert_id res = expected_id)
+  done;
+  M.close dbh
+
 let test_txn () =
   let dbh = connect () |> or_die "connect" in
 
@@ -93,5 +113,6 @@ let test_random_select () =
 let test_many_select () = for _ = 1 to 500 do test_random_select () done
 
 let () =
+  test_insert_id ();
   test_txn ();
   test_many_select ()
