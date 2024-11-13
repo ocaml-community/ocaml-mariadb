@@ -33,7 +33,8 @@ struct
       ~host:(env "OCAML_MARIADB_HOST" "localhost")
       ~user:(env "OCAML_MARIADB_USER" "root")
       ~pass:(env "OCAML_MARIADB_PASS" "")
-      ~db:(env "OCAML_MARIADB_DB" "mysql") ()
+      ~db:(env "OCAML_MARIADB_DB" "mysql")
+      ~port:(int_of_string (env "OCAML_MARIADB_PORT" "0")) ()
 
   let rec repeat n f =
     if n = 0 then return () else f () >>= fun () -> repeat (n - 1) f
@@ -246,8 +247,84 @@ struct
 
   let test_many_select () = repeat 500 test_random_select
 
+  let test_integer, test_bigint =
+    let make_check type_ =
+      connect () >>= or_die "connect" >>= fun dbh ->
+      M.prepare dbh
+        (Printf.sprintf
+           "CREATE TEMPORARY TABLE ocaml_mariadb_test (id integer PRIMARY KEY \
+            AUTO_INCREMENT, value %s, value_unsigned %s unsigned)"
+           type_ type_)
+      >>= or_die "prepare create"
+      >>= fun create_table_stmt ->
+      execute_no_data create_table_stmt >>= fun () ->
+      let check (value : [ `Signed of int | `Unsigned of int ]) =
+        let column =
+          match value with
+          | `Signed _ -> "value"
+          | `Unsigned _ -> "value_unsigned"
+        in
+        M.prepare dbh
+          (Printf.sprintf "INSERT INTO ocaml_mariadb_test (%s) VALUES (?)"
+             column)
+        >>= or_die "prepare insert"
+        >>= fun insert_stmt ->
+        let value_to_insert =
+          match value with `Signed n -> n | `Unsigned n -> n
+        in
+        M.Stmt.execute insert_stmt [| `Int value_to_insert |]
+        >>= or_die "insert"
+        >>= fun res ->
+        M.prepare dbh
+          (Printf.sprintf "SELECT %s FROM ocaml_mariadb_test WHERE id = (?)"
+             column)
+        >>= or_die "prepare select"
+        >>= fun select_stmt ->
+        M.Stmt.execute select_stmt [| `Int (M.Res.insert_id res) |]
+        >>= or_die "Stmt.execute"
+        >>= M.Res.fetch (module M.Row.Array)
+        >>= or_die "Res.fetch"
+        >|= function
+        | Some [| inserted_value |] ->
+            assert_field_equal (`Int value_to_insert)
+              (`Int (M.Field.int inserted_value))
+        | _ -> assert false
+      in
+      return (dbh, check)
+    in
+    let test_integer () =
+      make_check "integer" >>= fun (dbh, check) ->
+      let input =
+        [
+          `Signed
+            (Int32.max_int |> Int32.to_int (* max value for integer column *));
+          `Signed
+            (Int32.min_int |> Int32.to_int (* min value for integer column *));
+          `Unsigned (Unsigned.UInt32.max_int |> Unsigned.UInt32.to_int)
+          (* max value for unsgined integer column.
+             Produces the following error: insert: (1264) Out of range value for column 'value_unsigned' at row 1 *);
+        ]
+      in
+      iter_s_list check input >>= fun () -> M.close dbh
+    in
+    let test_bigint () =
+      make_check "bigint" >>= fun (dbh, check) ->
+      let input =
+        [
+          `Signed Int.max_int
+          (* [Int.max_int] is below the max value for bigint column (which is equivalent to [Int64.max_int])
+             Produces the following error: Parameter (4611686018427387903 : int) came back as (-1 : int) *);
+          `Unsigned Int.max_int
+          (* insert: (1264) Out of range value for column 'value_unsigned' at row 1 *);
+        ]
+      in
+      iter_s_list check input >>= fun () -> M.close dbh
+    in
+    (test_integer, test_bigint)
+
   let main () =
     test_insert_id () >>= fun () ->
     test_txn () >>= fun () ->
-    test_many_select ()
+    test_many_select () >>= fun () ->
+    test_integer () >>= fun () -> test_bigint ()
 end
