@@ -1,3 +1,4 @@
 (executable
  (name nonblocking_async_example)
- (libraries mariadb async))
+ (libraries mariadb async)
+ (optional))
