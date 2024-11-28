@@ -1,3 +1,10 @@
 (test
  (name blocking_testsuite)
+ (enabled_if (<> %{env:OCAML_MARIADB_DB=__none__} __none__))
+ (deps
+  (env_var OCAML_MARIADB_HOST)
+  (env_var OCAML_MARIADB_PORT)
+  (env_var OCAML_MARIADB_USER)
+  (env_var OCAML_MARIADB_PASS)
+  (env_var OCAML_MARIADB_DB))
  (libraries mariadb nonblocking_testsuite unix))

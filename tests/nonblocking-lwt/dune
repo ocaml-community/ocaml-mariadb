@@ -1,4 +1,11 @@
 (test
  (name nonblocking_testsuite_lwt)
- (libraries mariadb lwt lwt.unix nonblocking_testsuite)
- (enabled_if %{lib-available:lwt}))
+ (build_if %{lib-available:lwt})
+ (enabled_if (<> %{env:OCAML_MARIADB_DB=__none__} __none__))
+ (deps
+  (env_var OCAML_MARIADB_HOST)
+  (env_var OCAML_MARIADB_PORT)
+  (env_var OCAML_MARIADB_USER)
+  (env_var OCAML_MARIADB_PASS)
+  (env_var OCAML_MARIADB_DB))
+ (libraries mariadb lwt lwt.unix nonblocking_testsuite))

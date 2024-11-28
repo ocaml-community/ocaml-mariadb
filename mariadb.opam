@@ -13,7 +13,7 @@ build: [
   ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs
     "@install"
-    "@default" {with-test} # but not @runtest since it would require a MariaDB server
+    "@runtest" {with-test}
     "@doc" {with-doc}
   ]
 ]
