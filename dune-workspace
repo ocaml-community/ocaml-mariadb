@@ -1,4 +1,4 @@
-(lang dune 3.14)
+(lang dune 3.15)
 
 ; Warnings left after the dune migration PR, as they may provide valuable
 ; information:
