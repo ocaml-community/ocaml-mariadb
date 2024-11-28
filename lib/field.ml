@@ -104,10 +104,13 @@ let err field ~info =
 let int field =
   match value field with
   | `Int i -> i
+  | `Int64 i -> Int64.to_int i
+  | `UInt64 i -> Unsigned.UInt64.to_int i
   | _ -> err field ~info:"an integer"
 
 let int64 field =
   match value field with
+  | `Int i -> Int64.of_int i
   | `Int64 i -> i
   | _ -> err field ~info:"a 64-bit integer"
 
@@ -139,11 +142,14 @@ let time field =
 let int_opt field =
   match value field with
   | `Int i -> Some i
+  | `Int64 i -> Some (Int64.to_int i)
+  | `UInt64 i -> Some (Unsigned.UInt64.to_int i)
   | `Null -> None
   | _ -> err field ~info:"a nullable integer"
 
 let int64_opt field =
   match value field with
+  | `Int i -> Some (Int64.of_int i)
   | `Int64 i -> Some i
   | `Null -> None
   | _ -> err field ~info:"a nullable 64-bit integer"
