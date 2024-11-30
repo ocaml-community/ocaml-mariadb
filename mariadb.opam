@@ -19,7 +19,7 @@ build: [
 ]
 depends: [
   "ocaml" {>= "4.07.0"}
-  "ctypes" {>= "0.7.0"}
+  "ctypes" {>= "0.13.0"}
   "conf-mariadb"
   "conf-gcc"
   "dune" {>= "3.15.0"}
@@ -27,3 +27,4 @@ depends: [
   "async" {with-test}
   "lwt" {with-test}
 ]
+conflicts: [ "ocaml-option-bytecode-only" ]
