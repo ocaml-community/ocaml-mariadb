@@ -218,6 +218,8 @@ let prepare mariadb query =
       `Ok (prepare_start mariadb stmt, prepare_cont mariadb stmt)
   | None -> `Error (Common.error mariadb)
 
+let sqlstate = Common.sqlstate
+
 module Res = struct
   type t = [`Nonblocking] Common.Res.t
 
@@ -354,6 +356,8 @@ module Stmt = struct
 
   let next_result_cont stmt status =
     handle_next stmt (B.mysql_stmt_next_result_cont stmt.Common.Stmt.raw status)
+
+  let sqlstate = Common.Stmt.sqlstate
 end
 
 module type Wait = sig
