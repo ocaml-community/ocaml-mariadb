@@ -1,12 +1,12 @@
 module C = Configurator.V1
 
-let detect_src = {|
+let preamble ~include_base = Printf.sprintf "#include <%s/mysql.h>" include_base
+
+let detect_src ~include_base =
+  Printf.sprintf
+    {|
 #include <stddef.h>
-#ifdef MARIADB_CLIENT
-#include <mysql/mysql.h>
-#else
-#include <mariadb/mysql.h>
-#endif
+%s
 
 int
 main(void)
@@ -16,34 +16,56 @@ main(void)
     return 0;
 }
 |}
+    (preamble ~include_base)
 
 module Variant = struct
-  type t = {
-    c_flags: string list;
-    link_flags: string list;
-    include_base: string;
-  }
+  type t = { link_flags : string list; include_base : string }
 
-  let try_compile c {c_flags; link_flags; _} =
-    C.c_test c detect_src ~c_flags ~link_flags
+  let try_compile c { link_flags; include_base } =
+    C.c_test c (detect_src ~include_base) ~link_flags
 end
 
-let variants = Variant.[
-  {c_flags = []; link_flags = ["-lmariadb"];
-   include_base = "mariadb"};
-  {c_flags = ["-DMARIADB_CLIENT"]; link_flags = ["-lmariadbclient"];
-   include_base = "mysql"};
-  {c_flags = ["-DMARIADB_CLIENT"]; link_flags = ["-lmysqlclient"];
-   include_base = "mysql"};
-]
+let split_flags s = String.split_on_char ' ' (String.trim s)
 
-let () = C.main ~name:"mariadb" @@ fun c ->
+let use_config cmd c =
+  match C.Process.run c cmd [ "--libs" ] with
+  | { exit_code = 0; stdout = libs_out; _ } -> (
+      match C.Process.run c cmd [ "--variable=pkgincludedir" ] with
+      | { exit_code = 0; stdout = pkgincludedir; _ } ->
+          Some
+            {
+              Variant.link_flags = split_flags libs_out;
+              include_base = String.trim pkgincludedir;
+            }
+      | _ -> None)
+  | _ -> None
 
+let static v = fun _ -> Some v
+
+let variants =
+  Variant.
+    [
+      use_config "mariadb_config";
+      static { link_flags = [ "-lmariadb" ]; include_base = "mariadb" };
+      static { link_flags = [ "-lmariadbclient" ]; include_base = "mysql" };
+      use_config "mysql_config";
+      static { link_flags = [ "-lmysqlclient" ]; include_base = "mysql" };
+    ]
+
+let () =
+  C.main ~name:"mariadb" @@ fun c ->
   let variant =
-    try List.find (Variant.try_compile c) variants
-    with Not_found -> C.die "Cannot find MariaDB client library."
+    match
+      List.find_map
+        (fun f ->
+          match f c with
+          | Some v when Variant.try_compile c v -> Some v
+          | _ -> None)
+        variants
+    with
+    | Some v -> v
+    | None -> C.die "Cannot find MariaDB client library."
   in
   C.Flags.write_sexp "mariadb_link_flags.sexp" variant.Variant.link_flags;
-  C.Flags.write_lines "mariadb_preamble.h" [
-    Printf.sprintf "#include <%s/mysql.h>" variant.Variant.include_base;
-  ]
+  C.Flags.write_lines "mariadb_preamble.h"
+    [ preamble ~include_base:variant.Variant.include_base ]
