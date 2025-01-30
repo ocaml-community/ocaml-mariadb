@@ -156,6 +156,10 @@ module type S = sig
   val set_character_set : t -> string -> unit result
   val select_db : t -> string -> unit result
   val change_user : t -> string -> string -> string option -> unit result
+  val get_server_info : t -> string
+  val get_server_version : t -> int
+  val get_host_info : t -> string
+  val get_proto_info : t -> int
   val set_client_option : t -> client_option -> unit
   val set_server_option : t -> server_option -> unit result
   val ping : t -> unit result

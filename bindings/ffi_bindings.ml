@@ -308,6 +308,18 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let mysql_ping = foreign "mysql_ping"
     (mysql @-> returning int)
 
+  let mysql_get_server_info = foreign "mysql_get_server_info"
+    (mysql @-> returning string)
+
+  let mysql_get_server_version = foreign "mysql_get_server_version"
+    (mysql @-> returning ulong)
+
+  let mysql_get_host_info = foreign "mysql_get_host_info"
+    (mysql @-> returning string)
+
+  let mysql_get_proto_info = foreign "mysql_get_proto_info"
+    (mysql @-> returning uint)
+
   let mysql_stmt_prepare = foreign "mysql_stmt_prepare"
     (stmt @-> ptr char @-> ulong @-> returning int)
 

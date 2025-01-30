@@ -121,6 +121,11 @@ let change_user mariadb user pass db =
   wrap_unit mariadb
     (B.mysql_change_user mariadb.Common.raw user pass mariadb.Common.db)
 
+let get_server_info = Common.get_server_info
+let get_server_version = Common.get_server_version
+let get_host_info = Common.get_host_info
+let get_proto_info = Common.get_proto_info
+
 let set_client_option =
   Common.set_client_option
 
