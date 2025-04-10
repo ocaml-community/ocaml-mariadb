@@ -331,10 +331,10 @@ struct
       make_check "bigint" >>= fun (dbh, check) ->
       let input =
         [
-          `Signed Int.max_int
-          (* [Int.max_int] is below the max value for bigint column (which is equivalent to [Int64.max_int])
+          `Signed max_int
+          (* [max_int] is below the max value for bigint column (which is equivalent to [Int64.max_int])
              Produces the following error: Parameter (4611686018427387903 : int) came back as (-1 : int) *);
-          `Unsigned Int.max_int
+          `Unsigned max_int
           (* insert: (1264) Out of range value for column 'value_unsigned' at row 1 *);
         ]
       in

@@ -52,11 +52,16 @@ let variants =
       static { link_flags = [ "-lmysqlclient" ]; include_base = "mysql" };
     ]
 
+(* Available in stdlib since OCaml 4.10. *)
+let rec find_map_list f = function
+  | [] -> None
+  | x :: xs -> (match f x with Some y -> Some y | None -> find_map_list f xs)
+
 let () =
   C.main ~name:"mariadb" @@ fun c ->
   let variant =
     match
-      List.find_map
+      find_map_list
         (fun f ->
           match f c with
           | Some v when Variant.try_compile c v -> Some v
