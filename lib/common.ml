@@ -199,6 +199,18 @@ let int_of_flag = function
 let int_of_flags =
   List.fold_left (fun acc flag -> Int32.logor acc (int_of_flag flag)) 0l
 
+let get_server_info mariadb =
+  B.mysql_get_server_info mariadb.raw
+
+let get_server_version mariadb =
+  Unsigned.ULong.to_int (B.mysql_get_server_version mariadb.raw)
+
+let get_host_info mariadb =
+  B.mysql_get_host_info mariadb.raw
+
+let get_proto_info mariadb =
+  Unsigned.UInt.to_int (B.mysql_get_proto_info mariadb.raw)
+
 module Res = struct
   open Ctypes
 

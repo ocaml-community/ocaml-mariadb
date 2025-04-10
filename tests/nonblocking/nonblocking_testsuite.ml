@@ -16,6 +16,8 @@ struct
 
   let env var def = try Sys.getenv var with Not_found -> def
 
+  let die_f ppf = ksprintf (fun msg -> eprintf "%s\n%!" msg; exit 2) ppf
+
   let or_die where = function
     | Ok r -> return r
     | Error (i, e) -> eprintf "%s: (%d) %s\n%!" where i e; exit 2
@@ -133,6 +135,24 @@ struct
     (match row with
      | None -> failwith "expecting one row, no rows returned"
      | Some a -> a)
+
+  let test_server_properties () =
+    connect () >>= or_die "connect" >>= fun dbh ->
+    let v = M.get_server_version dbh in
+    assert (v >= 10000 && v < 10000000); (* 1 <= major_version < 1000 *)
+    let info = M.get_server_info dbh in
+    let info' = sprintf "%d.%d.%d" (v / 10000) (v / 100 mod 100) (v mod 100) in
+    assert (String.starts_with ~prefix:info' info);
+    let host = M.get_host_info dbh in
+    assert (String.length host < 1024);
+    for i = 0 to String.length host - 1 do
+      match host.[i] with
+      | '\x20'..'\x7f' -> ()
+      | _ -> die_f "result from get_host_info looks suspicious: %S" host
+    done;
+    let proto = M.get_proto_info dbh in
+    assert (proto >= 0 && proto < 10000); (* it's 10 for MariaDB 10.11.8 *)
+    return ()
 
   let test_insert_id () =
     connect () >>= or_die "connect" >>= fun dbh ->
@@ -323,6 +343,7 @@ struct
     (test_integer, test_bigint)
 
   let main () =
+    test_server_properties () >>= fun () ->
     test_insert_id () >>= fun () ->
     test_txn () >>= fun () ->
     test_many_select () >>= fun () ->
