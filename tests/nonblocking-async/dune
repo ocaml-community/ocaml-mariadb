@@ -1,6 +1,6 @@
 (test
  (name nonblocking_testsuite_async)
- (build_if %{lib-available:lwt})
+ (build_if %{lib-available:async})
  (enabled_if (<> %{env:OCAML_MARIADB_DB=__none__} __none__))
  (deps
   (env_var OCAML_MARIADB_HOST)
