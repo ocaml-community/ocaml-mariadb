@@ -449,6 +449,7 @@ module type S = sig
 
     val execute : t -> Field.value array -> Res.t result future
     val reset : t -> unit result future
+    val sqlstate : t -> string
     val close : t -> unit result future
   end
 
@@ -537,6 +538,7 @@ module type S = sig
   val commit : t -> unit result future
   val rollback : t -> unit result future
   val prepare : t -> string -> Stmt.t result future
+  val sqlstate : t -> string
 end
 
 module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
@@ -676,6 +678,8 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
       >>= function
       | Ok () -> nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)
       | Error _ as e -> return e
+
+    let sqlstate = Common.Stmt.sqlstate
   end
 
   let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) ?(options=[]) () =
@@ -742,4 +746,6 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
     match prepare m q with
     | `Ok nb -> nonblocking m nb
     | `Error e -> return (Error e)
+
+  let sqlstate = Common.sqlstate
 end
