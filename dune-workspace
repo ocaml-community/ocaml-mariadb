@@ -2,4 +2,4 @@
 
 ; Warnings left after the dune migration PR, as they may provide valuable
 ; information:
-(env (_ (flags :standard -warn-error -3-32)))
+(env (_ (flags :standard -warn-error -3)))

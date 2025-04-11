@@ -382,7 +382,7 @@ module Stmt = struct
         stmt.meta <- None
     | None -> ()
 
-  let meta stmt =
+  let update_meta stmt =
     free_meta stmt;
     stmt.meta <- (
         match B.mysql_stmt_result_metadata stmt.raw with
@@ -396,7 +396,7 @@ module Stmt = struct
     stmt.meta
 
   let bind_result stmt =
-    match meta stmt with
+    match update_meta stmt with
     | Some meta ->
         let b = meta.result in
         let n = b.Bind.n in

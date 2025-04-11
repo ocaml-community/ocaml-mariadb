@@ -252,22 +252,6 @@ module Res = struct
 
   let fetch (type t) (module R : Row.S with type t = t) res =
     (fetch_start (module R) res, fetch_cont (module R) res)
-
-  let handle_free res = function
-    | 0, '\000' -> `Ok ()
-    | 0, _ ->
-        let stmt = res.Common.Res.stmt in
-        `Error (B.mysql_stmt_errno stmt, B.mysql_stmt_error stmt)
-    | s, _ -> `Wait (Status.of_int s)
-
-  let free_start res =
-    handle_free res (B.mysql_stmt_free_result_start res.Common.Res.stmt)
-
-  let free_cont res status =
-    handle_free res (B.mysql_stmt_free_result_cont res.Common.Res.stmt status)
-
-  let free res =
-    (free_start res, free_cont res)
 end
 
 module Stmt = struct
@@ -314,6 +298,20 @@ module Stmt = struct
 
   let store_result stmt =
     (store_result_start stmt, store_result_cont stmt)
+
+  let handle_free_result stmt = function
+    | 0, '\000' -> `Ok ()
+    | 0, _ -> `Error (Common.Stmt.error stmt)
+    | s, _ -> `Wait (Status.of_int s)
+
+  let free_result_start stmt =
+    handle_free_result stmt (B.mysql_stmt_free_result_start stmt.Common.Stmt.raw)
+
+  let free_result_cont stmt status =
+    handle_free_result stmt (B.mysql_stmt_free_result_cont stmt.Common.Stmt.raw status)
+
+  let free_result stmt =
+    (free_result_start stmt, free_result_cont stmt)
 
   let handle_char_unit stmt = function
     | 0, '\000' -> `Ok ()
@@ -637,9 +635,6 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
 
     let insert_id =
       Res.insert_id
-
-    let free res =
-      nonblocking res.Common.Res.mariadb (Res.free res)
   end
 
   module Stmt = struct
@@ -656,14 +651,7 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
 
     let free_res stmt =
       Common.Stmt.free_meta stmt;
-      let handle_free = function
-        | 0, '\000' -> `Ok ()
-        | 0, _ -> `Error (Common.Stmt.error stmt)
-        | s, _ -> `Wait (Status.of_int s) in
-      let raw = stmt.Common.Stmt.raw in
-      let start = handle_free (B.mysql_stmt_free_result_start raw) in
-      let cont s = handle_free (B.mysql_stmt_free_result_cont raw s) in
-      nonblocking stmt.Common.Stmt.mariadb (start, cont)
+      nonblocking stmt.Common.Stmt.mariadb (Stmt.free_result stmt)
 
     let reset stmt =
       free_res stmt
