@@ -219,8 +219,11 @@ struct
     let params = [|`String s; `Time t|] in
     M.Stmt.execute stmt params >>= or_die "Stmt.execute" >>= fun res ->
     assert (M.Res.num_rows res = 1);
-    M.Res.fetch (module M.Row.Array) res >>= or_die "Res.fetch" >|=
-    (function
+    M.Res.fetch (module M.Row.Array) res >>= or_die "Res.fetch" >>= fun row ->
+    M.Stmt.close stmt
+      >>= or_die "Stmt.close in test_datetime_and_string_conv"
+      >|= fun () ->
+    (match row with
      | Some [|t'; s'|] ->
         assert (equal_time t M.Field.(time t'));
         assert (s = M.Field.(string s'))
