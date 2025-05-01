@@ -142,7 +142,7 @@ struct
     assert (v >= 10000 && v < 10000000); (* 1 <= major_version < 1000 *)
     let info = M.get_server_info dbh in
     let info' = sprintf "%d.%d.%d" (v / 10000) (v / 100 mod 100) (v mod 100) in
-    assert (String.starts_with ~prefix:info' info);
+    assert (List.hd (String.split_on_char '-' info) = info');
     let host = M.get_host_info dbh in
     assert (String.length host < 1024);
     for i = 0 to String.length host - 1 do
