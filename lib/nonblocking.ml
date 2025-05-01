@@ -650,8 +650,11 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
       | `Error e -> return (Error e)
 
     let free_res stmt =
-      Common.Stmt.free_meta stmt;
-      nonblocking stmt.Common.Stmt.mariadb (Stmt.free_result stmt)
+      if stmt.Common.Stmt.meta = None then return (Ok ()) else
+      begin
+        Common.Stmt.free_meta stmt;
+        nonblocking stmt.Common.Stmt.mariadb (Stmt.free_result stmt)
+      end
 
     let reset stmt =
       free_res stmt

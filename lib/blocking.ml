@@ -200,18 +200,21 @@ module Stmt = struct
       | `Error e -> Error e
     end
 
+  let free_res stmt =
+    if stmt.Common.Stmt.meta = None then true else
+    begin
+      Common.Stmt.free_meta stmt;
+      B.mysql_stmt_free_result stmt.Common.Stmt.raw
+    end
+
   let reset stmt =
-    Common.Stmt.free_meta stmt;
-    let raw = stmt.Common.Stmt.raw in
-    if B.mysql_stmt_free_result raw && B.mysql_stmt_reset raw then
+    if free_res stmt && B.mysql_stmt_reset stmt.Common.Stmt.raw then
       Ok ()
     else
       Error (Common.Stmt.error stmt)
 
   let close stmt =
-    Common.Stmt.free_meta stmt;
-    let raw = stmt.Common.Stmt.raw in
-    if B.mysql_stmt_free_result raw && B.mysql_stmt_close raw then
+    if free_res stmt && B.mysql_stmt_close stmt.Common.Stmt.raw then
       Ok ()
     else
       Error (Common.Stmt.error stmt)
