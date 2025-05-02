@@ -28,7 +28,8 @@ jobs:
           - "ubuntu"       # libmariadb
           # "ubuntu-18.04" has libmariadbclient but has too old libc for node.js
         ocaml-compiler:
-          - "5.2"
+          - "5.3"
+          - "4.14"
           - "4.07"
 
     runs-on: ubuntu-latest
