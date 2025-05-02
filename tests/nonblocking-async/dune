@@ -8,4 +8,4 @@
   (env_var OCAML_MARIADB_USER)
   (env_var OCAML_MARIADB_PASS)
   (env_var OCAML_MARIADB_DB))
- (libraries mariadb async nonblocking_testsuite))
+ (libraries async mariadb nonblocking_testsuite threads))
