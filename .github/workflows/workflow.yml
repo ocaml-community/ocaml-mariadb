@@ -53,9 +53,10 @@ jobs:
       - name: Restore cached dependencies
         uses: actions/cache@v3
         with:
-          # Since we use docker tag aliases we compute a digest of relevant
-          # files on the system instead of using the matrix here.
-          key: "${{ hashFiles('/etc/*-release', '.opam/config', '*.opam') }}"
+          # This gives the precise OCaml version via .opam/config, but only the
+          # approximate OS version via the matrix.  In particular we cannot use
+          # /etc/*-release, since hashFiles only works within GITHUB_WORKSPACE.
+          key: "${{ matrix.os }}-${{ hashFiles('*.opam', '.opam/config') }}"
           path: /home/opam/.opam
 
       - name: Give the opam user access to the workspace
