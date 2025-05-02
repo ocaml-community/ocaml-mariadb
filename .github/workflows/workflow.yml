@@ -64,9 +64,18 @@ jobs:
 
       - name: Install dependencies
         run: "sudo -u opam opam install -y --deps-only -t ."
+        if: "${{ matrix.os == 'ubuntu' && matrix.ocaml-compiler == '4.14' }}"
+
+      - name: Install minimal dependencies
+        run: |
+          sudo -u opam opam install -y --deps-only .
+          sudo -u opam opam install -y lwt
+        if: "${{ matrix.os != 'ubuntu' || matrix.ocaml-compiler != '4.14' }}"
 
       - name: Build
-        run: "sudo -u opam opam exec -- dune build"
+        run: "sudo -u opam opam exec -- dune build @install @runtest"
+        # Skipping @check, since it would force compilation of (optional)
+        # targets.
 
       - name: Run tests
         run: "sudo -u opam --preserve-env=OCAML_MARIADB_HOST,OCAML_MARIADB_PORT,OCAML_MARIADB_USER,OCAML_MARIADB_PASS,OCAML_MARIADB_DB,OCAML_MARIADB_QUERY opam exec -- dune runtest"
