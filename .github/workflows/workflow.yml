@@ -1,0 +1,101 @@
+name: Build, test, and lint
+
+on:
+  - push
+  - pull_request
+
+permissions: read-all
+
+jobs:
+  build-and-test:
+
+    services:
+      mariadb:
+        image: mariadb:latest
+        env:
+          MARIADB_USER: testuser
+          MARIADB_PASSWORD: testpw
+          MARIADB_DATABASE: testdb
+          MARIADB_RANDOM_ROOT_PASSWORD: 1
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          # The main aim is to target different kinds of MariaDB client
+          # libraries; see the OPAM specification of conf-mariadb.
+          - "alpine"       # MariaDB C connector
+          - "ubuntu"       # libmariadb
+          # "ubuntu-18.04" has libmariadbclient but has too old libc for node.js
+        ocaml-compiler:
+          - "5.3"
+          - "4.14"
+          - "4.07"
+
+    runs-on: ubuntu-latest
+    container:
+      image: "ocaml/opam:${{ matrix.os }}-ocaml-${{ matrix.ocaml-compiler }}"
+      # Currently needed for the GitHub Actions, use sudo for other steps.
+      options: "--user root"
+
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies (alpine)
+        if: "${{ matrix.os == 'alpine' }}"
+        run: "apk add --no-cache linux-headers mariadb-connector-c-dev"
+
+      - name: Install system dependencies (ubuntu)
+        if: "${{ matrix.os == 'ubuntu' }}"
+        run: "apt-get update && apt-get install -y pkg-config libmariadb-dev"
+
+      - name: Restore cached dependencies
+        uses: actions/cache@v3
+        with:
+          # This gives the precise OCaml version via .opam/config, but only the
+          # approximate OS version via the matrix.  In particular we cannot use
+          # /etc/*-release, since hashFiles only works within GITHUB_WORKSPACE.
+          key: "${{ matrix.os }}-${{ hashFiles('*.opam', '.opam/config') }}"
+          path: /home/opam/.opam
+
+      - name: Give the opam user access to the workspace
+        run: "chown -Rh opam: ."
+
+      - name: Install dependencies
+        run: "sudo -u opam opam install -y --deps-only -t ."
+        if: "${{ matrix.os == 'ubuntu' && matrix.ocaml-compiler == '4.14' }}"
+
+      - name: Install minimal dependencies
+        run: |
+          sudo -u opam opam install -y --deps-only .
+          sudo -u opam opam install -y lwt
+        if: "${{ matrix.os != 'ubuntu' || matrix.ocaml-compiler != '4.14' }}"
+
+      - name: Build
+        run: "sudo -u opam opam exec -- dune build @install @runtest"
+        # Skipping @check, since it would force compilation of (optional)
+        # targets.
+
+      - name: Run tests
+        run: "sudo -u opam --preserve-env=OCAML_MARIADB_HOST,OCAML_MARIADB_PORT,OCAML_MARIADB_USER,OCAML_MARIADB_PASS,OCAML_MARIADB_DB,OCAML_MARIADB_QUERY opam exec -- dune runtest"
+        env:
+          OCAML_MARIADB_HOST: mariadb
+          OCAML_MARIADB_PORT: 3306
+          OCAML_MARIADB_USER: testuser
+          OCAML_MARIADB_PASS: testpw
+          OCAML_MARIADB_DB: testdb
+
+#  lint-opam:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Check out source code
+#        uses: actions/checkout@v4
+#
+#      - name: Set up OCaml
+#        uses: ocaml/setup-ocaml@v3
+#        with:
+#          ocaml-compiler: 5
+#
+#      - name: Lint OPAM package descriptions
+#        uses: ocaml/setup-ocaml/lint-opam@v3
