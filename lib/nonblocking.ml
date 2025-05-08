@@ -252,6 +252,19 @@ module Res = struct
 
   let fetch (type t) (module R : Row.S with type t = t) res =
     (fetch_start (module R) res, fetch_cont (module R) res)
+
+  let handle_free = function
+    | 0 -> `Ok
+    | s -> `Wait (Status.of_int s)
+
+  let free_start res =
+    handle_free (B.mysql_free_result_start res)
+
+  let free_cont res status =
+    handle_free (B.mysql_free_result_cont res status)
+
+  let free res =
+    (free_start res, free_cont res)
 end
 
 module Stmt = struct
@@ -635,35 +648,47 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
 
     let insert_id =
       Res.insert_id
+
+    let free = (* not public, but to avoid shadowing *)
+      Res.free
   end
 
   module Stmt = struct
     type t = Stmt.t
+
+    let free_meta stmt =
+      match stmt.Common.Stmt.meta with
+      | None -> return ()
+      | Some { res; _ } ->
+          stmt.Common.Stmt.meta <- None;
+          nonblocking' stmt.Common.Stmt.mariadb (Res.free res)
+
+    let free_meta_and_result stmt =
+      match stmt.Common.Stmt.meta with
+      | None -> return (Ok ())
+      | Some { res; _ } ->
+          stmt.Common.Stmt.meta <- None;
+          nonblocking' stmt.Common.Stmt.mariadb (Res.free res) >>= fun () ->
+          nonblocking stmt.Common.Stmt.mariadb (Stmt.free_result stmt)
 
     let handle_execute = function
       | Ok stmt -> nonblocking stmt.Common.Stmt.mariadb (Stmt.store_result stmt)
       | Error _ as e -> return e
 
     let execute stmt ps =
+      free_meta stmt >>= fun () ->
       match Stmt.execute stmt ps with
       | `Ok nb -> nonblocking stmt.Common.Stmt.mariadb nb >>= handle_execute
       | `Error e -> return (Error e)
 
-    let free_res stmt =
-      if stmt.Common.Stmt.meta = None then return (Ok ()) else
-      begin
-        Common.Stmt.free_meta stmt;
-        nonblocking stmt.Common.Stmt.mariadb (Stmt.free_result stmt)
-      end
-
     let reset stmt =
-      free_res stmt
+      free_meta_and_result stmt
       >>= function
       | Ok () -> nonblocking stmt.Common.Stmt.mariadb (Stmt.reset stmt)
       | Error _ as e -> return e
 
     let close stmt =
-      free_res stmt
+      free_meta_and_result stmt
       >>= function
       | Ok () -> nonblocking stmt.Common.Stmt.mariadb (Stmt.close stmt)
       | Error _ as e -> return e

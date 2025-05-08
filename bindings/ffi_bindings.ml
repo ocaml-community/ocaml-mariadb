@@ -346,6 +346,12 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   (* Nonblocking API *)
 
+  let mysql_free_result_start = foreign "mysql_free_result_start"
+    (res @-> returning int)
+
+  let mysql_free_result_cont = foreign "mysql_free_result_cont"
+    (res @-> int @-> returning int)
+
   let mysql_close_start = foreign "mysql_close_start"
     (mysql @-> returning int)
 
