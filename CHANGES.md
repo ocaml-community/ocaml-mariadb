@@ -1,3 +1,18 @@
+## 1.3.0 - 2025-05-08
+
+  - The `mariadb_config` and `mysql_config` scripts are now used, if
+    available, to discover MariaDB client library (#65 by Albert Peschar).
+  - Added server-side properties `get_server_info`, `get_server_version`,
+    `get_host_info` and `get_proto_info` (#62 by Petter A. Urkedal).
+  - Avoid calling `mysql_stmt_free_result` if there is no result set, since
+    this is not allowed by recent versions of the client library (by Petter
+    A. Urkedal, fixes #64).
+  - Avoid possibly blocking calls to `mysql_free_result` in the nonblocking
+    implementation.  This was only an issue if a previous result set had not
+    been consumed (#68 by Petter A. Urkedal, fixes #67).
+  - Fix memory leak in non-blocking test suite (Petter A.  Urkedal, fixes
+    #29).
+
 ## 1.2.0 - 2024-11-28
 
   - Added `Stmt.start_txn` (#59 by Corentin Leruth).
