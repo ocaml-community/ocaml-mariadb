@@ -182,7 +182,23 @@ end
 module Stmt = struct
   type t = [`Blocking] Common.Stmt.t
 
+  let free_meta stmt =
+    match stmt.Common.Stmt.meta with
+    | None -> ()
+    | Some { res; _ } ->
+        stmt.meta <- None;
+        B.mysql_free_result res
+
+  let free_meta_and_result stmt =
+    match stmt.Common.Stmt.meta with
+    | None -> true
+    | Some { res; _ } ->
+        stmt.meta <- None;
+        B.mysql_free_result res;
+        B.mysql_stmt_free_result stmt.Common.Stmt.raw
+
   let execute stmt params =
+    free_meta stmt;
     let n = B.mysql_stmt_param_count stmt.Common.Stmt.raw in
     if n <> Array.length params then
       Error (0, "parameter count mismatch")
@@ -200,21 +216,14 @@ module Stmt = struct
       | `Error e -> Error e
     end
 
-  let free_res stmt =
-    if stmt.Common.Stmt.meta = None then true else
-    begin
-      Common.Stmt.free_meta stmt;
-      B.mysql_stmt_free_result stmt.Common.Stmt.raw
-    end
-
   let reset stmt =
-    if free_res stmt && B.mysql_stmt_reset stmt.Common.Stmt.raw then
+    if free_meta_and_result stmt && B.mysql_stmt_reset stmt.Common.Stmt.raw then
       Ok ()
     else
       Error (Common.Stmt.error stmt)
 
   let close stmt =
-    if free_res stmt && B.mysql_stmt_close stmt.Common.Stmt.raw then
+    if free_meta_and_result stmt && B.mysql_stmt_close stmt.Common.Stmt.raw then
       Ok ()
     else
       Error (Common.Stmt.error stmt)

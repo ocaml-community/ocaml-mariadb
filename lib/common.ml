@@ -375,15 +375,8 @@ module Stmt = struct
         b.Bind.buffers.(i) <- malloc n;
         setf (!@bp) T.Bind.buffer b.Bind.buffers.(i)
 
-  let free_meta stmt =
-    match stmt.meta with
-    | Some { res; _ } ->
-        B.mysql_free_result res;
-        stmt.meta <- None
-    | None -> ()
-
   let update_meta stmt =
-    free_meta stmt;
+    assert (stmt.meta = None);
     stmt.meta <- (
         match B.mysql_stmt_result_metadata stmt.raw with
         | Some res ->
