@@ -48,7 +48,7 @@ jobs:
 
       - name: Install system dependencies (ubuntu)
         if: "${{ matrix.os == 'ubuntu' }}"
-        run: "apt-get update && apt-get install -y pkg-config libmariadb-dev"
+        run: "apt-get update && apt-get install -y pkg-config libmariadb-dev libzstd-dev"
 
       - name: Restore cached dependencies
         uses: actions/cache@v3
