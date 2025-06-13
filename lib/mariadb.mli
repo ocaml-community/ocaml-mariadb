@@ -55,6 +55,7 @@ module type S = sig
       | `String of string
       | `Bytes of bytes
       | `Time of Time.t
+      | `Json of string
       ]
 
     val name : t -> string
@@ -85,12 +86,14 @@ module type S = sig
     val string : t -> string
     val bytes : t -> bytes
     val time : t -> Time.t
+    val json : t -> string
 
     val int_opt : t -> int option
     val float_opt : t -> float option
     val string_opt : t -> string option
     val bytes_opt : t -> bytes option
     val time_opt : t -> Time.t option
+    val json_opt : t -> string option
   end
 
   (** A module representing database rows. Rows can be retrieved as different
@@ -401,6 +404,7 @@ module Nonblocking : sig
         | `String of string
         | `Bytes of bytes
         | `Time of Time.t
+        | `Json of string
         ]
 
       val name : t -> string
@@ -413,12 +417,14 @@ module Nonblocking : sig
       val string : t -> string
       val bytes : t -> bytes
       val time : t -> Time.t
+      val json : t -> string
 
       val int_opt : t -> int option
       val float_opt : t -> float option
       val string_opt : t -> string option
       val bytes_opt : t -> bytes option
       val time_opt : t -> Time.t option
+      val json_opt : t -> string option
     end
 
     module Row : sig

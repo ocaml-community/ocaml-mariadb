@@ -9,6 +9,7 @@ type value =
   | `String of string
   | `Bytes of bytes
   | `Time of Time.t
+  | `Json of string
   ]
 
 type t =
@@ -65,7 +66,7 @@ let to_time field kind =
   ; kind
   }
 
-type to_string = [`Decimal | `New_decimal | `String | `Var_string | `Bit]
+type to_string = [`Decimal | `New_decimal | `String | `Var_string | `Bit | `Json]
 type to_blob   = [`Tiny_blob | `Blob | `Medium_blob | `Long_blob]
 type to_time   = [`Time | `Date | `Datetime | `Timestamp]
 
@@ -85,6 +86,7 @@ let convert field typ unsigned =
   | `Long_long,       false -> `Int (Int64.to_int (cast_to int64_t field))
   | `Float,               _ -> `Float (cast_to float field)
   | `Double,              _ -> `Float (cast_to double field)
+  | `Json,                _ -> `Json (Bytes.to_string (to_bytes field))
   | #to_string,           _ -> `String (Bytes.to_string (to_bytes field))
   | #to_blob,             _ -> `Bytes (to_bytes field)
   | #to_time as t,        _ -> `Time (to_time field t)
@@ -124,6 +126,11 @@ let time field =
   | `Time t -> t
   | _ -> err field ~info:"a time value"
 
+let json field =
+  match value field with
+  | `Json j -> j
+  | _ -> err field ~info:"a json value"
+
 let int_opt field =
   match value field with
   | `Int i -> Some i
@@ -153,3 +160,9 @@ let time_opt field =
   | `Time t -> Some t
   | `Null -> None
   | _ -> err field ~info:"a nullable time value"
+
+let json_opt field =
+  match value field with
+  | `Json j -> Some j
+  | `Null -> None
+  | _ -> err field ~info:"a nullable json value"

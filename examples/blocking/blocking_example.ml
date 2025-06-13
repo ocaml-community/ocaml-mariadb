@@ -28,6 +28,7 @@ let print_row row =
             (M.Time.hour t)
             (M.Time.minute t)
             (M.Time.second t)
+      | `Json j -> printf "%s\n%!" j
       | `Null -> printf "NULL\n%!")
     row
 

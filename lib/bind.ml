@@ -35,6 +35,7 @@ type buffer_type =
   | `Date
   | `Datetime
   | `Timestamp
+  | `Json
   ]
 
 let buffer_type_of_int i =
@@ -61,6 +62,7 @@ let buffer_type_of_int i =
   else if i = date         then `Date
   else if i = datetime     then `Datetime
   else if i = timestamp    then `Timestamp
+  else if i = json         then `Json
   else invalid_arg @@ "unknown buffer type " ^ (string_of_int i)
 
 let yes = '\001'
@@ -185,5 +187,16 @@ let time b param ~at =
     ~buffer:(coerce (ptr T.Time.t) (ptr void) tp)
     ~size:(sizeof T.Time.t)
     ~mysql_type:(type_of_time_kind param.Time.kind)
+    ~unsigned:no
+    ~at
+
+let json b param ~at =
+  let len = String.length param in
+  let p = allocate_n char ~count:len in
+  String.iteri (fun i c -> (p +@ i) <-@ c) param;
+  bind b
+    ~buffer:(coerce (ptr char) (ptr void) p)
+    ~size:len
+    ~mysql_type:T.Type.string
     ~unsigned:no
     ~at
