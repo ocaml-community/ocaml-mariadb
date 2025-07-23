@@ -338,8 +338,7 @@ module Stmt = struct
             | `Float x -> Bind.float b x ~at
             | `String s -> Bind.string b s ~at
             | `Bytes s -> Bind.blob b s ~at
-            | `Time t -> Bind.time b t ~at
-            | `Json j -> Bind.json b j ~at)
+            | `Time t -> Bind.time b t ~at)
           params;
         if B.mysql_stmt_bind_param stmt.raw b.Bind.bind then
           `Ok stmt
@@ -355,7 +354,7 @@ module Stmt = struct
     | `Int24 | `Long | `Float -> 4
     | `Long_long | `Double -> 8
     | `Decimal | `New_decimal | `String | `Var_string
-    | `Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Bit | `Json -> -1
+    | `Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Bit -> -1
     | `Time | `Date | `Datetime | `Timestamp -> Ctypes.sizeof T.Time.t
 
   let malloc count =

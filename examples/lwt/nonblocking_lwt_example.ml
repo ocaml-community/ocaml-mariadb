@@ -63,7 +63,6 @@ let print_row row =
             (M.Time.hour t)
             (M.Time.minute t)
             (M.Time.second t)
-      | `Json j -> Lwt_io.printf "%s\n%!" j
       | `Null -> Lwt_io.printf "NULL\n%!")
     row
     Lwt.return_unit
