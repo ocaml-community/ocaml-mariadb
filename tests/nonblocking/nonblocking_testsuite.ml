@@ -390,7 +390,8 @@ struct
           (* Test that we can access the JSON field using different methods *)
           let json_value = match M.Field.value row.(1) with
             | `String s -> s  (* TiDB/MySQL might return as string *)
-            | _ -> failwith "Expected JSON or String field"
+            | `Bytes b -> Bytes.to_string b  (* MariaDB 10.11.13+ might return as bytes *)
+            | _ -> failwith "Expected JSON field as String or Bytes"
           in
           (* Verify we got some data back *)
           assert (String.length json_value > 0);
@@ -420,7 +421,8 @@ struct
       | Some row ->
           let json_type = match M.Field.value row.(0) with
             | `String s -> s
-            | _ -> failwith "Expected JSON or String from JSON_TYPE"
+            | `Bytes b -> Bytes.to_string b
+            | _ -> failwith "Expected String or Bytes from JSON_TYPE"
           in
           (* JSON_TYPE should return something like "OBJECT", "ARRAY", etc. *)
           assert (String.length json_type > 0);
