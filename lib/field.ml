@@ -65,7 +65,7 @@ let to_time field kind =
   ; kind
   }
 
-type to_string = [`Decimal | `New_decimal | `String | `Var_string | `Bit ]
+type to_string = [`Decimal | `New_decimal | `String | `Var_string | `Bit]
 type to_blob   = [`Tiny_blob | `Blob | `Medium_blob | `Long_blob]
 type to_time   = [`Time | `Date | `Datetime | `Timestamp]
 
