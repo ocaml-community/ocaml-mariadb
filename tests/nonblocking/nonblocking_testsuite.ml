@@ -92,7 +92,6 @@ struct
     | `String s -> sprintf "(%S : string)" s
     | `Bytes s -> sprintf "(%S : bytes)" (Bytes.to_string s)
     | `Time t -> string_of_timestamp t
-    | `Json j -> sprintf "(%S : json)" j
 
   let equal_float x x' =
     abs_float (x -. x') /. (abs_float (x +. x') +. epsilon_float) < 1e-6
@@ -118,8 +117,6 @@ struct
     | `Bytes s, `Bytes s' -> s = s'
     | `Bytes _, _ | _, `Bytes _ -> false
     | `Time t, `Time t' -> equal_time t t'
-    | `Json j, `Json j' -> j = j'
-    | `Json _, _ | _, `Json _ -> false
 
   let assert_field_equal v v' =
     if not (equal_field v v') then begin
@@ -375,7 +372,7 @@ struct
 
     (* Insert all test cases *)
     iter_s_list (fun json_data ->
-      M.Stmt.execute insert_stmt [| `Json json_data |] >>= or_die "insert json"
+      M.Stmt.execute insert_stmt [| `String json_data |] >>= or_die "insert json"
       >|= fun _ -> ()
     ) test_cases >>= fun () ->
 
@@ -392,7 +389,6 @@ struct
           assert (Array.length row = 2);
           (* Test that we can access the JSON field using different methods *)
           let json_value = match M.Field.value row.(1) with
-            | `Json j -> j
             | `String s -> s  (* TiDB/MySQL might return as string *)
             | _ -> failwith "Expected JSON or String field"
           in
@@ -400,8 +396,8 @@ struct
           assert (String.length json_value > 0);
 
           (* Test accessor functions *)
-          let json_direct = M.Field.json row.(1) in
-          let json_opt = M.Field.json_opt row.(1) in
+          let json_direct = M.Field.string row.(1) in
+          let json_opt = M.Field.string_opt row.(1) in
           assert (json_opt = Some json_direct);
           assert (String.length json_direct > 0);
 
@@ -423,7 +419,6 @@ struct
       M.Res.fetch (module M.Row.Array) res >>= or_die "fetch json type" >>= function
       | Some row ->
           let json_type = match M.Field.value row.(0) with
-            | `Json j -> j
             | `String s -> s
             | _ -> failwith "Expected JSON or String from JSON_TYPE"
           in
