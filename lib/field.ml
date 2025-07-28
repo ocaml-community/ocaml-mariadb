@@ -112,6 +112,7 @@ let float field =
 let string field =
   match value field with
   | `String s -> s
+  | `Bytes b -> Bytes.to_string b
   | _ -> err field ~info:"a string"
 
 let bytes field =
@@ -139,6 +140,7 @@ let float_opt field =
 let string_opt field =
   match value field with
   | `String s -> Some s
+  | `Bytes b -> Some (Bytes.to_string b)
   | `Null -> None
   | _ -> err field ~info:"a nullable string"
 
