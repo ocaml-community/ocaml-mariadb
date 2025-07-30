@@ -389,18 +389,17 @@ struct
           assert (Array.length row = 2);
           (* Test that we can access the JSON field using different methods *)
           let json_value = match M.Field.value row.(1) with
-            | `String s -> s  (* TiDB/MySQL might return as string *)
-            | `Bytes b -> Bytes.to_string b  (* MariaDB 10.11.13+ might return as bytes *)
-            | _ -> failwith "Expected JSON field as String or Bytes"
+            | `Bytes b -> Bytes.to_string b
+            | _ -> failwith "Expected JSON field as Bytes"
           in
           (* Verify we got some data back *)
           assert (String.length json_value > 0);
 
           (* Test accessor functions *)
-          let json_direct = M.Field.string row.(1) in
-          let json_opt = M.Field.string_opt row.(1) in
+          let json_direct = M.Field.bytes row.(1) in
+          let json_opt = M.Field.bytes_opt row.(1) in
           assert (json_opt = Some json_direct);
-          assert (String.length json_direct > 0);
+          assert (Bytes.length json_direct > 0);
 
           verify_rows (count + 1)
       | None ->
@@ -421,8 +420,7 @@ struct
       | Some row ->
           let json_type = match M.Field.value row.(0) with
             | `String s -> s
-            | `Bytes b -> Bytes.to_string b
-            | _ -> failwith "Expected String or Bytes from JSON_TYPE"
+            | _ -> failwith "Expected String from JSON_TYPE"
           in
           (* JSON_TYPE should return something like "OBJECT", "ARRAY", etc. *)
           assert (String.length json_type > 0);

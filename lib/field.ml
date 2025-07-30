@@ -66,8 +66,11 @@ let to_time field kind =
   }
 
 type to_string = [`Decimal | `New_decimal | `String | `Var_string | `Bit]
-type to_blob   = [`Tiny_blob | `Blob | `Medium_blob | `Long_blob]
+type to_blob   = [`Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Json]
 type to_time   = [`Time | `Date | `Datetime | `Timestamp]
+(* MariaDB implements the JSON datatype as an alias for LONGTEXT.  It's
+ * therefore * included it in to_blob above, so that the representation is
+ * consitent in the public API. *)
 
 let convert field typ unsigned =
   let open Signed in
@@ -112,7 +115,6 @@ let float field =
 let string field =
   match value field with
   | `String s -> s
-  | `Bytes b -> Bytes.to_string b
   | _ -> err field ~info:"a string"
 
 let bytes field =
@@ -140,7 +142,6 @@ let float_opt field =
 let string_opt field =
   match value field with
   | `String s -> Some s
-  | `Bytes b -> Some (Bytes.to_string b)
   | `Null -> None
   | _ -> err field ~info:"a nullable string"
 
