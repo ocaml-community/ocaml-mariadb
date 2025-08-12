@@ -97,6 +97,7 @@ module Types (F: Ctypes.TYPE) = struct
     let date = constant "MYSQL_TYPE_DATE" int
     let datetime = constant "MYSQL_TYPE_DATETIME" int
     let timestamp = constant "MYSQL_TYPE_TIMESTAMP" int
+    let json = constant "MYSQL_TYPE_JSON" int
   end
 
   module Stmt_attr = struct

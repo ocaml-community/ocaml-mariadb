@@ -18,6 +18,7 @@ type buffer_type =
   | `Year
   | `Short
   | `Int24
+  | `Json
   | `Long
   | `Float
   | `Long_long
@@ -61,6 +62,7 @@ let buffer_type_of_int i =
   else if i = date         then `Date
   else if i = datetime     then `Datetime
   else if i = timestamp    then `Timestamp
+  else if i = json         then `Json
   else invalid_arg @@ "unknown buffer type " ^ (string_of_int i)
 
 let yes = '\001'

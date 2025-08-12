@@ -345,10 +345,100 @@ struct
     in
     (test_integer, test_bigint)
 
+  let test_json () =
+    connect () >>= or_die "connect" >>= fun dbh ->
+
+    (* Create a test table with JSON column *)
+    M.prepare dbh
+      "CREATE TEMPORARY TABLE ocaml_mariadb_json_test (id integer PRIMARY KEY AUTO_INCREMENT, data JSON)"
+      >>= or_die "prepare create json table"
+      >>= fun create_table_stmt ->
+    execute_no_data create_table_stmt >>= fun () ->
+
+    (* Test inserting JSON data *)
+    M.prepare dbh "INSERT INTO ocaml_mariadb_json_test (data) VALUES (?)"
+      >>= or_die "prepare insert json"
+      >>= fun insert_stmt ->
+
+    (* Test various JSON types *)
+    let test_cases = [
+      {|{"name": "John", "age": 30}|};
+      {|[1, 2, 3, "four"]|};
+      {|"simple string"|};
+      {|42|};
+      {|true|};
+      {|null|}
+    ] in
+
+    (* Insert all test cases *)
+    iter_s_list (fun json_data ->
+      M.Stmt.execute insert_stmt [| `String json_data |] >>= or_die "insert json"
+      >|= fun _ -> ()
+    ) test_cases >>= fun () ->
+
+    (* Select and verify we can retrieve JSON data *)
+    M.prepare dbh "SELECT id, data FROM ocaml_mariadb_json_test ORDER BY id"
+      >>= or_die "prepare select json"
+      >>= fun select_stmt ->
+    M.Stmt.execute select_stmt [||] >>= or_die "execute select json" >>= fun res ->
+
+    (* Verify we can fetch and access JSON fields *)
+    let rec verify_rows count =
+      M.Res.fetch (module M.Row.Array) res >>= or_die "fetch json row" >>= function
+      | Some row ->
+          assert (Array.length row = 2);
+          (* Test that we can access the JSON field using different methods *)
+          let json_value = match M.Field.value row.(1) with
+            | `Bytes b -> Bytes.to_string b
+            | _ -> failwith "Expected JSON field as Bytes"
+          in
+          (* Verify we got some data back *)
+          assert (String.length json_value > 0);
+
+          (* Test accessor functions *)
+          let json_direct = M.Field.bytes row.(1) in
+          let json_opt = M.Field.bytes_opt row.(1) in
+          assert (json_opt = Some json_direct);
+          assert (Bytes.length json_direct > 0);
+
+          verify_rows (count + 1)
+      | None ->
+          (* We should have retrieved all our test cases *)
+          assert (count = List.length test_cases);
+          return ()
+    in
+
+    verify_rows 0 >>= fun () ->
+
+    (* Test JSON functions if supported (optional) *)
+    (try
+      M.prepare dbh "SELECT JSON_TYPE(data) FROM ocaml_mariadb_json_test LIMIT 1"
+        >>= or_die "prepare json type"
+        >>= fun json_func_stmt ->
+      M.Stmt.execute json_func_stmt [||] >>= or_die "execute json type" >>= fun res ->
+      M.Res.fetch (module M.Row.Array) res >>= or_die "fetch json type" >>= function
+      | Some row ->
+          let json_type = match M.Field.value row.(0) with
+            | `String s -> s
+            | _ -> failwith "Expected String from JSON_TYPE"
+          in
+          (* JSON_TYPE should return something like "OBJECT", "ARRAY", etc. *)
+          assert (String.length json_type > 0);
+          M.Stmt.close json_func_stmt >>= or_die "close json func stmt"
+      | None -> return ()
+    with
+    | _ -> return () (* JSON functions might not be supported in all versions *)
+    ) >>= fun () ->
+
+    M.Stmt.close select_stmt >>= or_die "close select stmt" >>= fun () ->
+    M.Stmt.close insert_stmt >>= or_die "close insert stmt" >>= fun () ->
+    M.close dbh
+
   let main () =
     test_server_properties () >>= fun () ->
     test_insert_id () >>= fun () ->
     test_txn () >>= fun () ->
+    test_json () >>= fun () ->
     test_many_select () >>= fun () ->
     test_integer () >>= fun () -> test_bigint ()
 end

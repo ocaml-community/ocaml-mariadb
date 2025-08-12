@@ -354,7 +354,7 @@ module Stmt = struct
     | `Int24 | `Long | `Float -> 4
     | `Long_long | `Double -> 8
     | `Decimal | `New_decimal | `String | `Var_string
-    | `Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Bit -> -1
+    | `Tiny_blob | `Blob | `Medium_blob | `Long_blob | `Bit | `Json -> -1
     | `Time | `Date | `Datetime | `Timestamp -> Ctypes.sizeof T.Time.t
 
   let malloc count =
