@@ -108,8 +108,10 @@ struct
     | `Null, _ | _, `Null -> false
     | `Int i, `Int i' -> i = i'
     | `Int i, `Float x | `Float x, `Int i -> float_of_int i = x
+    | `Int64 i, `Int64 i' -> Int64.equal i i'
     | `Int64 i, `Int x | `Int x, `Int64 i -> Int64.(equal i (of_int x))
     | `Int64 i, `Float x | `Float x, `Int64 i -> Int64.to_float i = x
+    | `UInt64 i, `UInt64 i' -> Unsigned.UInt64.equal i i'
     | `UInt64 i, `Int x | `Int x, `UInt64 i -> Unsigned.UInt64.(equal i (of_int x))
     | `UInt64 i, `Float x | `Float x, `UInt64 i -> Int64.to_float (Unsigned.UInt64.to_int64 i) = x
     | `UInt64 i, `Int64 x | `Int64 x, `UInt64 i -> Int64.equal (Unsigned.UInt64.to_int64 i) x
