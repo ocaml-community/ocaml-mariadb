@@ -5,6 +5,8 @@ module T = Ffi_generated.Types
 type value =
   [ `Null
   | `Int of int
+  | `Int64 of Int64.t
+  | `UInt64 of Unsigned.UInt64.t
   | `Float of float
   | `String of string
   | `Bytes of bytes
@@ -84,8 +86,8 @@ let convert field typ unsigned =
   | `Short,           false -> `Int (UInt.to_int (cast_to uint field))
   | (`Int24 | `Long),  true -> `Int (UInt32.to_int (cast_to uint32_t field))
   | (`Int24 | `Long), false -> `Int (Int32.to_int (cast_to int32_t field))
-  | `Long_long,        true -> `Int (UInt64.to_int (cast_to uint64_t field))
-  | `Long_long,       false -> `Int (Int64.to_int (cast_to int64_t field))
+  | `Long_long,        true -> `UInt64 (cast_to uint64_t field)
+  | `Long_long,       false -> `Int64 (cast_to int64_t field)
   | `Float,               _ -> `Float (cast_to float field)
   | `Double,              _ -> `Float (cast_to double field)
   | #to_string,           _ -> `String (Bytes.to_string (to_bytes field))
@@ -105,7 +107,20 @@ let err field ~info =
 let int field =
   match value field with
   | `Int i -> i
+  | `Int64 i -> Int64.to_int i
+  | `UInt64 i -> Unsigned.UInt64.to_int i
   | _ -> err field ~info:"an integer"
+
+let int64 field =
+  match value field with
+  | `Int i -> Int64.of_int i
+  | `Int64 i -> i
+  | _ -> err field ~info:"a 64-bit integer"
+
+let uint64 field =
+  match value field with
+  | `UInt64 i -> i
+  | _ -> err field ~info:"a 64-bit unsigned integer"
 
 let float field =
   match value field with
@@ -130,8 +145,23 @@ let time field =
 let int_opt field =
   match value field with
   | `Int i -> Some i
+  | `Int64 i -> Some (Int64.to_int i)
+  | `UInt64 i -> Some (Unsigned.UInt64.to_int i)
   | `Null -> None
   | _ -> err field ~info:"a nullable integer"
+
+let int64_opt field =
+  match value field with
+  | `Int i -> Some (Int64.of_int i)
+  | `Int64 i -> Some i
+  | `Null -> None
+  | _ -> err field ~info:"a nullable 64-bit integer"
+
+let uint64_opt field =
+  match value field with
+  | `UInt64 i -> Some i
+  | `Null -> None
+  | _ -> err field ~info:"a nullable 64-bit unsigned integer"
 
 let float_opt field =
   match value field with
