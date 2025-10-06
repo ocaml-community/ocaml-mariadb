@@ -22,6 +22,10 @@ struct
     | Ok r -> return r
     | Error (i, e) -> eprintf "%s: (%d) %s\n%!" where i e; exit 2
 
+  let then_die where = function
+    | Ok _ -> eprintf "unexpected ok: %s" where; exit 2
+    | Error _ -> return ()
+
   let rec iter_s_list f = function
     | [] -> return ()
     | x :: xs -> f x >>= fun () -> iter_s_list f xs
@@ -164,6 +168,40 @@ struct
     let proto = M.get_proto_info dbh in
     assert (proto >= 0 && proto < 10000); (* it's 10 for MariaDB 10.11.8 *)
     return ()
+
+  let test_sqlstate () =
+    connect () >>= or_die "connect" >>= fun dbh ->
+    assert (M.sqlstate dbh = "00000");
+
+    (* Test select from missing table. *)
+    (M.prepare dbh "SELECT * FROM inexistent_table" >|= function
+     | Error _ -> assert (M.sqlstate dbh <> "00000") (* actually "42S02" *)
+     | Ok _ -> assert false) >>= fun () ->
+
+    (* Prepare table for testing. *)
+    M.prepare dbh
+              "CREATE TEMPORARY TABLE test_sqlstate (i integer PRIMARY KEY)"
+      >>= or_die "prepare CREATE TABLE test_sqlstate"
+      >>= fun stmt ->
+    M.Stmt.execute stmt [||]
+      >>= or_die "exec CREATE TABLE test_sqlstate"
+      >>= fun _ ->
+    M.Stmt.close stmt
+      >>= or_die "stmt close CREATE TABLE test_sqlstate"
+      >>= fun () ->
+
+    (* Test duplicate insertion of unique key. *)
+    M.prepare dbh "INSERT INTO test_sqlstate VALUES (?)"
+      >>= or_die "prepare in test_sqlstate"
+      >>= fun stmt ->
+    M.Stmt.execute stmt [|`Int 1|]
+      >>= or_die "first insert in test_sqlstate"
+      >>= fun _ ->
+    M.Stmt.execute stmt [|`Int 1|]
+      >>= then_die "second insert in test_sqlstate"
+      >>= fun () ->
+    assert (M.Stmt.sqlstate stmt <> "00000"); (* actually "23000" *)
+    M.Stmt.close stmt >>= or_die "stmt close in test_sqlstate"
 
   let test_insert_id () =
     connect () >>= or_die "connect" >>= fun dbh ->
@@ -447,6 +485,7 @@ struct
 
   let main () =
     test_server_properties () >>= fun () ->
+    test_sqlstate () >>= fun () ->
     test_insert_id () >>= fun () ->
     test_txn () >>= fun () ->
     test_json () >>= fun () ->

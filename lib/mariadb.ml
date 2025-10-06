@@ -86,6 +86,7 @@ module type S = sig
 
     val execute : t -> Field.value array -> Res.t result
     val reset : t -> unit result
+    val sqlstate : t -> string
     val close : t -> unit result
   end
 
@@ -174,6 +175,7 @@ module type S = sig
   val commit : t -> unit result
   val rollback : t -> unit result
   val prepare : t -> string -> Stmt.t result
+  val sqlstate : t -> string
 end
 
 module B = Binding_wrappers

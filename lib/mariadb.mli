@@ -166,6 +166,12 @@ module type S = sig
           were after [stmt] was prepared, and frees up any {!Res.t} produced by
           [stmt]. *)
 
+    val sqlstate : t -> string
+      (** [sqlstate stmt] is the SQLSTATE with MariaDB extensions indicating the
+          status of the previous execution of the statement. The string
+          ["00000"] is returned if no error occurred or if the statement has not
+          been executed. *)
+
     val close : t -> unit result
       (** [close stmt] closes the prepapred statement [stmt] and frees any
           allocated memory associated with it and its result. *)
@@ -300,6 +306,10 @@ module type S = sig
     (** [prepare mariadb query] creates a prepared statement for [query].  The
         query may contain [?] as placeholders for parameters that can be bound
         by calling [Stmt.execute]. *)
+
+  val sqlstate : t -> string
+    (* [sqlstate mariadb] is the SQLSTATE with MariaDB extensions of the last
+     * operation on [mariadb]. Returns ["00000"] if no error occurred. *)
 end
 
 (** The module for blocking MariaDB API calls. It should be possible to call
@@ -461,6 +471,7 @@ module Nonblocking : sig
 
       val execute : t -> Field.value array -> Res.t result future
       val reset : t -> unit result future
+      val sqlstate : t -> string
       val close : t -> unit result future
     end
 
@@ -550,6 +561,7 @@ module Nonblocking : sig
     val commit : t -> unit result future
     val rollback : t -> unit result future
     val prepare : t -> string -> Stmt.t result future
+    val sqlstate : t -> string
   end
 
   (** Functor that generates a nonblocking database interface, given a
