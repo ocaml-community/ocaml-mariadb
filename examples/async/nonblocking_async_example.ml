@@ -42,7 +42,7 @@ module M = Mariadb.Nonblocking.Make(struct
       else idle in
     let tt =
       let tmout = float (Mariadb.Nonblocking.timeout mariadb) in
-      if S.timeout status then Clock.after (Time.Span.of_sec tmout)
+      if S.timeout status then Clock.after (Time_float.Span.of_sec tmout)
       else idle in
     ready (rt, wt, tt) >>= fun (read, write, timeout) ->
     Fd.close ~file_descriptor_handling:Fd.Do_not_close_file_descriptor fd
