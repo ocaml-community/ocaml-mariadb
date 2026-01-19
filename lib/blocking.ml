@@ -93,7 +93,7 @@ let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) ?(options=[]) ()
     List.iter (Common.set_client_option mariadb) options;
     match B.mysql_real_connect raw host user pass db port socket flags with
     | Some _ -> Ok mariadb
-    | None -> Error (2008, "out of memory") in
+    | None -> Error (B.mysql_errno(raw), B.mysql_error(raw)) in
   match B.mysql_init () with
   | Some raw -> connect raw
   | None -> Error (2008, "out of memory")
