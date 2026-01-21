@@ -158,6 +158,8 @@ let prepare mariadb query =
 let start_txn mariadb =
   wrap_unit mariadb (B.mysql_real_query mariadb.Common.raw "START TRANSACTION")
 
+let sqlstate = Common.sqlstate
+
 module Res = struct
   type t = [`Blocking] Common.Res.t
 
@@ -221,6 +223,8 @@ module Stmt = struct
       Ok ()
     else
       Error (Common.Stmt.error stmt)
+
+  let sqlstate = Common.Stmt.sqlstate
 
   let close stmt =
     if free_meta_and_result stmt && B.mysql_stmt_close stmt.Common.Stmt.raw then
