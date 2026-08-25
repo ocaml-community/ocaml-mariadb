@@ -1,3 +1,13 @@
+## 2.1.0 - 2026-08-26
+
+  - Added support for text protocol (non-prepared) execution of statements
+    (#72 by jongleb).  This is limited to statements which do not return any
+    result, which should cover primary use cases like changing settings or
+    deploying schema definitions.
+  - Optimised encoding of string and blob parameters (#73 by jongleb).
+  - Added support for SQLSTATE to the extend implemented in C library (#42
+    by Petter A. Urkedal).
+
 ## 2.0.0 - 2026-07-27
 
   - Added support for signed and unsigned 64 bit integers (#66 by Mauricio
@@ -5,7 +15,7 @@
   - Added some reasonable conversions for integer extractors, esp. to avoid
     predicting the type in case of expressions.
   - Added JSON type support (#69 by Javier Chavarri, jongleb, Gleb Patsiia,
-    and Petter A.  Urkedal).
+    and Petter A. Urkedal).
   - Fixed error reporting for blocking connect (#70 by Petter A. Urkedal).
 
 ## 1.3.0 - 2025-05-08
