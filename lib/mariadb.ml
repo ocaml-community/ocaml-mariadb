@@ -86,6 +86,7 @@ module type S = sig
 
     val execute : t -> Field.value array -> Res.t result
     val reset : t -> unit result
+    val sqlstate : t -> string
     val close : t -> unit result
   end
 
@@ -178,6 +179,8 @@ module type S = sig
   type exec_result = { affected_rows : int; insert_id : int }
 
   val exec : t -> string -> exec_result result
+
+  val sqlstate : t -> string
 end
 
 module B = Binding_wrappers
