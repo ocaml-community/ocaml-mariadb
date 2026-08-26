@@ -1,6 +1,7 @@
 opam-version: "2.0"
 name: "mariadb"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
+x-maintenance-intent: ["(latest)"]
 authors: "Andre Nathan <andrenth@gmail.com>"
 homepage: "https://github.com/ocaml-community/ocaml-mariadb"
 bug-reports: "https://github.com/ocaml-community/ocaml-mariadb/issues"
