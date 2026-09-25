@@ -43,14 +43,19 @@ let buffer field =
 let cast_to typ field =
   !@(coerce (ptr void) (ptr typ) (buffer field))
 
-let to_bytes field =
-  let buf = buffer field in
-  let r = field.result in
-  let lp = r.Bind.length +@ field.at in
+let to_string field =
+  let lp = field.result.Bind.length +@ field.at in
   let length = Unsigned.ULong.to_int !@lp in
-  let p = coerce (ptr void) (ptr char) buf in
-  if length = 0 then Bytes.empty
-  else Bytes.unsafe_of_string (string_from_ptr p ~length)
+  match length with
+  | 0 -> ""
+  | _ ->
+    let p = coerce (ptr void) (ptr char) (buffer field) in
+    string_from_ptr p ~length
+
+let to_bytes field =
+  match to_string field with
+  | "" -> Bytes.empty
+  | s -> Bytes.unsafe_of_string s
 
 let to_time field kind =
   let buf = buffer field in
@@ -91,7 +96,7 @@ let convert field typ unsigned =
   | `Long_long,       false -> `Int64 (cast_to int64_t field)
   | `Float,               _ -> `Float (cast_to float field)
   | `Double,              _ -> `Float (cast_to double field)
-  | #to_string,           _ -> `String (Bytes.to_string (to_bytes field))
+  | #to_string,           _ -> `String (to_string field)
   | #to_blob,             _ -> `Bytes (to_bytes field)
   | #to_time as t,        _ -> `Time (to_time field t)
 
