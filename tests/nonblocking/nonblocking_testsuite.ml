@@ -679,7 +679,108 @@ struct
     M.Stmt.close insert_stmt >>= or_die "close insert stmt" >>= fun () ->
     M.close dbh
 
+  let test_result_metadata () =
+    connect () >>= or_die "connect metadata" >>= fun dbh ->
+    let exec sql =
+      M.prepare dbh sql >>= or_die "prepare metadata DDL/DML" >>= fun stmt ->
+      M.Stmt.execute stmt [||] >>= or_die "execute metadata DDL/DML" >>= fun _ ->
+      M.Stmt.close stmt >>= or_die "close metadata DDL/DML"
+    in
+    exec "CREATE TEMPORARY TABLE metadata_test (signed_value BIGINT NOT NULL, unsigned_value BIGINT UNSIGNED NOT NULL, text_value VARCHAR(100) NULL)" >>= fun () ->
+    M.prepare dbh "SELECT * FROM metadata_test WHERE signed_value >= ? ORDER BY signed_value"
+    >>= or_die "prepare metadata select" >>= fun stmt ->
+    let read minimum =
+      M.Stmt.execute stmt [| `Int minimum |] >>= or_die "execute metadata select" >>= fun res ->
+      let rec rows acc =
+        M.Res.fetch (module M.Row.Array) res >>= or_die "fetch metadata" >>= function
+        | None -> return (List.rev acc)
+        | Some row ->
+            let snapshot = Array.map (fun field ->
+              (M.Field.name field, M.Field.can_be_null field, M.Field.value field)) row in
+            Gc.full_major ();
+            rows (snapshot :: acc)
+      in
+      rows []
+    in
+    read 0 >>= fun empty ->
+    assert (empty = []);
+    exec "INSERT INTO metadata_test VALUES (-1,4294967296,'first'),(2,0,NULL)" >>= fun () ->
+    let original = [
+      [| ("signed_value", false, `Int64 (-1L));
+         ("unsigned_value", false, `UInt64 (Unsigned.UInt64.of_string "4294967296"));
+         ("text_value", true, `String "first") |];
+      [| ("signed_value", false, `Int64 2L);
+         ("unsigned_value", false, `UInt64 Unsigned.UInt64.zero);
+         ("text_value", true, `Null) |]
+    ] in
+    read (-1) >>= fun first ->
+    assert (first = original);
+    read 3 >>= fun empty -> assert (empty = []);
+    M.Stmt.reset stmt >>= or_die "reset metadata" >>= fun () ->
+    read (-1) >>= fun again -> assert (again = original);
+    exec "ALTER TABLE metadata_test MODIFY unsigned_value BIGINT NULL" >>= fun () ->
+    read (-1) >>= fun changed ->
+    let expected = [
+      [| ("signed_value", false, `Int64 (-1L));
+         ("unsigned_value", true, `Int64 4294967296L);
+         ("text_value", true, `String "first") |];
+      [| ("signed_value", false, `Int64 2L);
+         ("unsigned_value", true, `Int64 0L);
+         ("text_value", true, `Null) |]
+    ] in
+    assert (changed = expected);
+    assert (first = original);
+    M.Stmt.close stmt >>= or_die "close metadata select" >>= fun () ->
+    exec "ALTER TABLE metadata_test CHANGE unsigned_value renamed BIGINT NULL, ADD extra VARCHAR(10) NOT NULL DEFAULT 'new'" >>= fun () ->
+    M.prepare dbh "SELECT * FROM metadata_test ORDER BY signed_value" >>= or_die "explicit reprepare metadata" >>= fun stmt ->
+    M.Stmt.execute stmt [||] >>= or_die "execute reprepared metadata" >>= fun res ->
+    M.Res.fetch (module M.Row.Array) res >>= or_die "fetch reprepared metadata" >>= fun row ->
+    let row = Option.get row in
+    assert (Array.map M.Field.name row = [|"signed_value"; "renamed"; "text_value"; "extra"|]);
+    assert (M.Field.value row.(1) = `Int64 4294967296L);
+    assert (M.Field.value row.(3) = `String "new");
+    M.Stmt.close stmt >>= or_die "close reprepared metadata" >>= fun () ->
+    assert (first = original);
+    M.close dbh
+
+  let test_result_handles () =
+    connect () >>= or_die "connect handles" >>= fun dbh ->
+    M.prepare dbh "SELECT 1 AS id, 'first' AS text_value UNION ALL SELECT 2, 'second'"
+    >>= or_die "prepare handles" >>= fun stmt ->
+    M.Stmt.execute stmt [||] >>= or_die "execute handles" >>= fun res ->
+    M.Res.fetch (module M.Row.Array) res >>= or_die "fetch first handles" >>= fun first ->
+    let first = Option.get first in
+    let id_handle = first.(0) and text_handle = first.(1) in
+    let first_text = M.Field.value text_handle in
+    assert (first_text = `String "first");
+    first.(1) <- first.(0);
+    M.Res.fetch (module M.Row.Array) res >>= or_die "fetch second handles" >>= fun second ->
+    let second = Option.get second in
+    assert (first != second);
+    assert (id_handle == second.(0));
+    assert (text_handle == second.(1));
+    assert (M.Field.value text_handle = `String "second");
+    assert (first_text = `String "first");
+    let second_text = M.Field.value second.(1) in
+    M.Stmt.reset stmt >>= or_die "reset handles" >>= fun () ->
+    M.Stmt.execute stmt [||] >>= or_die "reexecute handles" >>= fun res ->
+    M.Res.fetch (module M.Row.Map) res >>= or_die "fetch map handles" >>= fun map ->
+    let map = Option.get map in
+    let new_text = M.Row.StringMap.find "text_value" map in
+    assert (new_text != text_handle);
+    assert (M.Field.value new_text = `String "first");
+    M.Res.fetch (module M.Row.Hashtbl) res >>= or_die "fetch hashtbl handles" >>= fun table ->
+    let table = Option.get table in
+    assert (Hashtbl.find table "text_value" == new_text);
+    assert (M.Field.value (Hashtbl.find table "text_value") = `String "second");
+    M.Stmt.close stmt >>= or_die "close handles" >>= fun () ->
+    M.close dbh >|= fun () ->
+    assert (first_text = `String "first");
+    assert (second_text = `String "second")
+
   let main () =
+    test_result_handles () >>= fun () ->
+    test_result_metadata () >>= fun () ->
     test_server_properties () >>= fun () ->
     test_sqlstate () >>= fun () ->
     test_insert_id () >>= fun () ->
