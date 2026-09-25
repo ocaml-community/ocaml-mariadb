@@ -391,6 +391,68 @@ struct
     M.Stmt.close select_stmt >>= or_die "Stmt.close select" >>= fun () ->
     M.close dbh
 
+  let test_field_copy () =
+    connect () >>= or_die "connect" >>= fun dbh ->
+    M.exec dbh "SET NAMES utf8mb4" >>= or_die "set names" >>= fun _ ->
+    M.exec dbh
+      "CREATE TEMPORARY TABLE field_copy \
+       (id INTEGER PRIMARY KEY, t VARCHAR(8192) CHARACTER SET utf8mb4, b LONGBLOB)"
+      >>= or_die "create field_copy" >>= fun _ ->
+    let all_bytes = Bytes.init 256 Char.chr in
+    let cases = [
+      None, None;
+      Some "", Some Bytes.empty;
+      Some "Café 商店 🛒\000after NUL", Some all_bytes;
+      Some (String.make 8000 'x'),
+        Some (Bytes.init 256000 (fun i -> Char.chr (i land 255)));
+      Some "short", Some (Bytes.of_string "\000");
+      Some "", Some Bytes.empty;
+      None, None;
+    ] in
+    M.prepare dbh "INSERT INTO field_copy VALUES (?, ?, ?)"
+      >>= or_die "prepare insert" >>= fun insert_stmt ->
+    iter_s_list (fun (id, (text, binary)) ->
+      let text = match text with None -> `Null | Some s -> `String s in
+      let binary = match binary with None -> `Null | Some b -> `Bytes b in
+      M.Stmt.execute insert_stmt [|`Int id; text; binary|]
+        >>= or_die "insert field_copy" >|= fun _ -> ())
+      (List.mapi (fun i pair -> i, pair) cases) >>= fun () ->
+    M.Stmt.close insert_stmt >>= or_die "close insert" >>= fun () ->
+    M.prepare dbh "SELECT t, b FROM field_copy ORDER BY id"
+      >>= or_die "prepare select" >>= fun select_stmt ->
+    let fetch_all () =
+      M.Stmt.execute select_stmt [||] >>= or_die "select field_copy" >>= fun res ->
+      let rec fetch acc =
+        M.Res.fetch (module M.Row.Array) res >>= or_die "fetch field_copy"
+          >>= function
+        | None -> return (List.rev acc)
+        | Some row ->
+           let pair = M.Field.string_opt row.(0), M.Field.bytes_opt row.(1) in
+           fetch (pair :: acc)
+      in
+      fetch []
+    in
+    fetch_all () >>= fun first ->
+    fetch_all () >>= fun second ->
+    M.Stmt.close select_stmt >>= or_die "close select" >>= fun () ->
+    (* An empty-only result also exercises zero-sized result buffers. *)
+    M.prepare dbh "SELECT t, b FROM field_copy WHERE id = 1"
+      >>= or_die "prepare empty select" >>= fun empty_stmt ->
+    M.Stmt.execute empty_stmt [||] >>= or_die "empty select" >>= fun res ->
+    fetch_single_row res >>= fun row ->
+    assert (M.Field.string row.(0) = "");
+    assert (M.Field.bytes row.(1) = Bytes.empty);
+    M.Stmt.close empty_stmt >>= or_die "close empty select" >>= fun () ->
+    M.close dbh >|= fun () ->
+    (* Values must own their bytes after later fetches and buffer destruction. *)
+    assert (first = cases);
+    assert (second = cases);
+    match List.nth first 2 with
+    | _, Some bytes ->
+       Bytes.set bytes 0 'X';
+       assert (second = cases)
+    | _ -> assert false
+
   (* Make sure the conversion between timestamps and strings are consistent
    * between MariaDB and OCaml. By sending timestamps to be compared as binary
    * and as string, this also verifies the MYSQL_TIME encoding. *)
@@ -625,6 +687,7 @@ struct
     test_exec () >>= fun () ->
     test_exec_no_stmt_prepare () >>= fun () ->
     test_blob_roundtrip () >>= fun () ->
+    test_field_copy () >>= fun () ->
     test_json () >>= fun () ->
     test_many_select () >>= fun () ->
     test_integer () >>= fun () -> test_bigint ()

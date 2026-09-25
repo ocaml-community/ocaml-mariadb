@@ -47,9 +47,10 @@ let to_bytes field =
   let buf = buffer field in
   let r = field.result in
   let lp = r.Bind.length +@ field.at in
-  let len = Unsigned.ULong.to_int !@lp in
+  let length = Unsigned.ULong.to_int !@lp in
   let p = coerce (ptr void) (ptr char) buf in
-  Bytes.init len (fun i -> !@(p +@ i))
+  if length = 0 then Bytes.empty
+  else Bytes.unsafe_of_string (string_from_ptr p ~length)
 
 let to_time field kind =
   let buf = buffer field in
