@@ -234,6 +234,7 @@ module Res = struct
     { result  : Bind.t
     ; raw     : B.res
     ; buffers : unit ptr array
+    ; fields  : Field.t array
     }
 
   type 'm u =
@@ -243,8 +244,13 @@ module Res = struct
     }
   type 'm t = 'm u constraint 'm = [< mode]
 
+  let fetch_field raw i =
+    coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct raw i)
+
   let meta result raw buffers =
-    { result; raw; buffers }
+    let fields = Array.init result.Bind.n (fun i ->
+      Field.create result (fetch_field raw i) i) in
+    { result; raw; buffers; fields }
 
   let create ~mariadb ~stmt ?meta () =
     { mariadb; stmt; meta }
@@ -258,16 +264,11 @@ module Res = struct
   let insert_id res =
     B.mysql_stmt_insert_id res.stmt
 
-  let fetch_field raw i =
-    coerce (ptr void) (ptr T.Field.t) (B.mysql_fetch_field_direct raw i)
-
   let build_row (type t) (module R : Row.S with type t = t) res =
     Option.map
-      (fun {result; raw; _} ->
+      (fun {result; fields; _} ->
         R.build result.Bind.n
-          (fun i ->
-            let fp = fetch_field raw i in
-            Field.create result fp i))
+          (fun i -> fields.(i)))
       res.meta
 end
 

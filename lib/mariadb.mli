@@ -46,7 +46,10 @@ module type S = sig
   (** This module defines a database field retrieved by a query. *)
   module Field : sig
     type t
-      (** The type of fields. *)
+      (** A handle to a column in the current result buffer. Handles may be
+          reused between rows of the same result, so retaining a field does not
+          retain its current value. Decode values before fetching the next row,
+          and do not access fields after result cleanup, reset or re-execution. *)
 
     type value =
       [ `Null
