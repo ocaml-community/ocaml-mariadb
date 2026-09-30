@@ -1,3 +1,9 @@
+## 2.2.0 - 2026-09-30
+
+  - Bulk-copy string and blob result fields (#75 by Albert Peschar).
+  - Reuse column field handles within each result (#76 by Albert Peschar).
+  - Avoid second copy of string result fields (#77 by Albert Peschar).
+
 ## 2.1.0 - 2026-08-26
 
   - Added support for text protocol (non-prepared) execution of statements
