@@ -14,42 +14,52 @@ type value =
   ]
 
 type t =
-  { result : Bind.t
+  { result : Bind.t (* Retain ownership of the binding arrays and buffers. *)
   ; pointer : T.Field.t ptr
-  ; at : int
+  ; null_pointer : char ptr
+  ; length_pointer : Unsigned.ulong ptr
+  ; buffer_pointer : unit ptr ptr
+  ; typ : Bind.buffer_type
+  ; unsigned : bool
   }
 
 let create result pointer at =
-  { result; pointer; at }
+  (* Type and signedness are fixed for this result column. Cache only addresses
+     for row-specific cells, whose contents must still be read on each row. *)
+  let binding = result.Bind.bind +@ at in
+  let view = !@binding in
+  { result; pointer
+  ; null_pointer = result.Bind.is_null +@ at
+  ; length_pointer = result.Bind.length +@ at
+  ; buffer_pointer = binding |-> T.Bind.buffer
+  ; typ = Bind.buffer_type_of_int (getf view T.Bind.buffer_type)
+  ; unsigned = getf view T.Bind.is_unsigned = '\001'
+  }
 
 let name field =
   getf (!@(field.pointer)) T.Field.name
 
 let null_value field =
-  !@(field.result.Bind.is_null +@ field.at) = '\001'
+  !@(field.null_pointer) = '\001'
 
 let can_be_null field =
   let flags = getf (!@(field.pointer)) T.Field.flags in
   Unsigned.UInt.logand flags T.Field.Flags.not_null = Unsigned.UInt.zero
 
-let is_unsigned field =
-  let bp = field.result.Bind.bind +@ field.at in
-  getf (!@bp) T.Bind.is_unsigned = '\001'
-
 let buffer field =
-  let bp = field.result.Bind.bind +@ field.at in
-  getf (!@bp) T.Bind.buffer
+  !@(field.buffer_pointer)
 
 let cast_to typ field =
-  !@(coerce (ptr void) (ptr typ) (buffer field))
+  (* The buffer is already a void pointer: avoid constructing a general-purpose
+     Ctypes coercion for each scalar read. *)
+  !@(from_voidp typ (buffer field))
 
 let to_string field =
-  let lp = field.result.Bind.length +@ field.at in
-  let length = Unsigned.ULong.to_int !@lp in
+  let length = Unsigned.ULong.to_int !@(field.length_pointer) in
   match length with
   | 0 -> ""
   | _ ->
-    let p = coerce (ptr void) (ptr char) (buffer field) in
+    let p = from_voidp char (buffer field) in
     string_from_ptr p ~length
 
 let to_bytes field =
@@ -59,7 +69,7 @@ let to_bytes field =
 
 let to_time field kind =
   let buf = buffer field in
-  let tp = coerce (ptr void) (ptr T.Time.t) buf in
+  let tp = from_voidp T.Time.t buf in
   let member f = Unsigned.UInt.to_int @@ getf (!@tp) f in
   let member_long f = Unsigned.ULong.to_int @@ getf (!@tp) f in
   { Time.
@@ -101,11 +111,8 @@ let convert field typ unsigned =
   | #to_time as t,        _ -> `Time (to_time field t)
 
 let value field =
-  let bp = field.result.Bind.bind +@ field.at in
   if null_value field then `Null
-  else
-    let typ = Bind.buffer_type_of_int @@ getf (!@bp) T.Bind.buffer_type in
-    convert field typ (is_unsigned field)
+  else convert field field.typ field.unsigned
 
 let err field ~info =
   failwith @@ "field '" ^ name field ^ "' is not " ^ info
