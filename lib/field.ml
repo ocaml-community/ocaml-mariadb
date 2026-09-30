@@ -14,26 +14,10 @@ type value =
   ]
 
 type t =
-  { result : Bind.t (* Retain ownership of the binding arrays and buffers. *)
+  { result : Bind.t
   ; pointer : T.Field.t ptr
   ; null_pointer : char ptr
-  ; length_pointer : Unsigned.ulong ptr
-  ; buffer_pointer : unit ptr ptr
-  ; typ : Bind.buffer_type
-  ; unsigned : bool
-  }
-
-let create result pointer at =
-  (* Type and signedness are fixed for this result column. Cache only addresses
-     for row-specific cells, whose contents must still be read on each row. *)
-  let binding = result.Bind.bind +@ at in
-  let view = !@binding in
-  { result; pointer
-  ; null_pointer = result.Bind.is_null +@ at
-  ; length_pointer = result.Bind.length +@ at
-  ; buffer_pointer = binding |-> T.Bind.buffer
-  ; typ = Bind.buffer_type_of_int (getf view T.Bind.buffer_type)
-  ; unsigned = getf view T.Bind.is_unsigned = '\001'
+  ; read : unit -> value
   }
 
 let name field =
@@ -46,30 +30,20 @@ let can_be_null field =
   let flags = getf (!@(field.pointer)) T.Field.flags in
   Unsigned.UInt.logand flags T.Field.Flags.not_null = Unsigned.UInt.zero
 
-let buffer field =
-  !@(field.buffer_pointer)
+let cast_to typ buffer_pointer = !@(from_voidp typ !@buffer_pointer)
 
-let cast_to typ field =
-  (* The buffer is already a void pointer: avoid constructing a general-purpose
-     Ctypes coercion for each scalar read. *)
-  !@(from_voidp typ (buffer field))
+let to_string buffer_pointer length_pointer =
+  let length = Unsigned.ULong.to_int !@length_pointer in
+  if length = 0 then ""
+  else string_from_ptr (from_voidp char !@buffer_pointer) ~length
 
-let to_string field =
-  let length = Unsigned.ULong.to_int !@(field.length_pointer) in
-  match length with
-  | 0 -> ""
-  | _ ->
-    let p = from_voidp char (buffer field) in
-    string_from_ptr p ~length
-
-let to_bytes field =
-  match to_string field with
+let to_bytes buffer_pointer length_pointer =
+  match to_string buffer_pointer length_pointer with
   | "" -> Bytes.empty
   | s -> Bytes.unsafe_of_string s
 
-let to_time field kind =
-  let buf = buffer field in
-  let tp = from_voidp T.Time.t buf in
+let to_time buffer_pointer kind =
+  let tp = from_voidp T.Time.t !@buffer_pointer in
   let member f = Unsigned.UInt.to_int @@ getf (!@tp) f in
   let member_long f = Unsigned.ULong.to_int @@ getf (!@tp) f in
   { Time.
@@ -90,29 +64,39 @@ type to_time   = [`Time | `Date | `Datetime | `Timestamp]
  * therefore * included it in to_blob above, so that the representation is
  * consitent in the public API. *)
 
-let convert field typ unsigned =
+let decoder buffer_pointer length_pointer typ unsigned =
   let open Signed in
   let open Unsigned in
   match typ, unsigned with
-  | `Null,                _ -> `Null
+  | `Null,                _ -> (fun () -> `Null)
   | `Year,                _
-  | `Tiny,             true -> `Int (int_of_char (cast_to char field))
-  | `Tiny,            false -> `Int (cast_to schar field)
-  | `Short,            true -> `Int (cast_to int field)
-  | `Short,           false -> `Int (UInt.to_int (cast_to uint field))
-  | (`Int24 | `Long),  true -> `Int (UInt32.to_int (cast_to uint32_t field))
-  | (`Int24 | `Long), false -> `Int (Int32.to_int (cast_to int32_t field))
-  | `Long_long,        true -> `UInt64 (cast_to uint64_t field)
-  | `Long_long,       false -> `Int64 (cast_to int64_t field)
-  | `Float,               _ -> `Float (cast_to float field)
-  | `Double,              _ -> `Float (cast_to double field)
-  | #to_string,           _ -> `String (to_string field)
-  | #to_blob,             _ -> `Bytes (to_bytes field)
-  | #to_time as t,        _ -> `Time (to_time field t)
+  | `Tiny,             true -> (fun () -> `Int (int_of_char (cast_to char buffer_pointer)))
+  | `Tiny,            false -> (fun () -> `Int (cast_to schar buffer_pointer))
+  | `Short,            true -> (fun () -> `Int (cast_to int buffer_pointer))
+  | `Short,           false -> (fun () -> `Int (UInt.to_int (cast_to uint buffer_pointer)))
+  | (`Int24 | `Long),  true -> (fun () -> `Int (UInt32.to_int (cast_to uint32_t buffer_pointer)))
+  | (`Int24 | `Long), false -> (fun () -> `Int (Int32.to_int (cast_to int32_t buffer_pointer)))
+  | `Long_long,        true -> (fun () -> `UInt64 (cast_to uint64_t buffer_pointer))
+  | `Long_long,       false -> (fun () -> `Int64 (cast_to int64_t buffer_pointer))
+  | `Float,               _ -> (fun () -> `Float (cast_to float buffer_pointer))
+  | `Double,              _ -> (fun () -> `Float (cast_to double buffer_pointer))
+  | #to_string,           _ -> (fun () -> `String (to_string buffer_pointer length_pointer))
+  | #to_blob,             _ -> (fun () -> `Bytes (to_bytes buffer_pointer length_pointer))
+  | #to_time as kind,     _ -> (fun () -> `Time (to_time buffer_pointer kind))
+
+let create result pointer at =
+  let binding = result.Bind.bind +@ at in
+  let view = !@binding in
+  let null_pointer = result.Bind.is_null +@ at in
+  let length_pointer = result.Bind.length +@ at in
+  let buffer_pointer = binding |-> T.Bind.buffer in
+  let typ = Bind.buffer_type_of_int (getf view T.Bind.buffer_type) in
+  let unsigned = getf view T.Bind.is_unsigned = '\001' in
+  let decode = decoder buffer_pointer length_pointer typ unsigned in
+  { result; pointer; null_pointer; read = decode }
 
 let value field =
-  if null_value field then `Null
-  else convert field field.typ field.unsigned
+  if null_value field then `Null else field.read ()
 
 let err field ~info =
   failwith @@ "field '" ^ name field ^ "' is not " ^ info
