@@ -64,7 +64,7 @@ let connect_start mariadb =
   let open Common in
   handle_opt mariadb
     (B.mysql_real_connect_start
-      mariadb.raw
+      (raw mariadb)
       mariadb.host
       mariadb.user
       mariadb.pass
@@ -75,46 +75,46 @@ let connect_start mariadb =
 
 let connect_cont mariadb status =
   handle_opt mariadb
-    (B.mysql_real_connect_cont mariadb.Common.raw (Status.to_int status))
+    (B.mysql_real_connect_cont (Common.raw mariadb) (Status.to_int status))
 
 let connect mariadb =
   (connect_start mariadb, connect_cont mariadb)
 
 let close_start mariadb =
-  handle_void (B.mysql_close_start mariadb.Common.raw)
+  handle_void (B.mysql_close_start (Common.raw mariadb))
 
 let close_cont mariadb status =
-  handle_void (B.mysql_close_cont mariadb.Common.raw status)
+  handle_void (B.mysql_close_cont (Common.raw mariadb) status)
 
 let close mariadb =
   (close_start mariadb, close_cont mariadb)
 
 let fd mariadb =
-  Obj.magic @@ B.mysql_get_socket mariadb.Common.raw
+  Obj.magic @@ B.mysql_get_socket (Common.raw mariadb)
 
 let timeout mariadb =
-  B.mysql_get_timeout_value mariadb.Common.raw
+  B.mysql_get_timeout_value (Common.raw mariadb)
 
 let timeout_ms mariadb =
-  B.mysql_get_timeout_value_ms mariadb.Common.raw
+  B.mysql_get_timeout_value_ms (Common.raw mariadb)
 
 let set_character_set_start mariadb =
   let charset = Option.some mariadb.Common.charset in
   handle_int mariadb
-    (B.mysql_set_character_set_start mariadb.Common.raw charset)
+    (B.mysql_set_character_set_start (Common.raw mariadb) charset)
 
 let set_character_set_cont mariadb status =
-  handle_int mariadb (B.mysql_set_character_set_cont mariadb.Common.raw status)
+  handle_int mariadb (B.mysql_set_character_set_cont (Common.raw mariadb) status)
 
 let set_character_set mariadb =
   (set_character_set_start mariadb, set_character_set_cont mariadb)
 
 let select_db_start mariadb =
   let db = Option.some mariadb.Common.db in
-  handle_int mariadb (B.mysql_select_db_start mariadb.Common.raw db)
+  handle_int mariadb (B.mysql_select_db_start (Common.raw mariadb) db)
 
 let select_db_cont mariadb status =
-  handle_int mariadb (B.mysql_select_db_cont mariadb.Common.raw status)
+  handle_int mariadb (B.mysql_select_db_cont (Common.raw mariadb) status)
 
 let select_db mariadb =
   (select_db_start mariadb, select_db_cont mariadb)
@@ -123,56 +123,56 @@ let change_user_start mariadb =
   let user = Option.some mariadb.Common.user in
   let pass = Option.some mariadb.Common.pass in
   handle_char mariadb
-    (B.mysql_change_user_start mariadb.Common.raw user pass mariadb.Common.db)
+    (B.mysql_change_user_start (Common.raw mariadb) user pass mariadb.Common.db)
 
 let change_user_cont mariadb status =
-  handle_char mariadb (B.mysql_change_user_cont mariadb.Common.raw status)
+  handle_char mariadb (B.mysql_change_user_cont (Common.raw mariadb) status)
 
 let change_user mariadb =
   (change_user_start mariadb, change_user_cont mariadb)
 
 let set_server_option_start mariadb opt =
   let opt = Common.int_of_server_option opt in
-  handle_int mariadb (B.mysql_set_server_option_start mariadb.Common.raw opt)
+  handle_int mariadb (B.mysql_set_server_option_start (Common.raw mariadb) opt)
 
 let set_server_option_cont mariadb status =
-  handle_int mariadb (B.mysql_set_server_option_cont mariadb.Common.raw status)
+  handle_int mariadb (B.mysql_set_server_option_cont (Common.raw mariadb) status)
 
 let set_server_option mariadb opt =
   (set_server_option_start mariadb opt, set_server_option_cont mariadb)
 
 let ping_start mariadb =
-  handle_int mariadb (B.mysql_ping_start mariadb.Common.raw)
+  handle_int mariadb (B.mysql_ping_start (Common.raw mariadb))
 
 let ping_cont mariadb status =
-  handle_int mariadb (B.mysql_ping_cont mariadb.Common.raw status)
+  handle_int mariadb (B.mysql_ping_cont (Common.raw mariadb) status)
 
 let ping mariadb =
   (ping_start mariadb, ping_cont mariadb)
 
 let autocommit_start mariadb auto =
-  handle_char mariadb (B.mysql_autocommit_start mariadb.Common.raw auto)
+  handle_char mariadb (B.mysql_autocommit_start (Common.raw mariadb) auto)
 
 let autocommit_cont mariadb status =
-  handle_char mariadb (B.mysql_autocommit_cont mariadb.Common.raw status)
+  handle_char mariadb (B.mysql_autocommit_cont (Common.raw mariadb) status)
 
 let autocommit mariadb auto =
   (autocommit_start mariadb auto, autocommit_cont mariadb)
 
 let commit_start mariadb =
-  handle_char mariadb (B.mysql_commit_start mariadb.Common.raw)
+  handle_char mariadb (B.mysql_commit_start (Common.raw mariadb))
 
 let commit_cont mariadb status =
-  handle_char mariadb (B.mysql_commit_cont mariadb.Common.raw status)
+  handle_char mariadb (B.mysql_commit_cont (Common.raw mariadb) status)
 
 let commit mariadb =
   (commit_start mariadb, commit_cont mariadb)
 
 let rollback_start mariadb =
-  handle_char mariadb (B.mysql_rollback_start mariadb.Common.raw)
+  handle_char mariadb (B.mysql_rollback_start (Common.raw mariadb))
 
 let rollback_cont mariadb status =
-  handle_char mariadb (B.mysql_rollback_cont mariadb.Common.raw status)
+  handle_char mariadb (B.mysql_rollback_cont (Common.raw mariadb) status)
 
 let rollback mariadb =
   (rollback_start mariadb, rollback_cont mariadb)
@@ -188,10 +188,10 @@ let text_query query =
   }
 
 let real_query_start mariadb q =
-  handle_int mariadb (B.mysql_real_query_start mariadb.Common.raw q.query q.len)
+  handle_int mariadb (B.mysql_real_query_start (Common.raw mariadb) q.query q.len)
 
 let real_query_cont mariadb _q status =
-  handle_int mariadb (B.mysql_real_query_cont mariadb.Common.raw status)
+  handle_int mariadb (B.mysql_real_query_cont (Common.raw mariadb) status)
 
 let real_query mariadb query =
   let q = text_query query in
@@ -726,8 +726,8 @@ module Make (W : Wait) : S with type 'a future = 'a W.IO.future = struct
   let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) ?(options=[]) () =
     match init () with
     | Some raw ->
-        let mariadb = Common.
-          { raw
+        let mariadb : _ Common.t =
+          { raw     = Some raw
           ; host    = char_ptr_opt_buffer_of_string host
           ; port    = port
           ; user    = char_ptr_opt_buffer_of_string user

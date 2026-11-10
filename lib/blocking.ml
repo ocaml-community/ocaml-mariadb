@@ -77,15 +77,15 @@ type exec_result = Common.exec_result =
   }
 
 let close mariadb =
-  B.mysql_close mariadb.Common.raw
+  B.mysql_close (Common.raw mariadb)
 
 let library_end = Common.library_end
 
 let connect ?host ?user ?pass ?db ?(port=0) ?socket ?(flags=[]) ?(options=[]) () =
   let flags = Common.int_of_flags flags in
   let connect raw =
-    let mariadb = Common.
-      { raw
+    let mariadb : _ Common.t =
+      { raw     = Some raw
       ; host    = char_ptr_opt_buffer_of_string host
       ; port    = port
       ; user    = char_ptr_opt_buffer_of_string user
@@ -110,12 +110,12 @@ let wrap_unit mariadb = function
 let set_character_set mariadb charset =
   let charset = char_ptr_buffer_of_string charset in
   mariadb.Common.charset <- Some charset;
-  wrap_unit mariadb (B.mysql_set_character_set mariadb.Common.raw charset)
+  wrap_unit mariadb (B.mysql_set_character_set (Common.raw mariadb) charset)
 
 let select_db mariadb db =
   let db = char_ptr_buffer_of_string db in
   mariadb.Common.db <- Some db;
-  wrap_unit mariadb (B.mysql_select_db mariadb.Common.raw db)
+  wrap_unit mariadb (B.mysql_select_db (Common.raw mariadb) db)
 
 let change_user mariadb user pass db =
   let user = char_ptr_buffer_of_string user in
@@ -124,7 +124,7 @@ let change_user mariadb user pass db =
   mariadb.Common.pass <- Some pass;
   mariadb.Common.db <- char_ptr_opt_buffer_of_string db;
   wrap_unit mariadb
-    (B.mysql_change_user mariadb.Common.raw user pass mariadb.Common.db)
+    (B.mysql_change_user (Common.raw mariadb) user pass mariadb.Common.db)
 
 let get_server_info = Common.get_server_info
 let get_server_version = Common.get_server_version
@@ -136,19 +136,19 @@ let set_client_option =
 
 let set_server_option mariadb opt =
   let opt = Common.int_of_server_option opt in
-  wrap_unit mariadb (B.mysql_set_server_option mariadb.Common.raw opt)
+  wrap_unit mariadb (B.mysql_set_server_option (Common.raw mariadb) opt)
 
 let ping mariadb =
-  wrap_unit mariadb (B.mysql_ping mariadb.Common.raw)
+  wrap_unit mariadb (B.mysql_ping (Common.raw mariadb))
 
 let autocommit mariadb auto =
-  wrap_unit mariadb (B.mysql_autocommit mariadb.Common.raw auto)
+  wrap_unit mariadb (B.mysql_autocommit (Common.raw mariadb) auto)
 
 let commit mariadb =
-  wrap_unit mariadb (B.mysql_commit mariadb.Common.raw)
+  wrap_unit mariadb (B.mysql_commit (Common.raw mariadb))
 
 let rollback mariadb =
-  wrap_unit mariadb (B.mysql_rollback mariadb.Common.raw)
+  wrap_unit mariadb (B.mysql_rollback (Common.raw mariadb))
 
 let prepare mariadb query =
   let build_stmt raw =
@@ -161,10 +161,11 @@ let prepare mariadb query =
   | None -> Error (2008, "out of memory")
 
 let start_txn mariadb =
-  wrap_unit mariadb (B.mysql_real_query mariadb.Common.raw "START TRANSACTION")
+  wrap_unit mariadb
+    (B.mysql_real_query (Common.raw mariadb) "START TRANSACTION")
 
 let exec mariadb query =
-  match wrap_unit mariadb (B.mysql_real_query mariadb.Common.raw query) with
+  match wrap_unit mariadb (B.mysql_real_query (Common.raw mariadb) query) with
   | Error e -> Error e
   | Ok () ->
       match Common.query_result mariadb with

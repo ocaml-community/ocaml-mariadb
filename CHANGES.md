@@ -1,3 +1,8 @@
+## 2.2.1 - 2026-11-10
+
+  - Further optimised decoding (#78 by Albert Peschar).
+  - Raise exception on attempt to use a closed handle.
+
 ## 2.2.0 - 2026-09-30
 
   - Bulk-copy string and blob result fields (#75 by Albert Peschar).

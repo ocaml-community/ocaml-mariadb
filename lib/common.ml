@@ -8,7 +8,7 @@ module Field = Field
 
 type mode = [`Blocking | `Nonblocking]
 type 'm t =
-  { raw             : B.mysql
+  { mutable raw     : B.mysql option
   ; host            : char Ctypes.ptr option
   ; port            : int
   ; mutable user    : char Ctypes.ptr option
@@ -87,19 +87,24 @@ type exec_result =
   ; insert_id     : int
   }
 
+let raw mariadb =
+  match mariadb.raw with
+  | None -> failwith "Attempt to operate on a closed connection."
+  | Some raw -> raw
+
 let error mariadb =
-  (B.mysql_errno mariadb.raw, B.mysql_error mariadb.raw)
+  (B.mysql_errno (raw mariadb), B.mysql_error (raw mariadb))
 
 let query_result mariadb =
-  if B.mysql_field_count mariadb.raw = 0 then
-    Ok { affected_rows = B.mysql_affected_rows mariadb.raw
-       ; insert_id     = B.mysql_insert_id mariadb.raw
+  if B.mysql_field_count (raw mariadb) = 0 then
+    Ok { affected_rows = B.mysql_affected_rows (raw mariadb)
+       ; insert_id     = B.mysql_insert_id (raw mariadb)
        }
   else
-    Error (B.mysql_use_result mariadb.raw)
+    Error (B.mysql_use_result (raw mariadb))
 
 let sqlstate mariadb =
-  B.mysql_sqlstate mariadb.raw
+  B.mysql_sqlstate (raw mariadb)
 
 let int_of_server_option = function
   | Multi_statements true -> T.Server_options.multi_statements_on
@@ -195,8 +200,8 @@ let set_client_option mariadb opt =
     | Enable_cleartext_plugin b ->
         `Opt (T.Options.enable_cleartext_plugin, voidp_of_bool b) in
   match opt with
-  | `Opt (opt, arg) -> B.mysql_options mariadb.raw opt arg
-  | `Opt4 (opt, arg1, arg2) -> B.mysql_options4 mariadb.raw opt arg1 arg2
+  | `Opt (opt, arg) -> B.mysql_options (raw mariadb) opt arg
+  | `Opt4 (opt, arg1, arg2) -> B.mysql_options4 (raw mariadb) opt arg1 arg2
 
 let int_of_flag = function
   | Found_rows -> T.Flags.found_rows
@@ -216,16 +221,16 @@ let int_of_flags =
   List.fold_left (fun acc flag -> Int32.logor acc (int_of_flag flag)) 0l
 
 let get_server_info mariadb =
-  B.mysql_get_server_info mariadb.raw
+  B.mysql_get_server_info (raw mariadb)
 
 let get_server_version mariadb =
-  Unsigned.ULong.to_int (B.mysql_get_server_version mariadb.raw)
+  Unsigned.ULong.to_int (B.mysql_get_server_version (raw mariadb))
 
 let get_host_info mariadb =
-  B.mysql_get_host_info mariadb.raw
+  B.mysql_get_host_info (raw mariadb)
 
 let get_proto_info mariadb =
-  Unsigned.UInt.to_int (B.mysql_get_proto_info mariadb.raw)
+  Unsigned.UInt.to_int (B.mysql_get_proto_info (raw mariadb))
 
 module Res = struct
   open Ctypes
@@ -273,7 +278,7 @@ module Res = struct
 end
 
 let stmt_init mariadb =
-  match B.mysql_stmt_init mariadb.raw with
+  match B.mysql_stmt_init (raw mariadb) with
   | Some stmt ->
       B.mysql_stmt_attr_set_bool stmt T.Stmt_attr.update_max_length true;
       Some stmt
